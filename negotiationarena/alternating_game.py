@@ -39,6 +39,7 @@ class AlternatingGame(Game):
         log_dir: str = ".logs",
         log_path=None,
         iterations: int = 8,
+        **_,
     ):
         super().__init__(players=players, log_dir=log_dir, log_path=log_path)
 
@@ -289,7 +290,7 @@ class AlternatingGameEndsOnTag(AlternatingGame):
     """
 
     def __init__(
-        self, players: List[List], log_dir=".logs", log_path=None, iterations=8
+        self, players: List[List], log_dir=".logs", log_path=None, iterations=8, **_
     ):
         super().__init__(
             players=players,

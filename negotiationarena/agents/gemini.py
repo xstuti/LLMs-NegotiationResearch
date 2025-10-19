@@ -6,6 +6,7 @@ from negotiationarena.constants import AGENT_TWO, AGENT_ONE
 from copy import deepcopy
 import google.generativeai as genai
 
+
 class GeminiAgent(Agent):
     def __init__(
         self,
@@ -14,6 +15,7 @@ class GeminiAgent(Agent):
         temperature=0.7,
         max_tokens=1000,
         seed=None,
+        **_,
     ):
         super().__init__(agent_name)
         self.run_epoch_time_ms = str(round(time.time() * 1000))
@@ -25,7 +27,7 @@ class GeminiAgent(Agent):
             if seed is None
             else seed
         )
-        
+
         # Configure Gemini
         genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
         self.client = genai.GenerativeModel(self.model)
@@ -66,15 +68,15 @@ class GeminiAgent(Agent):
                 prompt += f"User: {msg['content']}\n\n"
             elif msg["role"] == "assistant":
                 prompt += f"Assistant: {msg['content']}\n\n"
-        
+
         response = self.client.generate_content(
             prompt,
             generation_config=genai.types.GenerationConfig(
                 temperature=self.temperature,
                 max_output_tokens=self.max_tokens,
-            )
+            ),
         )
-        
+
         return response.text
 
     def update_conversation_tracking(self, role, message):

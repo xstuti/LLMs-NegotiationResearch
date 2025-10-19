@@ -8,6 +8,7 @@ from negotiationarena.logging import GameDecoder
 from negotiationarena.game_objects.game import Game
 from games import *
 from negotiationarena.constants import *
+from games.buy_sell_game.game import BuySellGame
 
 
 import json

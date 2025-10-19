@@ -11,7 +11,7 @@ class Agent(ABC):
 
     agent_class = __qualname__
 
-    def __init__(self, agent_name: str):
+    def __init__(self, agent_name: str, **_):
         """
         Base agent class, all agents should inherit from this class. Class
         is abstract and provides a template for the methods that should be
