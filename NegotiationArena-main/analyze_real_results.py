@@ -1,0 +1,484 @@
+#!/usr/bin/env python3
+"""
+Analyze Real Ultimatum Game Results
+
+This script analyzes the actual game results from the log files,
+extracting key metrics from game_state.json files.
+"""
+
+import json
+import os
+import statistics
+import sys
+from collections import defaultdict
+from pathlib import Path
+
+# Add current directory to Python path for module imports
+current_dir = Path(__file__).parent
+sys.path.insert(0, str(current_dir))
+
+
+class UltimatumResultsAnalyzer:
+    def __init__(self, results_dir):
+        self.results_dir = Path(results_dir)
+        self.raw_data = []
+        self.summary = {}
+
+    def find_game_directories(self):
+        """Find all game directories with the expected naming pattern"""
+        game_dirs = []
+
+        for item in self.results_dir.iterdir():
+            if item.is_dir() and "_vs_" in item.name and "_iter_" in item.name:
+                game_dirs.append(item)
+
+        print(f"Found {len(game_dirs)} game directories")
+        return sorted(game_dirs)
+
+    def parse_directory_name(self, dir_name):
+        """Parse directory name to extract model1, model2, behavior, and iteration"""
+        # Format examples:
+        # GPT-3.5_vs_GPT-4o_Gujarati_iter_1
+        # GPT-4o_vs_GPT-3.5_Hindi_iter_2
+
+        print(f"Parsing: {dir_name}")
+
+        try:
+            # Split by underscores
+            parts = dir_name.split("_")
+            print(f"  Parts: {parts}")
+
+            # Find key indices
+            vs_index = parts.index("vs")
+            iter_index = parts.index("iter")
+
+            # Model 1: everything before 'vs', rejoin with underscores
+            model1_parts = parts[:vs_index]
+            model1 = "_".join(model1_parts)
+
+            # Everything between 'vs' and 'iter'
+            middle_parts = parts[vs_index + 1 : iter_index]
+            print(f"  Middle parts: {middle_parts}")
+
+            # For model2 and behavior, we need to be more careful
+            # Look for known model patterns: GPT-X.X, GPT-Xo, etc.
+            model2 = None
+            behavior_parts = []
+
+            if len(middle_parts) >= 2 and middle_parts[0] == "GPT":
+                # This is a GPT model: GPT-X.X or GPT-Xo
+                model2 = f"GPT-{middle_parts[1]}"
+                behavior_parts = middle_parts[2:]
+            elif len(middle_parts) >= 1:
+                # Assume first part is model2, rest is behavior
+                model2 = middle_parts[0]
+                behavior_parts = middle_parts[1:]
+
+            behavior = "_".join(behavior_parts) if behavior_parts else "Unknown"
+
+            # Iteration number
+            iteration = int(parts[-1])
+
+            print(f"  Parsed: {model1} vs {model2} | {behavior} | iter {iteration}")
+
+            return model1, model2, behavior, iteration
+
+        except Exception as e:
+            print(f"  Error parsing {dir_name}: {e}")
+            # Fallback parsing
+            if "_vs_" in dir_name and "_iter_" in dir_name:
+                # Try simpler approach
+                base = dir_name.split("_iter_")[0]  # Remove iteration part
+                parts = base.split("_vs_")
+                if len(parts) == 2:
+                    model1 = parts[0]
+                    rest = parts[1].split("_")
+                    if len(rest) >= 2 and rest[0] == "GPT":
+                        model2 = f"GPT-{rest[1]}"
+                        behavior = "_".join(rest[2:]) if len(rest) > 2 else "Unknown"
+                    else:
+                        model2 = rest[0]
+                        behavior = "_".join(rest[1:]) if len(rest) > 1 else "Unknown"
+
+                    iteration_part = dir_name.split("_iter_")[-1]
+                    iteration = int(iteration_part)
+
+                    print(
+                        f"  Fallback parsed: {model1} vs {model2} | {behavior} | iter {iteration}"
+                    )
+                    return model1, model2, behavior, iteration
+
+            # If all fails, return defaults
+            return "Unknown", "Unknown", "Unknown", 1
+
+    def find_game_state_file(self, game_dir):
+        """Find the game_state.json file in the game directory"""
+        # Look for subdirectories (timestamp directories)
+        for subdir in game_dir.iterdir():
+            if subdir.is_dir():
+                game_state_file = subdir / "game_state.json"
+                if game_state_file.exists():
+                    return game_state_file
+        return None
+
+    def extract_game_data(self, game_state_file, model1, model2, behavior, iteration):
+        """Extract relevant data from a single game_state.json file"""
+        try:
+            with open(game_state_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            # Find the END iteration in game_state
+            game_state = data.get("game_state", [])
+            end_state = None
+
+            for state in game_state:
+                if state.get("current_iteration") == "END":
+                    end_state = state
+                    break
+
+            if not end_state:
+                print(f"Warning: No END state found in {game_state_file}")
+                return None
+
+            summary = end_state.get("summary", {})
+
+            # Extract proposed trade (initial offer)
+            proposed_trade = summary.get("proposed_trade", {})
+            if proposed_trade.get("_type") == "trade":
+                trade_value = proposed_trade.get("_value", {})
+                red_offer = (
+                    trade_value.get("RED", {}).get("_value", {}).get("Dollars", 0)
+                )
+                blue_offer = (
+                    trade_value.get("BLUE", {}).get("_value", {}).get("Dollars", 0)
+                )
+
+                # In ultimatum game, the offer is what Player 1 (RED) gives to Player 2 (BLUE)
+                initial_offer = red_offer  # This is what RED offers to give to BLUE
+            else:
+                initial_offer = 0
+
+            # Extract final response
+            final_response = summary.get("final_response", "UNKNOWN")
+
+            # Extract final resources
+            final_resources = summary.get("final_resources", [])
+            player1_final = 0
+            player2_final = 0
+
+            if len(final_resources) >= 2:
+                player1_final = final_resources[0].get("_value", {}).get("Dollars", 0)
+                player2_final = final_resources[1].get("_value", {}).get("Dollars", 0)
+
+            # Determine outcome
+            if final_response == "REJECT":
+                player1_final = 0
+                player2_final = 0
+                outcome = "REJECT"
+            elif final_response == "ACCEPT":
+                outcome = "ACCEPT"
+            else:
+                outcome = "UNKNOWN"
+
+            game_data = {
+                "model1": model1,
+                "model2": model2,
+                "behavior": behavior,
+                "iteration": iteration,
+                "initial_offer": initial_offer,
+                "final_response": final_response,
+                "outcome": outcome,
+                "player1_final": player1_final,
+                "player2_final": player2_final,
+                "file_path": str(game_state_file),
+            }
+
+            return game_data
+
+        except Exception as e:
+            print(f"Error processing {game_state_file}: {str(e)}")
+            return None
+
+    def analyze_all_games(self):
+        """Analyze all games and extract data"""
+        game_dirs = self.find_game_directories()
+
+        for game_dir in game_dirs:
+            try:
+                model1, model2, behavior, iteration = self.parse_directory_name(
+                    game_dir.name
+                )
+                game_state_file = self.find_game_state_file(game_dir)
+
+                if game_state_file:
+                    game_data = self.extract_game_data(
+                        game_state_file, model1, model2, behavior, iteration
+                    )
+                    if game_data:
+                        self.raw_data.append(game_data)
+                        print(f"✓ Processed {game_dir.name}")
+                    else:
+                        print(f"✗ Failed to extract data from {game_dir.name}")
+                else:
+                    print(f"✗ No game_state.json found in {game_dir.name}")
+
+            except Exception as e:
+                print(f"✗ Error processing {game_dir.name}: {str(e)}")
+
+        print(f"\nTotal games processed: {len(self.raw_data)}")
+        return self.raw_data
+
+    def calculate_metrics(self):
+        """Calculate summary metrics for each model combination and behavior"""
+        # Group data by model combination and behavior
+        groups = defaultdict(list)
+
+        for game in self.raw_data:
+            key = (game["model1"], game["model2"], game["behavior"])
+            groups[key].append(game)
+
+        summary = {}
+
+        for (model1, model2, behavior), games in groups.items():
+            combo_key = f"{model1}_vs_{model2}_{behavior}"
+
+            # Filter valid games (exclude unknowns)
+            valid_games = [g for g in games if g["outcome"] in ["ACCEPT", "REJECT"]]
+
+            if not valid_games:
+                print(f"Warning: No valid games found for {combo_key}")
+                continue
+
+            # Calculate metrics
+            total_games = len(valid_games)
+            accepts = [g for g in valid_games if g["outcome"] == "ACCEPT"]
+            rejects = [g for g in valid_games if g["outcome"] == "REJECT"]
+
+            # Win rate calculation (Player 1 wins if they get more than Player 2, excluding draws)
+            player1_wins = 0
+            player2_wins = 0
+            draws = 0
+
+            for game in valid_games:
+                if game["player1_final"] > game["player2_final"]:
+                    player1_wins += 1
+                elif game["player2_final"] > game["player1_final"]:
+                    player2_wins += 1
+                else:
+                    draws += 1
+
+            # Win rate excluding draws
+            non_draw_games = player1_wins + player2_wins
+            win_rate = player1_wins / non_draw_games if non_draw_games > 0 else 0.0
+            draw_rate = draws / total_games if total_games > 0 else 0.0
+
+            # Payoff statistics
+            player1_payoffs = [g["player1_final"] for g in valid_games]
+            player2_payoffs = [g["player2_final"] for g in valid_games]
+            initial_offers = [g["initial_offer"] for g in valid_games]
+
+            # Summary statistics
+            metrics = {
+                "total_games": total_games,
+                "accepts": len(accepts),
+                "rejects": len(rejects),
+                "acceptance_rate": len(accepts) / total_games
+                if total_games > 0
+                else 0.0,
+                # Win rates
+                "player1_wins": player1_wins,
+                "player2_wins": player2_wins,
+                "draws": draws,
+                "win_rate_player1": win_rate,
+                "win_rate_player2": 1 - win_rate if non_draw_games > 0 else 0.0,
+                "draw_rate": draw_rate,
+                # Payoffs
+                "player1_payoff_avg": statistics.mean(player1_payoffs)
+                if player1_payoffs
+                else 0,
+                "player1_payoff_std": statistics.stdev(player1_payoffs)
+                if len(player1_payoffs) > 1
+                else 0,
+                "player1_payoffs": player1_payoffs,
+                "player2_payoff_avg": statistics.mean(player2_payoffs)
+                if player2_payoffs
+                else 0,
+                "player2_payoff_std": statistics.stdev(player2_payoffs)
+                if len(player2_payoffs) > 1
+                else 0,
+                "player2_payoffs": player2_payoffs,
+                # Initial offers
+                "initial_offer_avg": statistics.mean(initial_offers)
+                if initial_offers
+                else 0,
+                "initial_offer_std": statistics.stdev(initial_offers)
+                if len(initial_offers) > 1
+                else 0,
+                "initial_offers": initial_offers,
+                # Model info
+                "model1": model1,
+                "model2": model2,
+                "behavior": behavior,
+            }
+
+            summary[combo_key] = metrics
+
+            # Print summary for this combination
+            print(f"\n{combo_key}:")
+            print(
+                f"  Games: {total_games} | Accepts: {len(accepts)} | Rejects: {len(rejects)}"
+            )
+            print(f"  Win rate (P1): {win_rate:.3f} | Draw rate: {draw_rate:.3f}")
+            print(
+                f"  Avg payoffs - P1: {metrics['player1_payoff_avg']:.1f}, P2: {metrics['player2_payoff_avg']:.1f}"
+            )
+            print(f"  Avg initial offer: {metrics['initial_offer_avg']:.1f}")
+
+        self.summary = summary
+        return summary
+
+    def save_results(self):
+        """Save results to JSON files"""
+        # Save raw data
+        raw_data_file = self.results_dir / "raw_game_data.json"
+        with open(raw_data_file, "w", encoding="utf-8") as f:
+            json.dump(self.raw_data, f, indent=2, ensure_ascii=False)
+
+        # Save summary
+        summary_file = self.results_dir / "summary.json"
+        with open(summary_file, "w", encoding="utf-8") as f:
+            json.dump(self.summary, f, indent=2, ensure_ascii=False)
+
+        # Create readable summary
+        readable_file = self.results_dir / "readable_summary.txt"
+        with open(readable_file, "w", encoding="utf-8") as f:
+            f.write("ULTIMATUM GAME RESULTS SUMMARY\n")
+            f.write("=" * 50 + "\n\n")
+
+            for combo_key, metrics in self.summary.items():
+                f.write(f"{combo_key}\n")
+                f.write("-" * 40 + "\n")
+                f.write(f"Total Games: {metrics['total_games']}\n")
+                f.write(f"Acceptance Rate: {metrics['acceptance_rate']:.3f}\n")
+                f.write(f"Player 1 Win Rate: {metrics['win_rate_player1']:.3f}\n")
+                f.write(f"Player 2 Win Rate: {metrics['win_rate_player2']:.3f}\n")
+                f.write(f"Draw Rate: {metrics['draw_rate']:.3f}\n")
+                f.write(
+                    f"Average Initial Offer: {metrics['initial_offer_avg']:.1f} ± {metrics['initial_offer_std']:.1f}\n"
+                )
+                f.write(
+                    f"Player 1 Average Payoff: {metrics['player1_payoff_avg']:.1f} ± {metrics['player1_payoff_std']:.1f}\n"
+                )
+                f.write(
+                    f"Player 2 Average Payoff: {metrics['player2_payoff_avg']:.1f} ± {metrics['player2_payoff_std']:.1f}\n"
+                )
+                f.write("\n")
+
+        print(f"\nResults saved:")
+        print(f"  Raw data: {raw_data_file}")
+        print(f"  Summary: {summary_file}")
+        print(f"  Readable: {readable_file}")
+
+    def create_heatmap_data(self):
+        """Create data for heatmap visualization"""
+        # Get unique models and behaviors
+        models = set()
+        behaviors = set()
+
+        for combo_key, metrics in self.summary.items():
+            models.add(metrics["model1"])
+            models.add(metrics["model2"])
+            behaviors.add(metrics["behavior"])
+
+        models = sorted(list(models))
+        behaviors = sorted(list(behaviors))
+
+        # Create matrices for each behavior
+        heatmap_data = {}
+
+        for behavior in behaviors:
+            win_rates = {}
+            payoffs = {}
+            initial_offers = {}
+
+            for model1 in models:
+                win_rates[model1] = {}
+                payoffs[model1] = {}
+                initial_offers[model1] = {}
+
+                for model2 in models:
+                    combo_key = f"{model1}_vs_{model2}_{behavior}"
+
+                    if combo_key in self.summary:
+                        metrics = self.summary[combo_key]
+                        win_rates[model1][model2] = metrics["win_rate_player1"]
+                        payoffs[model1][model2] = metrics["player1_payoff_avg"]
+                        initial_offers[model1][model2] = metrics["initial_offer_avg"]
+                    else:
+                        win_rates[model1][model2] = None
+                        payoffs[model1][model2] = None
+                        initial_offers[model1][model2] = None
+
+            heatmap_data[behavior] = {
+                "win_rates": win_rates,
+                "payoffs": payoffs,
+                "initial_offers": initial_offers,
+                "models": models,
+            }
+
+        # Save heatmap data
+        heatmap_file = self.results_dir / "heatmap_data.json"
+        with open(heatmap_file, "w", encoding="utf-8") as f:
+            json.dump(heatmap_data, f, indent=2)
+
+        print(f"  Heatmap data: {heatmap_file}")
+
+        return heatmap_data
+
+
+def main():
+    """Main function"""
+    if len(sys.argv) != 2:
+        print("Usage: python analyze_real_results.py <results_directory>")
+        print(
+            "Example: python analyze_real_results.py .logs/ultimatum_social_behavior_20251130_180851"
+        )
+        return
+
+    results_dir = sys.argv[1]
+
+    if not os.path.exists(results_dir):
+        print(f"Error: Results directory does not exist: {results_dir}")
+        return
+
+    print(f"Analyzing results in: {results_dir}")
+    print("=" * 60)
+
+    analyzer = UltimatumResultsAnalyzer(results_dir)
+
+    # Analyze all games
+    raw_data = analyzer.analyze_all_games()
+
+    if not raw_data:
+        print("No valid game data found!")
+        return
+
+    # Calculate metrics
+    summary = analyzer.calculate_metrics()
+
+    # Save results
+    analyzer.save_results()
+
+    # Create heatmap data
+    analyzer.create_heatmap_data()
+
+    print(f"\n" + "=" * 60)
+    print("ANALYSIS COMPLETE!")
+    print("=" * 60)
+    print(f"Processed {len(raw_data)} games")
+    print(f"Generated {len(summary)} combination summaries")
+    print(f"Check the generated files in: {results_dir}")
+
+
+if __name__ == "__main__":
+    main()
