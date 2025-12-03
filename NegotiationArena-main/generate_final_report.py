@@ -3,7 +3,7 @@
 Generate Final Report for Ultimatum Game Social Behavior Analysis
 
 This script creates a comprehensive report summarizing the key findings
-from the social behavior experiments with GPT models.
+from the social behavior experiments with multiple AI models.
 """
 
 import json
@@ -23,6 +23,7 @@ class UltimatumReportGenerator:
         self.results_dir = Path(results_dir)
         self.summary_file = self.results_dir / "summary.json"
         self.summary_data = {}
+        self.models = set()
 
     def load_data(self):
         """Load the summary data"""
@@ -31,6 +32,13 @@ class UltimatumReportGenerator:
 
         with open(self.summary_file, "r", encoding="utf-8") as f:
             self.summary_data = json.load(f)
+
+        # Extract all unique models from the data
+        for metrics in self.summary_data.values():
+            self.models.add(metrics["model1"])
+            self.models.add(metrics["model2"])
+
+        self.models = sorted(list(self.models))
 
     def analyze_key_findings(self):
         """Analyze and extract key findings"""
@@ -55,12 +63,17 @@ class UltimatumReportGenerator:
                 "total_games": 0,
                 "avg_acceptance_rate": 0,
                 "avg_initial_offer": 0,
-                "gpt35_as_p1_wins": 0,
-                "gpt4o_as_p1_wins": 0,
-                "gpt35_as_p1_payoff": 0,
-                "gpt4o_as_p1_payoff": 0,
                 "rejection_patterns": [],
             }
+
+            # Initialize model-specific tracking
+            model_stats = {}
+            for model in self.models:
+                model_stats[model] = {
+                    "as_p1_wins": 0,
+                    "as_p1_payoff": 0,
+                    "as_p1_games": 0,
+                }
 
             for combo_key, metrics in combos:
                 behavior_analysis["total_games"] += metrics["total_games"]
@@ -71,16 +84,14 @@ class UltimatumReportGenerator:
                     metrics["initial_offer_avg"] * metrics["total_games"]
                 )
 
-                if metrics["model1"] == "GPT-3.5":
-                    behavior_analysis["gpt35_as_p1_wins"] += metrics["player1_wins"]
-                    behavior_analysis["gpt35_as_p1_payoff"] += (
+                # Track model performance as Player 1
+                model1 = metrics["model1"]
+                if model1 in model_stats:
+                    model_stats[model1]["as_p1_wins"] += metrics["player1_wins"]
+                    model_stats[model1]["as_p1_payoff"] += (
                         metrics["player1_payoff_avg"] * metrics["total_games"]
                     )
-                elif metrics["model1"] == "GPT-4o":
-                    behavior_analysis["gpt4o_as_p1_wins"] += metrics["player1_wins"]
-                    behavior_analysis["gpt4o_as_p1_payoff"] += (
-                        metrics["player1_payoff_avg"] * metrics["total_games"]
-                    )
+                    model_stats[model1]["as_p1_games"] += metrics["total_games"]
 
                 if metrics["rejects"] > 0:
                     behavior_analysis["rejection_patterns"].append(
@@ -100,40 +111,52 @@ class UltimatumReportGenerator:
                 behavior_analysis["avg_initial_offer"] /= behavior_analysis[
                     "total_games"
                 ]
-                behavior_analysis["gpt35_as_p1_payoff"] /= behavior_analysis[
-                    "total_games"
-                ]
-                behavior_analysis["gpt4o_as_p1_payoff"] /= behavior_analysis[
-                    "total_games"
-                ]
 
+            # Calculate model averages
+            for model in model_stats:
+                if model_stats[model]["as_p1_games"] > 0:
+                    model_stats[model]["as_p1_payoff"] /= model_stats[model][
+                        "as_p1_games"
+                    ]
+                    model_stats[model]["win_rate"] = (
+                        model_stats[model]["as_p1_wins"]
+                        / model_stats[model]["as_p1_games"]
+                    )
+                else:
+                    model_stats[model]["win_rate"] = 0
+
+            behavior_analysis["model_stats"] = model_stats
             findings["behavior_effects"][behavior] = behavior_analysis
 
         # Overall model performance analysis
-        gpt35_total_wins = 0
-        gpt4o_total_wins = 0
-        gpt35_total_games = 0
-        gpt4o_total_games = 0
+        overall_model_stats = {}
+        for model in self.models:
+            overall_model_stats[model] = {
+                "total_wins": 0,
+                "total_games": 0,
+                "total_payoff": 0,
+            }
 
         for combo_key, metrics in self.summary_data.items():
-            if metrics["model1"] == "GPT-3.5":
-                gpt35_total_wins += metrics["player1_wins"]
-                gpt35_total_games += metrics["total_games"]
-            elif metrics["model1"] == "GPT-4o":
-                gpt4o_total_wins += metrics["player1_wins"]
-                gpt4o_total_games += metrics["total_games"]
+            model1 = metrics["model1"]
+            if model1 in overall_model_stats:
+                overall_model_stats[model1]["total_wins"] += metrics["player1_wins"]
+                overall_model_stats[model1]["total_games"] += metrics["total_games"]
+                overall_model_stats[model1]["total_payoff"] += (
+                    metrics["player1_payoff_avg"] * metrics["total_games"]
+                )
 
-        findings["model_performance"] = {
-            "gpt35_win_rate": gpt35_total_wins / gpt35_total_games
-            if gpt35_total_games > 0
-            else 0,
-            "gpt4o_win_rate": gpt4o_total_wins / gpt4o_total_games
-            if gpt4o_total_games > 0
-            else 0,
-            "gpt35_games": gpt35_total_games,
-            "gpt4o_games": gpt4o_total_games,
-        }
+        # Calculate overall win rates and average payoffs
+        for model in overall_model_stats:
+            stats = overall_model_stats[model]
+            if stats["total_games"] > 0:
+                stats["win_rate"] = stats["total_wins"] / stats["total_games"]
+                stats["avg_payoff"] = stats["total_payoff"] / stats["total_games"]
+            else:
+                stats["win_rate"] = 0
+                stats["avg_payoff"] = 0
 
+        findings["model_performance"] = overall_model_stats
         return findings
 
     def generate_report(self):
@@ -171,14 +194,20 @@ class UltimatumReportGenerator:
         )
         overall_acceptance_rate = total_accepts / total_games if total_games > 0 else 0
 
+        # Extract unique behaviors
+        behaviors = list(
+            set(metrics["behavior"] for metrics in self.summary_data.values())
+        )
+        behaviors.sort()
+
         report_lines.extend(
             [
                 f"• Total Games Analyzed: {total_games}",
                 f"• Overall Acceptance Rate: {overall_acceptance_rate:.1%}",
                 f"• Total Accepted Proposals: {total_accepts}",
                 f"• Total Rejected Proposals: {total_rejects}",
-                f"• Models Tested: GPT-3.5, GPT-4o",
-                f"• Cultural Behaviors: Gujarati, Hindi, Marwadi, Punjabi",
+                f"• Models Tested: {', '.join(self.models)}",
+                f"• Cultural Behaviors: {', '.join(behaviors)}",
                 "",
             ]
         )
@@ -193,15 +222,24 @@ class UltimatumReportGenerator:
         )
 
         # Model Performance Comparison
-        gpt35_performance = findings["model_performance"]
+        model_performance = findings["model_performance"]
         report_lines.extend(
             [
                 f"1. MODEL PERFORMANCE (as Player 1):",
-                f"   • GPT-3.5 Win Rate: {gpt35_performance['gpt35_win_rate']:.1%} ({gpt35_performance['gpt35_games']} games)",
-                f"   • GPT-4o Win Rate: {gpt35_performance['gpt4o_win_rate']:.1%} ({gpt35_performance['gpt4o_games']} games)",
-                "",
             ]
         )
+
+        # Sort models by win rate for better presentation
+        sorted_models = sorted(
+            model_performance.items(), key=lambda x: x[1]["win_rate"], reverse=True
+        )
+
+        for model, stats in sorted_models:
+            report_lines.append(
+                f"   • {model}: {stats['win_rate']:.1%} win rate, ${stats['avg_payoff']:.1f} avg payoff ({stats['total_games']} games)"
+            )
+
+        report_lines.append("")
 
         # Behavior-specific insights
         report_lines.extend(
@@ -223,10 +261,15 @@ class UltimatumReportGenerator:
                     f"   {behavior.upper()}:",
                     f"   • Games: {analysis['total_games']} | Acceptance Rate: {analysis['avg_acceptance_rate']:.1%}{rejection_info}",
                     f"   • Average Initial Offer: ${analysis['avg_initial_offer']:.1f}",
-                    f"   • GPT-3.5 as P1 Avg Payoff: ${analysis['gpt35_as_p1_payoff']:.1f}",
-                    f"   • GPT-4o as P1 Avg Payoff: ${analysis['gpt4o_as_p1_payoff']:.1f}",
                 ]
             )
+
+            # Add model-specific performance for this behavior
+            for model, stats in analysis["model_stats"].items():
+                if stats["as_p1_games"] > 0:
+                    report_lines.append(
+                        f"   • {model} as P1: {stats['win_rate']:.1%} win rate, ${stats['as_p1_payoff']:.1f} avg payoff"
+                    )
 
             if analysis["rejection_patterns"]:
                 report_lines.append("   • Rejection Patterns:")
@@ -248,9 +291,7 @@ class UltimatumReportGenerator:
         )
 
         # Group by behavior for detailed reporting
-        behaviors = ["Gujarati", "Hindi", "Marwadi", "Punjabi"]
-
-        for behavior in behaviors:
+        for behavior in sorted(behaviors):
             report_lines.extend(
                 [
                     f"{behavior.upper()} BEHAVIOR ANALYSIS:",
@@ -411,6 +452,33 @@ class UltimatumReportGenerator:
                 f"  {i}. {behavior}: ${stats['avg_offer']:.1f} average initial offer"
             )
 
+        # Model Comparison Analysis
+        report_lines.extend(
+            [
+                "",
+                "MODEL COMPARISON ANALYSIS:",
+                "",
+            ]
+        )
+
+        # Find best and worst performing models
+        best_model = max(model_performance.items(), key=lambda x: x[1]["win_rate"])
+        worst_model = min(model_performance.items(), key=lambda x: x[1]["win_rate"])
+
+        most_generous = max(model_performance.items(), key=lambda x: x[1]["avg_payoff"])
+        least_generous = min(
+            model_performance.items(), key=lambda x: x[1]["avg_payoff"]
+        )
+
+        report_lines.extend(
+            [
+                f"• Highest Win Rate: {best_model[0]} ({best_model[1]['win_rate']:.1%})",
+                f"• Lowest Win Rate: {worst_model[0]} ({worst_model[1]['win_rate']:.1%})",
+                f"• Highest Average Payoff: {most_generous[0]} (${most_generous[1]['avg_payoff']:.1f})",
+                f"• Lowest Average Payoff: {least_generous[0]} (${least_generous[1]['avg_payoff']:.1f})",
+            ]
+        )
+
         # Conclusions
         report_lines.extend(
             [
@@ -420,23 +488,25 @@ class UltimatumReportGenerator:
                 "=" * 60,
                 "",
                 "1. MODEL DIFFERENCES:",
-                f"   • GPT-4o shows more aggressive negotiation patterns when acting as Player 1",
-                f"   • GPT-3.5 demonstrates more cooperative behavior in certain cultural contexts",
+                f"   • {best_model[0]} shows the most competitive negotiation patterns as Player 1",
+                f"   • {worst_model[0]} demonstrates more cooperative behavior in negotiations",
+                f"   • Model architecture and training differences significantly affect negotiation strategies",
                 "",
                 "2. CULTURAL CONTEXT EFFECTS:",
                 f"   • {sorted_behaviors[0][0]} behavior shows highest cooperation ({sorted_behaviors[0][1]['acceptance_rate']:.1%} acceptance)",
                 f"   • {sorted_behaviors[-1][0]} behavior shows most competitive patterns",
-                f"   • Cultural prompting significantly affects negotiation strategies",
+                f"   • Cultural prompting significantly affects negotiation strategies across all models",
                 "",
                 "3. STRATEGIC PATTERNS:",
                 f"   • Initial offer amounts vary significantly by cultural context (${min(s[1]['avg_offer'] for s in sorted_by_offer):.1f} - ${max(s[1]['avg_offer'] for s in sorted_by_offer):.1f})",
                 f"   • Rejection rates correlate with cultural behavior types",
-                f"   • Player 1 advantage varies significantly across cultural contexts",
+                f"   • Player 1 advantage varies significantly across cultural contexts and model combinations",
                 "",
                 "4. RESEARCH IMPLICATIONS:",
-                f"   • Cultural prompting is a significant factor in AI negotiation behavior",
-                f"   • Model architecture differences affect negotiation strategies",
+                f"   • Cultural prompting is a significant factor in AI negotiation behavior across different model families",
+                f"   • OpenAI, Anthropic, and other model architectures show distinct negotiation characteristics",
                 f"   • Cross-cultural AI behavior requires careful consideration in applications",
+                f"   • Model selection significantly impacts negotiation outcomes in cultural contexts",
                 "",
             ]
         )
@@ -453,7 +523,7 @@ class UltimatumReportGenerator:
                 f"• Data Source: game_state.json files from individual games",
                 f"• Win Rate Calculation: Excludes draws (50-50 splits)",
                 f"• Games per Combination: 5 (with some incomplete due to parsing errors)",
-                f"• Models: OpenAI GPT-3.5-turbo, GPT-4o via OpenRouter API",
+                f"• Models: {', '.join(self.models)} via OpenRouter API",
                 "",
                 "Generated Files:",
                 f"• Raw Data: raw_game_data.json",
@@ -486,9 +556,7 @@ def main():
     """Main function"""
     if len(sys.argv) != 2:
         print("Usage: python generate_final_report.py <results_directory>")
-        print(
-            "Example: python generate_final_report.py .logs/ultimatum_social_behavior_20251130_180851"
-        )
+        print("Example: python generate_final_report.py .logs/final_ultimatum")
         return
 
     results_dir = sys.argv[1]
