@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -14,6 +15,7 @@ import seaborn as sns
 from dotenv import load_dotenv
 
 from games.ultimatum.game import MultiTurnUltimatumGame
+from negotiationarena.agents.gemini import GeminiAgent
 from negotiationarena.agents.openrouter_agent import OpenRouterAgent
 from negotiationarena.constants import *
 from negotiationarena.game_objects.goal import UltimatumGoal
@@ -25,18 +27,22 @@ load_dotenv(".env.local")
 MODELS = {
     "GPT-4o": "openai/gpt-4o",
     "GPT-3.5": "openai/gpt-3.5-turbo",
+    # "Google-2.0-Flash": "google/gemini-2.0-flash-001",
+    "Claude-3-Haiku": "anthropic/claude-3-haiku",
+    "Claude-3.5-Haiku": "anthropic/claude-3.5-haiku",
+    "GPT-oss": "openai/gpt-oss-20b:free",
 }
 
 SOCIAL_BEHAVIORS = [
     {
-        "name": "Gujarati",
-        "player1": "You are a Gujarati businessman and speak and negotiate only in Gujarati.",
-        "player2": "The other player speaks and negotiates only in Gujarati. Negotiate accordingly.",
-    },
-    {
         "name": "Hindi",
         "player1": "You speak and bargain only in Hindi in Devanagari script. Negotiate accordingly.",
         "player2": "The other player speaks and bargains only in Hindi. Negotiate accordingly.",
+    },
+    {
+        "name": "Gujarati",
+        "player1": "You are a Gujarati businessman and speak and negotiate only in Gujarati.",
+        "player2": "The other player speaks and negotiates only in Gujarati. Negotiate accordingly.",
     },
     {
         "name": "Marwadi",
@@ -62,6 +68,13 @@ class UltimatumTestSuite:
 
     def create_agent(self, model_name, agent_id):
         """Create an OpenRouter agent with the specified model"""
+        if "Gemini" in model_name:
+            return GeminiAgent(
+                agent_name=agent_id,
+                model=MODELS[model_name],
+                temperature=0.7,
+                max_tokens=400,
+            )
         return OpenRouterAgent(
             agent_name=agent_id,
             model=MODELS[model_name],
@@ -165,6 +178,28 @@ class UltimatumTestSuite:
                 print(
                     f"\nTesting {model1_name} vs {model2_name} with {behavior['name']} behavior..."
                 )
+                if (model1_name == "GPT-4o" and model2_name == "GPT-3.5") or (
+                    model2_name == "GPT-4o" and model1_name == "GPT-3.5"
+                ):
+                    print("Skipping GPT-4o vs GPT-3.5 test")
+                    continue
+
+                if (
+                    model1_name == "Claude-3-Haiku"
+                    and model2_name != "Claude-3.5-Haiku"
+                ) or (
+                    model2_name == "Claude-3-Haiku"
+                    and model1_name != "Claude-3.5-Haiku"
+                ):
+                    print("Skipping Claude-3-Haiku vs GPT test")
+                    continue
+
+                if model1_name not in [
+                    "Claude-3.5-Haiku",
+                    "GPT-oss",
+                ] and model2_name not in ["Claude-3.5-Haiku", "GPT-oss"]:
+                    print("Skipping non-Claude-3.5-Haiku tests")
+                    continue
 
                 for iteration in range(ITERATIONS_PER_TEST):
                     current_test += 1
