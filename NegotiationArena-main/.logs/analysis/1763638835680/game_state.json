@@ -1,0 +1,419 @@
+{
+  "class": "TradingGame",
+  "run_epoch_time_ms": "1763638835680",
+  "players": [
+    {
+      "class": "OpenRouterAgent",
+      "model": "openai/gpt-3.5-turbo",
+      "agent_name": "Player RED",
+      "prompt_entity_initializer": "system",
+      "run_epoch_time_ms": "1763638835609",
+      "conversation": [
+        {
+          "role": "system",
+          "content": "You are playing a strategic game of trading resources with another player whose resources you have no knowledge about. \n\nRULES:\n```\n\n1. You can either:\n\nA) Accept the trade by saying:\n<player answer> ACCEPT </player answer>\n<newly proposed trade> NONE </newly proposed trade>\n\nB) Reject and propose a new trade (you can only trade integer amounts, not decimals):\n<player answer> NONE </player answer>\n<newly proposed trade> Player RED Gives item1: amount, item2: amount, ... | Player BLUE Gives item1: amount, item2: amount, ... </newly proposed trade>\n\nC) Don't accept or propose anything and wait for a new offer:\n\n<player answer> NONE </player answer>\n<newly proposed trade> NONE </newly proposed trade>\n\n\nNote: the game will end if one of the players accepts. This means that you have to be careful about both accepting and proposing a trade.\n\n2. You are allowed at most 2 proposals of your own to complete the game, after which you can only ACCEPT or NONE.\nDO NOT propose a new trade after 2 proposals. Your limit for proposals is 2.\n\n3. You can reason step by step by using the following format:\n<reason> [add reasoning] </reason>\nAdd as much text as you want. This information will not be sent to the other player. \nIt is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n<message> [add message] </message>\nYou can decide if you want disclose your resources and goals in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: X, Y\n<my resources> X: 25, Y: 5 </my resources>\n<my goals> X: 15, Y: 15 </my goals>\n<my name> Player RED </my name>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nMore resources in general are always better.\nThis is the last round of trading. There are no future rounds after this one.\n\n\n"
+        },
+        {
+          "role": "user",
+          "content": "You are Player RED, start by making a proposal."
+        },
+        {
+          "role": "assistant",
+          "content": "```\n<my name> Player RED </my name>\n<my resources> X: 25, Y: 5 </my resources>\n<my goals> X: 15, Y: 15 </my goals>\n<reason> Starting the trade by proposing a trade to meet my goals. </reason>\n<player answer> NONE </player answer>\n<message> Hi Player BLUE, I propose the following trade to help us both reach our goals: I give 10 units of X in exchange for 10 units of Y. What do you think? </message>\n<newly proposed trade> Player RED Gives X: 10 | Player BLUE Gives Y: 10 </newly proposed trade>\n```"
+        }
+      ],
+      "seed": 1763638863795,
+      "client": "OpenAI",
+      "temperature": 0.7,
+      "max_tokens": 400
+    },
+    {
+      "class": "OpenRouterAgent",
+      "model": "openai/chatgpt-4o-latest",
+      "agent_name": "Player BLUE",
+      "prompt_entity_initializer": "system",
+      "run_epoch_time_ms": "1763638835674",
+      "conversation": [
+        {
+          "role": "system",
+          "content": "You are playing a strategic game of trading resources with another player whose resources you have no knowledge about. \n\nRULES:\n```\n\n1. You can either:\n\nA) Accept the trade by saying:\n<player answer> ACCEPT </player answer>\n<newly proposed trade> NONE </newly proposed trade>\n\nB) Reject and propose a new trade (you can only trade integer amounts, not decimals):\n<player answer> NONE </player answer>\n<newly proposed trade> Player RED Gives item1: amount, item2: amount, ... | Player BLUE Gives item1: amount, item2: amount, ... </newly proposed trade>\n\nC) Don't accept or propose anything and wait for a new offer:\n\n<player answer> NONE </player answer>\n<newly proposed trade> NONE </newly proposed trade>\n\n\nNote: the game will end if one of the players accepts. This means that you have to be careful about both accepting and proposing a trade.\n\n2. You are allowed at most 2 proposals of your own to complete the game, after which you can only ACCEPT or NONE.\nDO NOT propose a new trade after 2 proposals. Your limit for proposals is 2.\n\n3. You can reason step by step by using the following format:\n<reason> [add reasoning] </reason>\nAdd as much text as you want. This information will not be sent to the other player. \nIt is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n<message> [add message] </message>\nYou can decide if you want disclose your resources and goals in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: X, Y\n<my resources> X: 5, Y: 25 </my resources>\n<my goals> X: 15, Y: 15 </my goals>\n<my name> Player BLUE </my name>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nMore resources in general are always better.\nThis is the last round of trading. There are no future rounds after this one.\n\n\nYou are Player BLUE, start by responding to a trade."
+        },
+        {
+          "role": "user",
+          "content": "<other player message> Hi Player BLUE, I propose the following trade to help us both reach our goals: I give 10 units of X in exchange for 10 units of Y. What do you think? </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives X: 10 | Player BLUE Gives Y: 10 </other player proposed trade>\n"
+        },
+        {
+          "role": "assistant",
+          "content": "```\n<my name> Player BLUE </my name>\n<my resources> X: 5, Y: 25 </my resources>\n<my goals> X: 15, Y: 15 </my goals>\n<reason> I currently have only 5 units of X, but I need 15. This trade gives me 10 more X, which gets me exactly to my goal of 15 X. I would be giving away 10 Y, which would leave me with 15 Y\u2014exactly what I need for my Y goal. So this trade perfectly satisfies both of my goals. Additionally, since this is the last round and this trade achieves my goals, it makes sense to accept it. </reason>\n<player answer> ACCEPT </player answer>\n<message> This trade helps me reach both of my goals exactly. Thanks! I'm accepting. </message>\n<newly proposed trade> NONE </newly proposed trade>\n```"
+        }
+      ],
+      "seed": 1763638865133,
+      "client": "OpenAI",
+      "temperature": 0.7,
+      "max_tokens": 400
+    }
+  ],
+  "game_state": [
+    {
+      "current_iteration": "START",
+      "turn": "None",
+      "settings": {
+        "resources_support_set": {
+          "_type": "resource",
+          "_value": {
+            "X": 0,
+            "Y": 0
+          }
+        },
+        "player_goals": [
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "resource_goal",
+              "_value": {
+                "X": 15,
+                "Y": 15
+              }
+            }
+          },
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "resource_goal",
+              "_value": {
+                "X": 15,
+                "Y": 15
+              }
+            }
+          }
+        ],
+        "player_initial_resources": [
+          {
+            "_type": "resource",
+            "_value": {
+              "X": 25,
+              "Y": 5
+            }
+          },
+          {
+            "_type": "resource",
+            "_value": {
+              "X": 5,
+              "Y": 25
+            }
+          }
+        ],
+        "player_social_behaviour": [
+          "",
+          ""
+        ],
+        "player_roles": [
+          "You are Player RED, start by making a proposal.",
+          "You are Player BLUE, start by responding to a trade."
+        ]
+      }
+    },
+    {
+      "current_iteration": 1,
+      "turn": 0,
+      "player_public_answer_string": "<other player message> Hi Player BLUE, I propose the following trade to help us both reach our goals: I give 10 units of X in exchange for 10 units of Y. What do you think? </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives X: 10 | Player BLUE Gives Y: 10 </other player proposed trade>\n",
+      "player_public_info_dict": {
+        "message": "Hi Player BLUE, I propose the following trade to help us both reach our goals: I give 10 units of X in exchange for 10 units of Y. What do you think?",
+        "player answer": "NONE",
+        "newly proposed trade": {
+          "_type": "trade",
+          "_value": {
+            "RED": {
+              "_type": "resource",
+              "_value": {
+                "X": 10
+              }
+            },
+            "BLUE": {
+              "_type": "resource",
+              "_value": {
+                "Y": 10
+              }
+            }
+          }
+        }
+      },
+      "player_private_info_dict": {
+        "my resources": {
+          "_type": "resource",
+          "_value": {
+            "X": 25,
+            "Y": 5
+          }
+        },
+        "my name": "Player RED",
+        "my goals": "X: 15, Y: 15",
+        "reason": "Starting the trade by proposing a trade to meet my goals."
+      },
+      "player_complete_answer": "```\n<my name> Player RED </my name>\n<my resources> X: 25, Y: 5 </my resources>\n<my goals> X: 15, Y: 15 </my goals>\n<reason> Starting the trade by proposing a trade to meet my goals. </reason>\n<player answer> NONE </player answer>\n<message> Hi Player BLUE, I propose the following trade to help us both reach our goals: I give 10 units of X in exchange for 10 units of Y. What do you think? </message>\n<newly proposed trade> Player RED Gives X: 10 | Player BLUE Gives Y: 10 </newly proposed trade>\n```",
+      "player_state": [
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/gpt-3.5-turbo",
+          "agent_name": "Player RED",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1763638835609",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "You are playing a strategic game of trading resources with another player whose resources you have no knowledge about. \n\nRULES:\n```\n\n1. You can either:\n\nA) Accept the trade by saying:\n<player answer> ACCEPT </player answer>\n<newly proposed trade> NONE </newly proposed trade>\n\nB) Reject and propose a new trade (you can only trade integer amounts, not decimals):\n<player answer> NONE </player answer>\n<newly proposed trade> Player RED Gives item1: amount, item2: amount, ... | Player BLUE Gives item1: amount, item2: amount, ... </newly proposed trade>\n\nC) Don't accept or propose anything and wait for a new offer:\n\n<player answer> NONE </player answer>\n<newly proposed trade> NONE </newly proposed trade>\n\n\nNote: the game will end if one of the players accepts. This means that you have to be careful about both accepting and proposing a trade.\n\n2. You are allowed at most 2 proposals of your own to complete the game, after which you can only ACCEPT or NONE.\nDO NOT propose a new trade after 2 proposals. Your limit for proposals is 2.\n\n3. You can reason step by step by using the following format:\n<reason> [add reasoning] </reason>\nAdd as much text as you want. This information will not be sent to the other player. \nIt is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n<message> [add message] </message>\nYou can decide if you want disclose your resources and goals in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: X, Y\n<my resources> X: 25, Y: 5 </my resources>\n<my goals> X: 15, Y: 15 </my goals>\n<my name> Player RED </my name>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nMore resources in general are always better.\nThis is the last round of trading. There are no future rounds after this one.\n\n\n"
+            },
+            {
+              "role": "user",
+              "content": "You are Player RED, start by making a proposal."
+            },
+            {
+              "role": "assistant",
+              "content": "```\n<my name> Player RED </my name>\n<my resources> X: 25, Y: 5 </my resources>\n<my goals> X: 15, Y: 15 </my goals>\n<reason> Starting the trade by proposing a trade to meet my goals. </reason>\n<player answer> NONE </player answer>\n<message> Hi Player BLUE, I propose the following trade to help us both reach our goals: I give 10 units of X in exchange for 10 units of Y. What do you think? </message>\n<newly proposed trade> Player RED Gives X: 10 | Player BLUE Gives Y: 10 </newly proposed trade>\n```"
+            }
+          ],
+          "seed": 1763638863795,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 400
+        },
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/chatgpt-4o-latest",
+          "agent_name": "Player BLUE",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1763638835674",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "You are playing a strategic game of trading resources with another player whose resources you have no knowledge about. \n\nRULES:\n```\n\n1. You can either:\n\nA) Accept the trade by saying:\n<player answer> ACCEPT </player answer>\n<newly proposed trade> NONE </newly proposed trade>\n\nB) Reject and propose a new trade (you can only trade integer amounts, not decimals):\n<player answer> NONE </player answer>\n<newly proposed trade> Player RED Gives item1: amount, item2: amount, ... | Player BLUE Gives item1: amount, item2: amount, ... </newly proposed trade>\n\nC) Don't accept or propose anything and wait for a new offer:\n\n<player answer> NONE </player answer>\n<newly proposed trade> NONE </newly proposed trade>\n\n\nNote: the game will end if one of the players accepts. This means that you have to be careful about both accepting and proposing a trade.\n\n2. You are allowed at most 2 proposals of your own to complete the game, after which you can only ACCEPT or NONE.\nDO NOT propose a new trade after 2 proposals. Your limit for proposals is 2.\n\n3. You can reason step by step by using the following format:\n<reason> [add reasoning] </reason>\nAdd as much text as you want. This information will not be sent to the other player. \nIt is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n<message> [add message] </message>\nYou can decide if you want disclose your resources and goals in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: X, Y\n<my resources> X: 5, Y: 25 </my resources>\n<my goals> X: 15, Y: 15 </my goals>\n<my name> Player BLUE </my name>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nMore resources in general are always better.\nThis is the last round of trading. There are no future rounds after this one.\n\n\nYou are Player BLUE, start by responding to a trade."
+            }
+          ],
+          "seed": 1763638865133,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 400
+        }
+      ]
+    },
+    {
+      "current_iteration": 2,
+      "turn": 1,
+      "player_public_answer_string": "<other player message> This trade helps me reach both of my goals exactly. Thanks! I'm accepting. </other player message>\n<other player answer> ACCEPT </other player answer>\n<other player proposed trade> NONE </other player proposed trade>\n",
+      "player_public_info_dict": {
+        "message": "This trade helps me reach both of my goals exactly. Thanks! I'm accepting.",
+        "player answer": "ACCEPT",
+        "newly proposed trade": "NONE"
+      },
+      "player_private_info_dict": {
+        "my resources": {
+          "_type": "resource",
+          "_value": {
+            "X": 5,
+            "Y": 25
+          }
+        },
+        "my name": "Player BLUE",
+        "my goals": "X: 15, Y: 15",
+        "reason": "I currently have only 5 units of X, but I need 15. This trade gives me 10 more X, which gets me exactly to my goal of 15 X. I would be giving away 10 Y, which would leave me with 15 Y\u2014exactly what I need for my Y goal. So this trade perfectly satisfies both of my goals. Additionally, since this is the last round and this trade achieves my goals, it makes sense to accept it."
+      },
+      "player_complete_answer": "```\n<my name> Player BLUE </my name>\n<my resources> X: 5, Y: 25 </my resources>\n<my goals> X: 15, Y: 15 </my goals>\n<reason> I currently have only 5 units of X, but I need 15. This trade gives me 10 more X, which gets me exactly to my goal of 15 X. I would be giving away 10 Y, which would leave me with 15 Y\u2014exactly what I need for my Y goal. So this trade perfectly satisfies both of my goals. Additionally, since this is the last round and this trade achieves my goals, it makes sense to accept it. </reason>\n<player answer> ACCEPT </player answer>\n<message> This trade helps me reach both of my goals exactly. Thanks! I'm accepting. </message>\n<newly proposed trade> NONE </newly proposed trade>\n```",
+      "player_state": [
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/gpt-3.5-turbo",
+          "agent_name": "Player RED",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1763638835609",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "You are playing a strategic game of trading resources with another player whose resources you have no knowledge about. \n\nRULES:\n```\n\n1. You can either:\n\nA) Accept the trade by saying:\n<player answer> ACCEPT </player answer>\n<newly proposed trade> NONE </newly proposed trade>\n\nB) Reject and propose a new trade (you can only trade integer amounts, not decimals):\n<player answer> NONE </player answer>\n<newly proposed trade> Player RED Gives item1: amount, item2: amount, ... | Player BLUE Gives item1: amount, item2: amount, ... </newly proposed trade>\n\nC) Don't accept or propose anything and wait for a new offer:\n\n<player answer> NONE </player answer>\n<newly proposed trade> NONE </newly proposed trade>\n\n\nNote: the game will end if one of the players accepts. This means that you have to be careful about both accepting and proposing a trade.\n\n2. You are allowed at most 2 proposals of your own to complete the game, after which you can only ACCEPT or NONE.\nDO NOT propose a new trade after 2 proposals. Your limit for proposals is 2.\n\n3. You can reason step by step by using the following format:\n<reason> [add reasoning] </reason>\nAdd as much text as you want. This information will not be sent to the other player. \nIt is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n<message> [add message] </message>\nYou can decide if you want disclose your resources and goals in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: X, Y\n<my resources> X: 25, Y: 5 </my resources>\n<my goals> X: 15, Y: 15 </my goals>\n<my name> Player RED </my name>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nMore resources in general are always better.\nThis is the last round of trading. There are no future rounds after this one.\n\n\n"
+            },
+            {
+              "role": "user",
+              "content": "You are Player RED, start by making a proposal."
+            },
+            {
+              "role": "assistant",
+              "content": "```\n<my name> Player RED </my name>\n<my resources> X: 25, Y: 5 </my resources>\n<my goals> X: 15, Y: 15 </my goals>\n<reason> Starting the trade by proposing a trade to meet my goals. </reason>\n<player answer> NONE </player answer>\n<message> Hi Player BLUE, I propose the following trade to help us both reach our goals: I give 10 units of X in exchange for 10 units of Y. What do you think? </message>\n<newly proposed trade> Player RED Gives X: 10 | Player BLUE Gives Y: 10 </newly proposed trade>\n```"
+            }
+          ],
+          "seed": 1763638863795,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 400
+        },
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/chatgpt-4o-latest",
+          "agent_name": "Player BLUE",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1763638835674",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "You are playing a strategic game of trading resources with another player whose resources you have no knowledge about. \n\nRULES:\n```\n\n1. You can either:\n\nA) Accept the trade by saying:\n<player answer> ACCEPT </player answer>\n<newly proposed trade> NONE </newly proposed trade>\n\nB) Reject and propose a new trade (you can only trade integer amounts, not decimals):\n<player answer> NONE </player answer>\n<newly proposed trade> Player RED Gives item1: amount, item2: amount, ... | Player BLUE Gives item1: amount, item2: amount, ... </newly proposed trade>\n\nC) Don't accept or propose anything and wait for a new offer:\n\n<player answer> NONE </player answer>\n<newly proposed trade> NONE </newly proposed trade>\n\n\nNote: the game will end if one of the players accepts. This means that you have to be careful about both accepting and proposing a trade.\n\n2. You are allowed at most 2 proposals of your own to complete the game, after which you can only ACCEPT or NONE.\nDO NOT propose a new trade after 2 proposals. Your limit for proposals is 2.\n\n3. You can reason step by step by using the following format:\n<reason> [add reasoning] </reason>\nAdd as much text as you want. This information will not be sent to the other player. \nIt is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n<message> [add message] </message>\nYou can decide if you want disclose your resources and goals in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: X, Y\n<my resources> X: 5, Y: 25 </my resources>\n<my goals> X: 15, Y: 15 </my goals>\n<my name> Player BLUE </my name>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nMore resources in general are always better.\nThis is the last round of trading. There are no future rounds after this one.\n\n\nYou are Player BLUE, start by responding to a trade."
+            },
+            {
+              "role": "user",
+              "content": "<other player message> Hi Player BLUE, I propose the following trade to help us both reach our goals: I give 10 units of X in exchange for 10 units of Y. What do you think? </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives X: 10 | Player BLUE Gives Y: 10 </other player proposed trade>\n"
+            },
+            {
+              "role": "assistant",
+              "content": "```\n<my name> Player BLUE </my name>\n<my resources> X: 5, Y: 25 </my resources>\n<my goals> X: 15, Y: 15 </my goals>\n<reason> I currently have only 5 units of X, but I need 15. This trade gives me 10 more X, which gets me exactly to my goal of 15 X. I would be giving away 10 Y, which would leave me with 15 Y\u2014exactly what I need for my Y goal. So this trade perfectly satisfies both of my goals. Additionally, since this is the last round and this trade achieves my goals, it makes sense to accept it. </reason>\n<player answer> ACCEPT </player answer>\n<message> This trade helps me reach both of my goals exactly. Thanks! I'm accepting. </message>\n<newly proposed trade> NONE </newly proposed trade>\n```"
+            }
+          ],
+          "seed": 1763638865133,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 400
+        }
+      ]
+    },
+    {
+      "current_iteration": "END",
+      "turn": "None",
+      "summary": {
+        "player_goals": [
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "resource_goal",
+              "_value": {
+                "X": 15,
+                "Y": 15
+              }
+            }
+          },
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "resource_goal",
+              "_value": {
+                "X": 15,
+                "Y": 15
+              }
+            }
+          }
+        ],
+        "initial_resources": [
+          {
+            "_type": "resource",
+            "_value": {
+              "X": 25,
+              "Y": 5
+            }
+          },
+          {
+            "_type": "resource",
+            "_value": {
+              "X": 5,
+              "Y": 25
+            }
+          }
+        ],
+        "proposed_trade": {
+          "_type": "trade",
+          "_value": {
+            "RED": {
+              "_type": "resource",
+              "_value": {
+                "X": 10
+              }
+            },
+            "BLUE": {
+              "_type": "resource",
+              "_value": {
+                "Y": 10
+              }
+            }
+          }
+        },
+        "final_response": "ACCEPT",
+        "final_resources": [
+          {
+            "_type": "resource",
+            "_value": {
+              "X": 15,
+              "Y": 15
+            }
+          },
+          {
+            "_type": "resource",
+            "_value": {
+              "X": 15,
+              "Y": 15
+            }
+          }
+        ],
+        "player_outcome": [
+          true,
+          true
+        ]
+      }
+    }
+  ],
+  "log_dir": "C:\\Users\\Stuti\\Desktop\\NegotiationArena-main\\NegotiationArena-main\\.logs\\trading",
+  "log_path": "C:\\Users\\Stuti\\Desktop\\NegotiationArena-main\\NegotiationArena-main\\.logs\\trading\\1763638835680",
+  "turn": 1,
+  "iterations": 6,
+  "current_iteration": 2,
+  "game_interface": {
+    "class": "TradingGameDefaultParser"
+  },
+  "end_tag": "ACCEPT",
+  "resources_support_set": {
+    "_type": "resource",
+    "_value": {
+      "X": 0,
+      "Y": 0
+    }
+  },
+  "player_goals": [
+    {
+      "_type": "goal",
+      "_value": {
+        "_type": "resource_goal",
+        "_value": {
+          "X": 15,
+          "Y": 15
+        }
+      }
+    },
+    {
+      "_type": "goal",
+      "_value": {
+        "_type": "resource_goal",
+        "_value": {
+          "X": 15,
+          "Y": 15
+        }
+      }
+    }
+  ],
+  "player_initial_resources": [
+    {
+      "_type": "resource",
+      "_value": {
+        "X": 25,
+        "Y": 5
+      }
+    },
+    {
+      "_type": "resource",
+      "_value": {
+        "X": 5,
+        "Y": 25
+      }
+    }
+  ],
+  "player_social_behaviour": [
+    "",
+    ""
+  ],
+  "player_roles": [
+    "You are Player RED, start by making a proposal.",
+    "You are Player BLUE, start by responding to a trade."
+  ]
+}
