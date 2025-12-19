@@ -24,7 +24,14 @@ class BuySellAnalyzer:
         self.results_dir = Path(results_dir)
         self.data = defaultdict(lambda: defaultdict(list))
         self.models = ["Claude-3.5-Haiku", "Claude-3-Haiku", "GPT-4o", "GPT-3.5"]
-        self.languages = ["Hindi", "Gujarati", "Marwadi", "Punjabi"]
+        self.languages = [
+            "Hindi",
+            "Gujarati",
+            "Marwadi",
+            "Punjabi",
+            "Marwadi_Forced",
+            "Baseline",
+        ]
         self.all_results = []
 
     def extract_game_data(self, game_state_path: Path) -> Dict[str, Any]:
@@ -98,16 +105,35 @@ class BuySellAnalyzer:
 
                 # Extract model names and language
                 model1_parts = parts[:vs_idx]
-                model2_parts = parts[vs_idx + 1 : iter_idx - 1]
-                language = parts[iter_idx - 1]
+                # Language can have underscores (e.g., Marwadi_Forced), so join everything between model2 and "iter"
+                language_parts = parts[vs_idx + 1 : iter_idx]
                 iteration = int(parts[iter_idx + 1])
 
                 model1 = "_".join(model1_parts)
-                model2 = "_".join(model2_parts)
 
-                # Normalize model names
+                # Normalize model names (replace underscores with hyphens)
                 model1 = model1.replace("_", "-")
-                model2 = model2.replace("_", "-")
+
+                # Find where model2 ends and language begins by matching known models
+                # Try to match model2 from the start of language_parts
+                model2 = None
+                language = None
+
+                for i in range(1, len(language_parts) + 1):
+                    potential_model = "_".join(language_parts[:i]).replace("_", "-")
+                    if potential_model in self.models:
+                        model2 = potential_model
+                        language = "_".join(language_parts[i:])
+                        break
+
+                # Fallback: if no match found, assume first part is model2 and rest is language
+                if model2 is None:
+                    model2 = language_parts[0].replace("_", "-")
+                    language = (
+                        "_".join(language_parts[1:])
+                        if len(language_parts) > 1
+                        else language_parts[0]
+                    )
 
                 # Find game_state.json in subdirectories
                 game_state_files = list(subdir.glob("*/game_state.json"))

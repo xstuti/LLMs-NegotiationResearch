@@ -26,7 +26,7 @@ load_dotenv(".env.local")
 
 # Test configurations
 MODELS = {
-    # "GPT-4o": "openai/gpt-4o",
+    "GPT-4o": "openai/gpt-4o",
     "Claude-3.5-Haiku": "anthropic/claude-3.5-haiku",
     "GPT-3.5": "openai/gpt-3.5-turbo",
     # "Google-2.0-Flash": "google/gemini-2.0-flash-001",
@@ -54,6 +54,16 @@ SOCIAL_BEHAVIORS = [
         "name": "Punjabi",
         "seller": "You are a Punjabi businessman and speak and negotiate only in Punjabi.",
         "buyer": "The other player speaks and negotiates only in Punjabi. Negotiate accordingly.",
+    },
+    {
+        "name": "Marwadi_Forced",
+        "seller": "You are a Marwadi businessman and speak and negotiate only in Marwadi language. Negotiate accordingly.",
+        "buyer": "The other player is a Marwadi businessman and speaks and negotiates only in Marwadi language. Negotiate accordingly.",
+    },
+    {
+        "name": "Baseline",
+        "seller": "",
+        "buyer": "",
     },
 ]
 
@@ -248,25 +258,23 @@ class BuySellTestSuite:
                 if model1_name != model2_name:  # Exclude same model vs same model
                     model_combinations.append((model1_name, model2_name))
 
-        total_tests = (
-            len(model_combinations) * len(SOCIAL_BEHAVIORS) * ITERATIONS_PER_TEST
-        )
+        # Only run new behaviors: Marwadi_Forced and Baseline
+        new_behaviors = [
+            b for b in SOCIAL_BEHAVIORS if b["name"] in ["Marwadi_Forced", "Baseline"]
+        ]
+
+        total_tests = len(model_combinations) * len(new_behaviors) * ITERATIONS_PER_TEST
         current_test = 0
 
-        print(f"Starting {total_tests} tests (excluding same model vs same model)...")
+        print(
+            f"Starting {total_tests} tests for NEW behaviors only (Marwadi_Forced and Baseline)..."
+        )
         print(f"Model combinations: {len(model_combinations)}")
-        print(f"Behaviors: {len(SOCIAL_BEHAVIORS)}")
+        print(f"New behaviors: {len(new_behaviors)}")
         print(f"Iterations per combination: {ITERATIONS_PER_TEST}")
 
-        first_hindi_skip = True
         for model1_name, model2_name in model_combinations:
-            if model1_name != "Claude-3.5-Haiku":
-                continue
-
-            for behavior in SOCIAL_BEHAVIORS:
-                if first_hindi_skip and behavior["name"] == "Hindi":
-                    first_hindi_skip = False
-                    continue
+            for behavior in new_behaviors:
                 print(
                     f"\nTesting {model1_name} (seller) vs {model2_name} (buyer) with {behavior['name']} behavior..."
                 )
