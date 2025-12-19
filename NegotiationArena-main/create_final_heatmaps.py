@@ -34,6 +34,16 @@ plt.rcParams.update(
 
 
 class UltimatumHeatmapGenerator:
+    # Known behaviors to help with processing
+    KNOWN_BEHAVIORS = [
+        "Hindi",
+        "Gujarati",
+        "Marwadi",
+        "Marwadi_Forced",
+        "Punjabi",
+        "Baseline",
+    ]
+
     def __init__(self, results_dir):
         self.results_dir = Path(results_dir)
         self.summary_file = self.results_dir / "summary.json"
@@ -122,6 +132,9 @@ class UltimatumHeatmapGenerator:
             axes = axes.reshape(1, -1)
 
         for idx, behavior in enumerate(behaviors):
+            # Format behavior name for display (replace underscores with spaces)
+            display_behavior = behavior.replace("_", " ")
+
             # Win Rate heatmap (left column)
             ax1 = axes[idx, 0]
             win_data = matrices[behavior]["win_rates"]
@@ -174,7 +187,7 @@ class UltimatumHeatmapGenerator:
                         )
 
             ax1.set_title(
-                f"{behavior} - Win Rate (Player 1)", fontweight="bold", pad=15
+                f"{display_behavior} - Win Rate (Player 1)", fontweight="bold", pad=15
             )
             ax1.set_xlabel("Player 2", fontweight="bold")
             ax1.set_ylabel("Player 1", fontweight="bold")
@@ -252,7 +265,9 @@ class UltimatumHeatmapGenerator:
                         )
 
             ax2.set_title(
-                f"{behavior} - Average Payoff (Player 1)", fontweight="bold", pad=15
+                f"{display_behavior} - Average Payoff (Player 1)",
+                fontweight="bold",
+                pad=15,
             )
             ax2.set_xlabel("Player 2", fontweight="bold")
             ax2.set_ylabel("Player 1", fontweight="bold")
@@ -310,9 +325,16 @@ class UltimatumHeatmapGenerator:
 
     def create_behavior_comparison(self, matrices, models, behaviors):
         """Create a comparison plot across behaviors"""
-        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        # Calculate grid size based on number of behaviors
+        n_behaviors = len(behaviors)
+        n_cols = 3  # Use 3 columns
+        n_rows = (n_behaviors + n_cols - 1) // n_cols  # Ceiling division
 
-        # Flatten axes for easier indexing
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(15, 5 * n_rows))
+
+        # Flatten axes for easier indexing (handle single row case)
+        if n_rows == 1:
+            axes = axes.reshape(1, -1)
         axes = axes.flatten()
 
         for idx, behavior in enumerate(behaviors):
@@ -345,7 +367,9 @@ class UltimatumHeatmapGenerator:
                     ][: len(combinations)],
                 )
 
-                ax.set_title(f"{behavior}", fontweight="bold")
+                # Format behavior name for display
+                display_behavior = behavior.replace("_", " ")
+                ax.set_title(f"{display_behavior}", fontweight="bold")
                 ax.set_ylabel("Win Rate (Player 1)", fontweight="bold")
                 ax.set_ylim(0, 1)
                 ax.set_xticks(range(len(combinations)))
@@ -366,7 +390,7 @@ class UltimatumHeatmapGenerator:
 
         # Remove any unused subplots
         for idx in range(len(behaviors), len(axes)):
-            axes[idx].remove()
+            fig.delaxes(axes[idx])
 
         plt.tight_layout()
 
@@ -377,6 +401,286 @@ class UltimatumHeatmapGenerator:
 
         print(f"Behavior comparison saved to: {comparison_file}")
         return comparison_file
+
+    def create_language_comparison(self, matrices, models, behaviors):
+        """Create a comprehensive comparison across behaviors/languages"""
+        print("\n" + "=" * 60)
+        print("CREATING LANGUAGE/BEHAVIOR COMPARISON")
+        print("=" * 60 + "\n")
+
+        # Collect aggregate statistics for each behavior
+        behavior_stats = {}
+
+        for behavior in behaviors:
+            stats = {
+                "acceptance_rates": [],
+                "win_rates": [],
+                "payoffs_p1": [],
+                "payoffs_p2": [],
+                "initial_offers": [],
+                "total_games": 0,
+            }
+
+            # Aggregate data from summary
+            for combo_key, metrics in self.summary_data.items():
+                if metrics["behavior"] == behavior:
+                    stats["acceptance_rates"].append(metrics["acceptance_rate"])
+                    stats["win_rates"].append(metrics["win_rate_player1"])
+                    stats["payoffs_p1"].append(metrics["player1_payoff_avg"])
+                    stats["payoffs_p2"].append(metrics["player2_payoff_avg"])
+                    stats["initial_offers"].append(metrics["initial_offer_avg"])
+                    stats["total_games"] += metrics["total_games"]
+
+            behavior_stats[behavior] = {
+                "avg_acceptance": np.mean(stats["acceptance_rates"])
+                if stats["acceptance_rates"]
+                else 0,
+                "avg_win_rate": np.mean(stats["win_rates"])
+                if stats["win_rates"]
+                else 0,
+                "avg_payoff_p1": np.mean(stats["payoffs_p1"])
+                if stats["payoffs_p1"]
+                else 0,
+                "avg_payoff_p2": np.mean(stats["payoffs_p2"])
+                if stats["payoffs_p2"]
+                else 0,
+                "avg_initial_offer": np.mean(stats["initial_offers"])
+                if stats["initial_offers"]
+                else 0,
+                "total_games": stats["total_games"],
+                "std_acceptance": np.std(stats["acceptance_rates"])
+                if stats["acceptance_rates"]
+                else 0,
+                "std_payoff_p1": np.std(stats["payoffs_p1"])
+                if stats["payoffs_p1"]
+                else 0,
+            }
+
+        # Create figure with multiple subplots
+        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+
+        # Format behavior names for display
+        display_behaviors = [b.replace("_", " ") for b in behaviors]
+
+        # 1. Acceptance Rate Comparison
+        ax1 = axes[0, 0]
+        acceptance_rates = [behavior_stats[b]["avg_acceptance"] for b in behaviors]
+        colors = plt.cm.viridis(np.linspace(0.2, 0.9, len(behaviors)))
+        bars1 = ax1.bar(
+            display_behaviors,
+            acceptance_rates,
+            color=colors,
+            edgecolor="black",
+            linewidth=1.5,
+        )
+        ax1.set_title(
+            "Average Acceptance Rate by Behavior", fontweight="bold", fontsize=14
+        )
+        ax1.set_ylabel("Acceptance Rate", fontweight="bold")
+        ax1.set_ylim(0, 1.1)
+        ax1.grid(axis="y", alpha=0.3, linestyle="--")
+
+        # Add value labels
+        for bar, rate in zip(bars1, acceptance_rates):
+            height = bar.get_height()
+            ax1.text(
+                bar.get_x() + bar.get_width() / 2.0,
+                height + 0.02,
+                f"{rate:.2%}",
+                ha="center",
+                va="bottom",
+                fontweight="bold",
+                fontsize=10,
+            )
+
+        plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha="right")
+
+        # 2. Average Initial Offer Comparison
+        ax2 = axes[0, 1]
+        initial_offers = [behavior_stats[b]["avg_initial_offer"] for b in behaviors]
+        bars2 = ax2.bar(
+            display_behaviors,
+            initial_offers,
+            color=colors,
+            edgecolor="black",
+            linewidth=1.5,
+        )
+        ax2.set_title(
+            "Average Initial Offer by Behavior", fontweight="bold", fontsize=14
+        )
+        ax2.set_ylabel("Initial Offer ($)", fontweight="bold")
+        ax2.set_ylim(0, max(initial_offers) * 1.2 if initial_offers else 100)
+        ax2.grid(axis="y", alpha=0.3, linestyle="--")
+
+        # Add value labels
+        for bar, offer in zip(bars2, initial_offers):
+            height = bar.get_height()
+            ax2.text(
+                bar.get_x() + bar.get_width() / 2.0,
+                height + 1,
+                f"${offer:.1f}",
+                ha="center",
+                va="bottom",
+                fontweight="bold",
+                fontsize=10,
+            )
+
+        plt.setp(ax2.xaxis.get_majorticklabels(), rotation=45, ha="right")
+
+        # 3. Average Payoffs Comparison (P1 vs P2)
+        ax3 = axes[1, 0]
+        x = np.arange(len(behaviors))
+        width = 0.35
+
+        payoffs_p1 = [behavior_stats[b]["avg_payoff_p1"] for b in behaviors]
+        payoffs_p2 = [behavior_stats[b]["avg_payoff_p2"] for b in behaviors]
+
+        bars3a = ax3.bar(
+            x - width / 2,
+            payoffs_p1,
+            width,
+            label="Player 1",
+            color="#2E86AB",
+            edgecolor="black",
+            linewidth=1.2,
+        )
+        bars3b = ax3.bar(
+            x + width / 2,
+            payoffs_p2,
+            width,
+            label="Player 2",
+            color="#A23B72",
+            edgecolor="black",
+            linewidth=1.2,
+        )
+
+        ax3.set_title("Average Payoffs by Behavior", fontweight="bold", fontsize=14)
+        ax3.set_ylabel("Average Payoff ($)", fontweight="bold")
+        ax3.set_xticks(x)
+        ax3.set_xticklabels(display_behaviors)
+        ax3.legend(fontsize=11, loc="upper right")
+        ax3.grid(axis="y", alpha=0.3, linestyle="--")
+
+        # Add value labels
+        for bar in bars3a:
+            height = bar.get_height()
+            ax3.text(
+                bar.get_x() + bar.get_width() / 2.0,
+                height + 1,
+                f"${height:.1f}",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+            )
+        for bar in bars3b:
+            height = bar.get_height()
+            ax3.text(
+                bar.get_x() + bar.get_width() / 2.0,
+                height + 1,
+                f"${height:.1f}",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+            )
+
+        plt.setp(ax3.xaxis.get_majorticklabels(), rotation=45, ha="right")
+
+        # 4. Win Rate Comparison
+        ax4 = axes[1, 1]
+        win_rates = [behavior_stats[b]["avg_win_rate"] for b in behaviors]
+        bars4 = ax4.bar(
+            display_behaviors, win_rates, color=colors, edgecolor="black", linewidth=1.5
+        )
+        ax4.set_title(
+            "Average Win Rate (Player 1) by Behavior", fontweight="bold", fontsize=14
+        )
+        ax4.set_ylabel("Win Rate", fontweight="bold")
+        ax4.set_ylim(0, 1.1)
+        ax4.grid(axis="y", alpha=0.3, linestyle="--")
+
+        # Add value labels
+        for bar, rate in zip(bars4, win_rates):
+            height = bar.get_height()
+            ax4.text(
+                bar.get_x() + bar.get_width() / 2.0,
+                height + 0.02,
+                f"{rate:.2%}",
+                ha="center",
+                va="bottom",
+                fontweight="bold",
+                fontsize=10,
+            )
+
+        plt.setp(ax4.xaxis.get_majorticklabels(), rotation=45, ha="right")
+
+        plt.tight_layout()
+
+        # Save the plot
+        comparison_file = self.results_dir / "language_behavior_comparison.png"
+        plt.savefig(comparison_file, dpi=300, bbox_inches="tight", facecolor="white")
+        print(f"✓ Language/Behavior comparison saved to: {comparison_file}")
+        plt.close()
+
+        # Create a summary table
+        summary_data = []
+        for behavior in behaviors:
+            stats = behavior_stats[behavior]
+            summary_data.append(
+                {
+                    "Behavior": behavior.replace("_", " "),
+                    "Total Games": stats["total_games"],
+                    "Avg Acceptance Rate": f"{stats['avg_acceptance']:.2%}",
+                    "Avg Initial Offer": f"${stats['avg_initial_offer']:.2f}",
+                    "Avg Payoff P1": f"${stats['avg_payoff_p1']:.2f}",
+                    "Avg Payoff P2": f"${stats['avg_payoff_p2']:.2f}",
+                    "Avg Win Rate P1": f"{stats['avg_win_rate']:.2%}",
+                }
+            )
+
+        df = pd.DataFrame(summary_data)
+        csv_file = self.results_dir / "behavior_comparison_summary.csv"
+        df.to_csv(csv_file, index=False)
+        print(f"✓ Behavior comparison summary saved to: {csv_file}")
+
+        # Print ranking
+        print("\n" + "-" * 60)
+        print("BEHAVIOR RANKINGS:")
+        print("-" * 60)
+
+        # Sort by acceptance rate
+        sorted_by_acceptance = sorted(
+            behaviors, key=lambda b: behavior_stats[b]["avg_acceptance"], reverse=True
+        )
+        print("\nBy Acceptance Rate (highest to lowest):")
+        for i, behavior in enumerate(sorted_by_acceptance, 1):
+            stats = behavior_stats[behavior]
+            print(f"  {i}. {behavior.replace('_', ' ')}: {stats['avg_acceptance']:.2%}")
+
+        # Sort by initial offer (fairness)
+        sorted_by_offer = sorted(
+            behaviors,
+            key=lambda b: behavior_stats[b]["avg_initial_offer"],
+            reverse=True,
+        )
+        print("\nBy Initial Offer - Fairness (highest to lowest):")
+        for i, behavior in enumerate(sorted_by_offer, 1):
+            stats = behavior_stats[behavior]
+            print(
+                f"  {i}. {behavior.replace('_', ' ')}: ${stats['avg_initial_offer']:.2f}"
+            )
+
+        # Sort by P1 payoff
+        sorted_by_payoff = sorted(
+            behaviors, key=lambda b: behavior_stats[b]["avg_payoff_p1"], reverse=True
+        )
+        print("\nBy Player 1 Payoff (highest to lowest):")
+        for i, behavior in enumerate(sorted_by_payoff, 1):
+            stats = behavior_stats[behavior]
+            print(f"  {i}. {behavior.replace('_', ' ')}: ${stats['avg_payoff_p1']:.2f}")
+
+        print()
+
+        return comparison_file, csv_file
 
     def generate_all_visualizations(self):
         """Generate all visualizations"""
@@ -398,15 +702,22 @@ class UltimatumHeatmapGenerator:
         # Create behavior comparison
         comparison_file = self.create_behavior_comparison(matrices, models, behaviors)
 
+        # Create language/behavior comparison
+        language_comparison_file, behavior_summary_csv = (
+            self.create_language_comparison(matrices, models, behaviors)
+        )
+
         print("\n" + "=" * 50)
         print("VISUALIZATION COMPLETE!")
         print("=" * 50)
         print(f"Files created:")
         print(f"  - {heatmap_file}")
         print(f"  - {comparison_file}")
+        print(f"  - {language_comparison_file}")
         print(f"  - {self.results_dir}/summary_table.csv")
+        print(f"  - {behavior_summary_csv}")
 
-        return heatmap_file, comparison_file
+        return heatmap_file, comparison_file, language_comparison_file
 
 
 def main():

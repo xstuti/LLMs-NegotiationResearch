@@ -30,29 +30,19 @@ MODELS = {
     # "Google-2.0-Flash": "google/gemini-2.0-flash-001",
     "Claude-3-Haiku": "anthropic/claude-3-haiku",
     "Claude-3.5-Haiku": "anthropic/claude-3.5-haiku",
-    "GPT-oss": "openai/gpt-oss-20b:free",
+    # "GPT-oss": "openai/gpt-oss-20b:free",
 }
 
 SOCIAL_BEHAVIORS = [
     {
-        "name": "Hindi",
-        "player1": "You speak and bargain only in Hindi in Devanagari script. Negotiate accordingly.",
-        "player2": "The other player speaks and bargains only in Hindi. Negotiate accordingly.",
+        "name": "Marwadi_Forced",
+        "player1": "You are a Marwadi businessman and MUST speak and negotiate ONLY in Marwadi language. Do not use English or any other language. Negotiate accordingly.",
+        "player2": "The other player is a Marwadi businessman and speaks ONLY in Marwadi language. Negotiate accordingly.",
     },
     {
-        "name": "Gujarati",
-        "player1": "You are a Gujarati businessman and speak and negotiate only in Gujarati.",
-        "player2": "The other player speaks and negotiates only in Gujarati. Negotiate accordingly.",
-    },
-    {
-        "name": "Marwadi",
-        "player1": "You are a Marwadi businessman. Negotiate accordingly.",
-        "player2": "The other person is a Marwadi businessman. Negotiate accordingly.",
-    },
-    {
-        "name": "Punjabi",
-        "player1": "You are a Punjabi businessman and speak and negotiate only in Punjabi.",
-        "player2": "The other player speaks and negotiates only in Punjabi. Negotiate accordingly.",
+        "name": "Baseline",
+        "player1": "",
+        "player2": "",
     },
 ]
 
@@ -178,28 +168,9 @@ class UltimatumTestSuite:
                 print(
                     f"\nTesting {model1_name} vs {model2_name} with {behavior['name']} behavior..."
                 )
-                if (model1_name == "GPT-4o" and model2_name == "GPT-3.5") or (
-                    model2_name == "GPT-4o" and model1_name == "GPT-3.5"
-                ):
-                    print("Skipping GPT-4o vs GPT-3.5 test")
-                    continue
 
-                if (
-                    model1_name == "Claude-3-Haiku"
-                    and model2_name != "Claude-3.5-Haiku"
-                ) or (
-                    model2_name == "Claude-3-Haiku"
-                    and model1_name != "Claude-3.5-Haiku"
-                ):
-                    print("Skipping Claude-3-Haiku vs GPT test")
-                    continue
-
-                if model1_name not in [
-                    "Claude-3.5-Haiku",
-                    "GPT-oss",
-                ] and model2_name not in ["Claude-3.5-Haiku", "GPT-oss"]:
-                    print("Skipping non-Claude-3.5-Haiku tests")
-                    continue
+                # Run all model combinations for the new behaviors only
+                # This skips all previously tested combinations with old behaviors
 
                 for iteration in range(ITERATIONS_PER_TEST):
                     current_test += 1

@@ -19,6 +19,16 @@ sys.path.insert(0, str(current_dir))
 
 
 class UltimatumReportGenerator:
+    # Known behaviors to help with processing
+    KNOWN_BEHAVIORS = [
+        "Hindi",
+        "Gujarati",
+        "Marwadi",
+        "Marwadi_Forced",
+        "Punjabi",
+        "Baseline",
+    ]
+
     def __init__(self, results_dir):
         self.results_dir = Path(results_dir)
         self.summary_file = self.results_dir / "summary.json"
@@ -207,7 +217,7 @@ class UltimatumReportGenerator:
                 f"• Total Accepted Proposals: {total_accepts}",
                 f"• Total Rejected Proposals: {total_rejects}",
                 f"• Models Tested: {', '.join(self.models)}",
-                f"• Cultural Behaviors: {', '.join(behaviors)}",
+                f"• Cultural Behaviors: {', '.join([b.replace('_', ' ') for b in behaviors])}",
                 "",
             ]
         )
@@ -256,9 +266,11 @@ class UltimatumReportGenerator:
                 total_rejections = sum(rejections)
                 rejection_info = f" (Rejections: {total_rejections})"
 
+            # Format behavior name for display (replace underscores with spaces)
+            display_behavior = behavior.replace("_", " ")
             report_lines.extend(
                 [
-                    f"   {behavior.upper()}:",
+                    f"   {display_behavior.upper()}:",
                     f"   • Games: {analysis['total_games']} | Acceptance Rate: {analysis['avg_acceptance_rate']:.1%}{rejection_info}",
                     f"   • Average Initial Offer: ${analysis['avg_initial_offer']:.1f}",
                 ]
@@ -292,9 +304,11 @@ class UltimatumReportGenerator:
 
         # Group by behavior for detailed reporting
         for behavior in sorted(behaviors):
+            # Format behavior name for display (replace underscores with spaces)
+            display_behavior = behavior.replace("_", " ")
             report_lines.extend(
                 [
-                    f"{behavior.upper()} BEHAVIOR ANALYSIS:",
+                    f"{display_behavior.upper()} BEHAVIOR ANALYSIS:",
                     "-" * 40,
                     "",
                 ]
@@ -431,8 +445,9 @@ class UltimatumReportGenerator:
         )
 
         for i, (behavior, stats) in enumerate(sorted_behaviors, 1):
+            display_behavior = behavior.replace("_", " ")
             report_lines.append(
-                f"  {i}. {behavior}: {stats['acceptance_rate']:.1%} acceptance, avg offer ${stats['avg_offer']:.1f}"
+                f"  {i}. {display_behavior}: {stats['acceptance_rate']:.1%} acceptance, avg offer ${stats['avg_offer']:.1f}"
             )
 
         # Sort by average offer
@@ -448,8 +463,27 @@ class UltimatumReportGenerator:
         )
 
         for i, (behavior, stats) in enumerate(sorted_by_offer, 1):
+            display_behavior = behavior.replace("_", " ")
             report_lines.append(
-                f"  {i}. {behavior}: ${stats['avg_offer']:.1f} average initial offer"
+                f"  {i}. {display_behavior}: ${stats['avg_offer']:.1f} average initial offer"
+            )
+
+        # Sort by rejections (lowest is better)
+        sorted_by_rejections = sorted(
+            behavior_summary.items(), key=lambda x: x[1]["total_rejections"]
+        )
+
+        report_lines.extend(
+            [
+                "",
+                "BEHAVIOR RANKING BY COOPERATION (FEWEST REJECTIONS):",
+            ]
+        )
+
+        for i, (behavior, stats) in enumerate(sorted_by_rejections, 1):
+            display_behavior = behavior.replace("_", " ")
+            report_lines.append(
+                f"  {i}. {display_behavior}: {stats['total_rejections']} total rejections"
             )
 
         # Model Comparison Analysis
@@ -493,8 +527,8 @@ class UltimatumReportGenerator:
                 f"   • Model architecture and training differences significantly affect negotiation strategies",
                 "",
                 "2. CULTURAL CONTEXT EFFECTS:",
-                f"   • {sorted_behaviors[0][0]} behavior shows highest cooperation ({sorted_behaviors[0][1]['acceptance_rate']:.1%} acceptance)",
-                f"   • {sorted_behaviors[-1][0]} behavior shows most competitive patterns",
+                f"   • {sorted_behaviors[0][0].replace('_', ' ')} behavior shows highest cooperation ({sorted_behaviors[0][1]['acceptance_rate']:.1%} acceptance)",
+                f"   • {sorted_behaviors[-1][0].replace('_', ' ')} behavior shows most competitive patterns",
                 f"   • Cultural prompting significantly affects negotiation strategies across all models",
                 "",
                 "3. STRATEGIC PATTERNS:",

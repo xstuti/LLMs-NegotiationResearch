@@ -19,6 +19,26 @@ sys.path.insert(0, str(current_dir))
 
 
 class UltimatumResultsAnalyzer:
+    # Known behaviors to help with parsing
+    KNOWN_BEHAVIORS = [
+        "Hindi",
+        "Gujarati",
+        "Marwadi",
+        "Marwadi_Forced",
+        "Punjabi",
+        "Baseline",
+    ]
+
+    # Known model patterns
+    KNOWN_MODELS = [
+        "GPT-4o",
+        "GPT-3.5",
+        "GPT-oss",
+        "Claude-3-Haiku",
+        "Claude-3.5-Haiku",
+        "Google-2.0-Flash",
+    ]
+
     def __init__(self, results_dir):
         self.results_dir = Path(results_dir)
         self.raw_data = []
@@ -36,11 +56,11 @@ class UltimatumResultsAnalyzer:
         return sorted(game_dirs)
 
     def parse_directory_name(self, dir_name):
-        """Parse directory name to extract model1, model2, behavior, and iteration"""
-        # Format examples:
-        # GPT-3.5_vs_GPT-4o_Gujarati_iter_1
-        # GPT-4o_vs_GPT-3.5_Hindi_iter_2
+        """Parse directory name to extract model1, model2, behavior, and iteration
 
+        Handles behavior names with underscores like "Marwadi_Forced"
+        Format: Model1_vs_Model2_Behavior_iter_N
+        """
         print(f"Parsing: {dir_name}")
 
         try:
@@ -56,25 +76,52 @@ class UltimatumResultsAnalyzer:
             model1_parts = parts[:vs_index]
             model1 = "_".join(model1_parts)
 
+            # Fix known model patterns
+            for known_model in self.KNOWN_MODELS:
+                if model1.replace("_", "-") == known_model or model1.replace(
+                    "-", "_"
+                ) == known_model.replace("-", "_"):
+                    model1 = known_model
+                    break
+
             # Everything between 'vs' and 'iter'
             middle_parts = parts[vs_index + 1 : iter_index]
             print(f"  Middle parts: {middle_parts}")
 
-            # For model2 and behavior, we need to be more careful
-            # Look for known model patterns: GPT-X.X, GPT-Xo, etc.
+            # Try to identify model2 by matching known patterns
             model2 = None
-            behavior_parts = []
+            behavior_start_idx = 0
 
-            if len(middle_parts) >= 2 and middle_parts[0] == "GPT":
-                # This is a GPT model: GPT-X.X or GPT-Xo
-                model2 = f"GPT-{middle_parts[1]}"
-                behavior_parts = middle_parts[2:]
-            elif len(middle_parts) >= 1:
-                # Assume first part is model2, rest is behavior
+            # Check each known model pattern
+            for known_model in self.KNOWN_MODELS:
+                model_parts = known_model.replace("-", "_").split("_")
+                if len(middle_parts) >= len(model_parts):
+                    # Check if the first parts match this model
+                    candidate = "_".join(middle_parts[: len(model_parts)])
+                    if candidate.replace(
+                        "_", "-"
+                    ) == known_model or candidate == known_model.replace("-", "_"):
+                        model2 = known_model
+                        behavior_start_idx = len(model_parts)
+                        break
+
+            if model2 is None:
+                # Fallback: assume first part is model2
                 model2 = middle_parts[0]
-                behavior_parts = middle_parts[1:]
+                behavior_start_idx = 1
 
-            behavior = "_".join(behavior_parts) if behavior_parts else "Unknown"
+            # Remaining parts form the behavior name
+            behavior_parts = middle_parts[behavior_start_idx:]
+            behavior_candidate = (
+                "_".join(behavior_parts) if behavior_parts else "Unknown"
+            )
+
+            # Check against known behaviors (prefer exact match)
+            behavior = behavior_candidate
+            for known_behavior in self.KNOWN_BEHAVIORS:
+                if behavior_candidate == known_behavior:
+                    behavior = known_behavior
+                    break
 
             # Iteration number
             iteration = int(parts[-1])
@@ -87,21 +134,58 @@ class UltimatumResultsAnalyzer:
             print(f"  Error parsing {dir_name}: {e}")
             # Fallback parsing
             if "_vs_" in dir_name and "_iter_" in dir_name:
-                # Try simpler approach
-                base = dir_name.split("_iter_")[0]  # Remove iteration part
+                # Remove iteration part
+                base = dir_name.rsplit("_iter_", 1)[0]
+                iteration = int(dir_name.rsplit("_iter_", 1)[1])
+
+                # Split by _vs_
                 parts = base.split("_vs_")
                 if len(parts) == 2:
-                    model1 = parts[0]
-                    rest = parts[1].split("_")
-                    if len(rest) >= 2 and rest[0] == "GPT":
-                        model2 = f"GPT-{rest[1]}"
-                        behavior = "_".join(rest[2:]) if len(rest) > 2 else "Unknown"
-                    else:
-                        model2 = rest[0]
-                        behavior = "_".join(rest[1:]) if len(rest) > 1 else "Unknown"
+                    model1_str = parts[0]
+                    rest_str = parts[1]
 
-                    iteration_part = dir_name.split("_iter_")[-1]
-                    iteration = int(iteration_part)
+                    # Match model1 against known models
+                    model1 = model1_str
+                    for known in self.KNOWN_MODELS:
+                        if model1_str.replace("_", "-") == known:
+                            model1 = known
+                            break
+
+                    # For rest_str, try to match against known models from the start
+                    model2 = None
+                    behavior = None
+                    rest_parts = rest_str.split("_")
+
+                    for known_model in self.KNOWN_MODELS:
+                        model_parts = known_model.replace("-", "_").split("_")
+                        if len(rest_parts) >= len(model_parts):
+                            candidate = "_".join(rest_parts[: len(model_parts)])
+                            if candidate.replace("_", "-") == known_model:
+                                model2 = known_model
+                                behavior_parts = rest_parts[len(model_parts) :]
+                                behavior = (
+                                    "_".join(behavior_parts)
+                                    if behavior_parts
+                                    else "Unknown"
+                                )
+                                break
+
+                    if model2 is None or behavior is None:
+                        # Last resort: check if rest_str ends with a known behavior
+                        for known_behavior in self.KNOWN_BEHAVIORS:
+                            if rest_str.endswith(known_behavior):
+                                idx = rest_str.rfind(known_behavior)
+                                model2 = rest_str[:idx].rstrip("_")
+                                behavior = known_behavior
+                                break
+
+                    if model2 is None or behavior is None:
+                        model2 = rest_parts[0]
+                        behavior = (
+                            "_".join(rest_parts[1:])
+                            if len(rest_parts) > 1
+                            else "Unknown"
+                        )
 
                     print(
                         f"  Fallback parsed: {model1} vs {model2} | {behavior} | iter {iteration}"
