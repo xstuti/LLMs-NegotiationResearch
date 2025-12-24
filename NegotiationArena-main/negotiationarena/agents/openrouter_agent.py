@@ -10,7 +10,7 @@ class OpenRouterAgent(Agent):
         agent_name: str,
         model="openai/gpt-3.5-turbo",      # You can use any OpenRouter model string!
         temperature=0.7,
-        max_tokens=400,
+        max_tokens=None,
         seed=None,
     ):
         super().__init__(agent_name)

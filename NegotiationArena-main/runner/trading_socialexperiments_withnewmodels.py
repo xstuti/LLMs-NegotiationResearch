@@ -43,17 +43,18 @@ SOCIAL_BEHAVIORS = {
         "The other player speaks and bargains only in Hindi. Negotiate accordingly.",
     ],
     "Marwadi": [
-        "You are a Marwadi businessman. Negotiate accordingly.",
-        "The other person is a Marwadi businessman. Negotiate accordingly.",
+        "You are a Marwadi businessman and speak and negotiate only in Marwadi language. Negotiate accordingly.",
+        "The other player is a Marwadi businessman and speaks and negotiates only in Marwadi language. Negotiate accordingly.",
     ],
     "Punjabi": [
         "You are a Punjabi businessman and speak and negotiate only in Punjabi.",
         "The other player speaks and negotiates only in Punjabi.",
     ],
+    "English": ["",""],
 }
 
 ITERATIONS_PER_COMBO = 5
-LOG_BASE_DIR = "./.logs/trading/"
+LOG_BASE_DIR = "./.logs/final_final_trading/"
 os.makedirs(LOG_BASE_DIR, exist_ok=True)
 
 # --------------------------------------------------
