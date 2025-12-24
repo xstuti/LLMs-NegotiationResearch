@@ -12,11 +12,31 @@ from typing import Any, Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 
-# Set style for better-looking plots
-sns.set_style("whitegrid")
-plt.rcParams["figure.figsize"] = (12, 10)
+plt.style.use("default")
+
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.size": 12,
+    "axes.titlesize": 18,
+    "axes.titleweight": "bold",
+    "axes.labelsize": 14,
+    "axes.labelweight": "bold",
+    "xtick.labelsize": 12,
+    "ytick.labelsize": 12,
+    "figure.titlesize": 20,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+})
+
+BAR_COLORS = [
+    "#3b4cc0",  # deep blue
+    "#2c728e",  # blue-green
+    "#21918c",  # teal
+    "#28ae80",  # green
+    "#5ec962",  # light green
+    "#b8de29",  # yellow-green
+]
 
 
 class TradingGameAnalyzer:

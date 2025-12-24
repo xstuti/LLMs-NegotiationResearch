@@ -9,6 +9,11 @@ extracting key metrics from game_state.json files.
 import json
 import os
 import statistics
+import math
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -58,7 +63,7 @@ class TradingResultsAnalyzer:
             if last.startswith("iter"):
                 suffix = last[len("iter") :]
                 suffix = suffix.lstrip("_")
-                if suffix.isdigit() and 1 <= int(suffix) <= 5:
+                if suffix.isdigit() and 1 <= int(suffix) <= 10:
                     iter_num = int(suffix)
             if iter_num is None:
                 continue
@@ -168,11 +173,40 @@ class TradingResultsAnalyzer:
                     break
 
             if not end_state:
-                print(f"Warning: No END state found in {game_state_file}")
-                return None
+                # Check if the game ended successfully without END state
+                if game_state:
+                    last_state = game_state[-1]
+                    p1_resp = last_state.get("player1_response", {})
+                    p2_resp = last_state.get("player2_response", {})
+                    if (p1_resp.get("tag") == "ACCEPT" or 
+                        p2_resp.get("tag") == "ACCEPT"):
+                        # Use the last state as end_state
+                        end_state = last_state
+                        print(f"Using last state as end state for {game_state_file}")
+                    else:
+                        print(f"Warning: No END state and last state not accepted in {game_state_file}")
+                        return None
+                else:
+                    print(f"Warning: No END state found in {game_state_file}")
+                    return None
 
             # Basic summary section
             summary = end_state.get("summary", {})
+
+            # If no summary, find the last proposed trade
+            proposed_trade = summary.get("proposed_trade")
+            if not proposed_trade:
+                # Find the last non-NONE newly proposed trade
+                for state in reversed(game_state):
+                    for player_key in ["player1_response", "player2_response"]:
+                        resp = state.get(player_key, {})
+                        pub_info = resp.get("player_public_info_dict", {})
+                        trade = pub_info.get("newly proposed trade")
+                        if trade and trade != "NONE" and isinstance(trade, dict):
+                            proposed_trade = trade
+                            break
+                    if proposed_trade:
+                        break
 
             # -------------------------------
             # Negotiation rounds
@@ -198,7 +232,6 @@ class TradingResultsAnalyzer:
             # Extract proposed trade (final agreed trade)
             # -------------------------------
             trade_volume = 0
-            proposed_trade = summary.get("proposed_trade")
             if isinstance(proposed_trade, dict) and proposed_trade.get("_type") == "trade":
                 trade_value = proposed_trade.get("_value", {})
 
@@ -226,11 +259,30 @@ class TradingResultsAnalyzer:
             # Extract final response
             # -------------------------------
             final_response = summary.get("final_response", "UNKNOWN")
+            if final_response == "UNKNOWN" and end_state == game_state[-1]:
+                # If we used last state and no final_response, assume ACCEPT
+                final_response = "ACCEPT"
 
             # -------------------------------
             # Extract final resources and compute payoffs
             # -------------------------------
             final_resources = summary.get("final_resources", [])
+
+            # If no final_resources and we have proposed_trade, calculate from initial
+            if not final_resources and proposed_trade:
+                initial_resources = data.get("player_initial_resources", [])
+                if len(initial_resources) >= 2:
+                    initial_red = initial_resources[0].get("_value", {})
+                    initial_blue = initial_resources[1].get("_value", {})
+                    trade_value = proposed_trade.get("_value", {})
+                    red_trade = trade_value.get("RED", {}).get("_value", {})
+                    blue_trade = trade_value.get("BLUE", {}).get("_value", {})
+                    final_red = {k: initial_red.get(k, 0) - red_trade.get(k, 0) + blue_trade.get(k, 0) for k in set(initial_red) | set(red_trade) | set(blue_trade)}
+                    final_blue = {k: initial_blue.get(k, 0) - blue_trade.get(k, 0) + red_trade.get(k, 0) for k in set(initial_blue) | set(red_trade) | set(blue_trade)}
+                    final_resources = [
+                        {"_type": "resource", "_value": final_red},
+                        {"_type": "resource", "_value": final_blue}
+                    ]
 
             def sum_final_resource(res_obj):
                 """Sum all resource units in a final resource object."""
@@ -339,83 +391,65 @@ class TradingResultsAnalyzer:
                 print(f"Warning: No valid games found for {combo_key}")
                 continue
 
-            # Calculate metrics
+            # Accepted games for metrics that should only include successful trades
+            accepted_games = [g for g in valid_games if g.get("outcome") == "ACCEPT"]
+
+            # Calculate requested metrics only
             total_games = len(valid_games)
-            accepts = [g for g in valid_games if g["outcome"] == "ACCEPT"]
-            rejects = [g for g in valid_games if g["outcome"] == "REJECT"]
+            accepts = [1 if g["outcome"] == "ACCEPT" else 0 for g in valid_games]
 
-            # Win rate calculation (Player 1 wins if they get more total resources than Player 2)
-            player1_wins = 0
-            player2_wins = 0
-            draws = 0
+            # Trade volume (only from accepted trades)
+            trade_volumes = [g.get("trade_volume", 0) for g in accepted_games]
 
-            for game in valid_games:
-                p1 = game.get("player1_final_resources", 0)
-                p2 = game.get("player2_final_resources", 0)
-                if p1 > p2:
-                    player1_wins += 1
-                elif p2 > p1:
-                    player2_wins += 1
-                else:
-                    draws += 1
-
-            # Win rate excluding draws
-            non_draw_games = player1_wins + player2_wins
-            win_rate = player1_wins / non_draw_games if non_draw_games > 0 else 0.0
-            draw_rate = draws / total_games if total_games > 0 else 0.0
-
-            # Payoff statistics (total resources for each player)
-            player1_payoffs = [g.get("player1_final_resources", 0) for g in valid_games]
-            player2_payoffs = [g.get("player2_final_resources", 0) for g in valid_games]
-
-            # Trade metrics
-            trade_volumes = [g.get("trade_volume", 0) for g in valid_games]
+            # Negotiation rounds (keep for all valid games)
             negotiation_rounds = [g.get("negotiation_rounds", 0) for g in valid_games]
 
-            # Summary statistics
+            # Payoffs (only from accepted trades)
+            player1_payoffs = [g.get("player1_final_resources", 0) for g in accepted_games]
+            player2_payoffs = [g.get("player2_final_resources", 0) for g in accepted_games]
+
+            # Win counts ignoring ties, only for accepted trades
+            accepted_games = [g for g in valid_games if g.get("outcome") == "ACCEPT"]
+            p1_wins = 0
+            p2_wins = 0
+            for g in accepted_games:
+                p1 = g.get("player1_final_resources", 0)
+                p2 = g.get("player2_final_resources", 0)
+                if p1 > p2:
+                    p1_wins += 1
+                elif p2 > p1:
+                    p2_wins += 1
+
+            non_draws = p1_wins + p2_wins
+            win_rate_p1 = p1_wins / non_draws if non_draws > 0 else 0.0
+
+            # Statistics (means and stds)
+            def mean_std(lst):
+                m = statistics.mean(lst) if lst else 0.0
+                s = statistics.stdev(lst) if len(lst) > 1 else 0.0
+                return m, s
+
+            trade_mean, trade_std = mean_std(trade_volumes)
+            accepts_mean, accepts_std = mean_std(accepts)
+            p1_mean, p1_std = mean_std(player1_payoffs)
+            p2_mean, p2_std = mean_std(player2_payoffs)
+
             metrics = {
                 "total_games": total_games,
-                "accepts": len(accepts),
-                "rejects": len(rejects),
-                "acceptance_rate": len(accepts) / total_games if total_games > 0 else 0.0,
-                # Win rates
-                "player1_wins": player1_wins,
-                "player2_wins": player2_wins,
-                "draws": draws,
-                "win_rate_player1": win_rate,
-                "win_rate_player2": 1 - win_rate if non_draw_games > 0 else 0.0,
-                "draw_rate": draw_rate,
-                # Payoffs (average total resources after trade)
-                "player1_payoff_avg": statistics.mean(player1_payoffs)
-                if player1_payoffs
-                else 0.0,
-                "player1_payoff_std": statistics.stdev(player1_payoffs)
-                if len(player1_payoffs) > 1
-                else 0.0,
-                "player1_payoffs": player1_payoffs,
-                "player2_payoff_avg": statistics.mean(player2_payoffs)
-                if player2_payoffs
-                else 0.0,
-                "player2_payoff_std": statistics.stdev(player2_payoffs)
-                if len(player2_payoffs) > 1
-                else 0.0,
-                "player2_payoffs": player2_payoffs,
-                # Trade metrics
-                "avg_trade_volume": statistics.mean(trade_volumes)
-                if trade_volumes
-                else 0.0,
-                "trade_volume_std": statistics.stdev(trade_volumes)
-                if len(trade_volumes) > 1
-                else 0.0,
-                "trade_volumes": trade_volumes,
-                "avg_negotiation_rounds": statistics.mean(negotiation_rounds)
-                if negotiation_rounds
-                else 0.0,
-                "negotiation_rounds_std": statistics.stdev(negotiation_rounds)
-                if len(negotiation_rounds) > 1
-                else 0.0,
-                "negotiation_rounds": negotiation_rounds,
-                # Model info
+                "acceptance_rate_mean": accepts_mean,
+                "acceptance_rate_std": accepts_std,
+                "avg_trade_volume_mean": trade_mean,
+                "avg_trade_volume_std": trade_std,
+                "avg_negotiation_rounds": statistics.mean(negotiation_rounds) if negotiation_rounds else 0.0,
+                "negotiation_rounds_std": statistics.stdev(negotiation_rounds) if len(negotiation_rounds) > 1 else 0.0,
+                "player1_payoff_mean": p1_mean,
+                "player1_payoff_std": p1_std,
+                "player2_payoff_mean": p2_mean,
+                "player2_payoff_std": p2_std,
+                "player1_wins": p1_wins,
+                "player2_wins": p2_wins,
+                "non_draws": non_draws,
+                "win_rate_player1": win_rate_p1,
                 "model1": model1,
                 "model2": model2,
                 "behavior": behavior,
@@ -425,15 +459,15 @@ class TradingResultsAnalyzer:
 
             # Print summary for this combination
             print(f"\n{combo_key}:")
+            num_accepts = sum(accepts) if accepts else 0
+            num_rejects = total_games - num_accepts
+            draws = total_games - (p1_wins + p2_wins)
+            draw_rate = draws / total_games if total_games > 0 else 0.0
+            print(f"  Games: {total_games} | Accepts: {num_accepts} | Rejects: {num_rejects}")
+            print(f"  Win rate (P1, excluding ties): {win_rate_p1:.3f} | Draw rate: {draw_rate:.3f}")
+            print(f"  Avg payoffs (total resources) - P1: {metrics['player1_payoff_mean']:.1f}, P2: {metrics['player2_payoff_mean']:.1f}")
             print(
-                f"  Games: {total_games} | Accepts: {len(accepts)} | Rejects: {len(rejects)}"
-            )
-            print(f"  Win rate (P1): {win_rate:.3f} | Draw rate: {draw_rate:.3f}")
-            print(
-                f"  Avg payoffs (total resources) - P1: {metrics['player1_payoff_avg']:.1f}, P2: {metrics['player2_payoff_avg']:.1f}"
-            )
-            print(
-                f"  Avg trade volume: {metrics['avg_trade_volume']:.1f} | "
+                f"  Avg trade volume: {metrics['avg_trade_volume_mean']:.1f} ± {metrics['avg_trade_volume_std']:.1f} | "
                 f"Avg negotiation rounds: {metrics['avg_negotiation_rounds']:.1f}"
             )
 
@@ -452,77 +486,190 @@ class TradingResultsAnalyzer:
             if not games:
                 continue
 
-            total_games = len(games)
-            accepts = [g for g in games if g.get("outcome") == "ACCEPT"]
-            rejects = [g for g in games if g.get("outcome") == "REJECT"]
-
-            # Wins by player1 vs player2 (ties excluded from denominator)
-            player1_wins = 0
-            player2_wins = 0
-            draws = 0
-            for g in games:
-                p1 = g.get("player1_final_resources", 0)
-                p2 = g.get("player2_final_resources", 0)
-                if p1 > p2:
-                    player1_wins += 1
-                elif p2 > p1:
-                    player2_wins += 1
-                else:
-                    draws += 1
-
-            non_draw_games = player1_wins + player2_wins
-            win_rate_player1 = (
-                player1_wins / non_draw_games if non_draw_games > 0 else 0.0
-            )
-            draw_rate = draws / total_games if total_games > 0 else 0.0
-
+            # compute per-game binary accepts and numeric metrics
+            accepts = [1 if g.get("outcome") == "ACCEPT" else 0 for g in games]
             trade_volumes = [g.get("trade_volume", 0) for g in games]
             negotiation_rounds = [g.get("negotiation_rounds", 0) for g in games]
             player1_payoffs = [g.get("player1_final_resources", 0) for g in games]
             player2_payoffs = [g.get("player2_final_resources", 0) for g in games]
 
+            # wins ignoring ties
+            p1_wins = sum(1 for g in games if g.get("player1_final_resources", 0) > g.get("player2_final_resources", 0))
+            p2_wins = sum(1 for g in games if g.get("player2_final_resources", 0) > g.get("player1_final_resources", 0))
+            non_draws = p1_wins + p2_wins
+            win_rate_p1 = p1_wins / non_draws if non_draws > 0 else 0.0
+
+            def mean_std(lst):
+                m = statistics.mean(lst) if lst else 0.0
+                s = statistics.stdev(lst) if len(lst) > 1 else 0.0
+                return m, s
+
+            acc_m, acc_s = mean_std(accepts)
+            tv_m, tv_s = mean_std(trade_volumes)
+            p1_m, p1_s = mean_std(player1_payoffs)
+            p2_m, p2_s = mean_std(player2_payoffs)
+
             behavior_metrics = {
                 "behavior": behavior,
-                "total_games": total_games,
-                "accepts": len(accepts),
-                "rejects": len(rejects),
-                "acceptance_rate": len(accepts) / total_games if total_games > 0 else 0.0,
-                "player1_wins": player1_wins,
-                "player2_wins": player2_wins,
-                "draws": draws,
-                "win_rate_player1": win_rate_player1,
-                "win_rate_player2": 1 - win_rate_player1 if non_draw_games > 0 else 0.0,
-                "draw_rate": draw_rate,
-                "avg_trade_volume": statistics.mean(trade_volumes)
-                if trade_volumes
-                else 0.0,
-                "trade_volume_std": statistics.stdev(trade_volumes)
-                if len(trade_volumes) > 1
-                else 0.0,
-                "avg_negotiation_rounds": statistics.mean(negotiation_rounds)
-                if negotiation_rounds
-                else 0.0,
-                "negotiation_rounds_std": statistics.stdev(negotiation_rounds)
-                if len(negotiation_rounds) > 1
-                else 0.0,
-                "player1_payoff_avg": statistics.mean(player1_payoffs)
-                if player1_payoffs
-                else 0.0,
-                "player1_payoff_std": statistics.stdev(player1_payoffs)
-                if len(player1_payoffs) > 1
-                else 0.0,
-                "player2_payoff_avg": statistics.mean(player2_payoffs)
-                if player2_payoffs
-                else 0.0,
-                "player2_payoff_std": statistics.stdev(player2_payoffs)
-                if len(player2_payoffs) > 1
-                else 0.0,
+                "total_games": len(games),
+                "acceptance_rate_mean": acc_m,
+                "acceptance_rate_std": acc_s,
+                "avg_trade_volume_mean": tv_m,
+                "avg_trade_volume_std": tv_s,
+                "avg_negotiation_rounds": statistics.mean(negotiation_rounds) if negotiation_rounds else 0.0,
+                "negotiation_rounds_std": statistics.stdev(negotiation_rounds) if len(negotiation_rounds) > 1 else 0.0,
+                "player1_payoff_mean": p1_m,
+                "player1_payoff_std": p1_s,
+                "player2_payoff_mean": p2_m,
+                "player2_payoff_std": p2_s,
+                "player1_wins": p1_wins,
+                "player2_wins": p2_wins,
+                "non_draws": non_draws,
+                "win_rate_player1": win_rate_p1,
             }
 
             behavior_summary[behavior] = behavior_metrics
 
         self.behavior_summary = behavior_summary
         return behavior_summary
+
+    def create_bar_plots_and_tables(self):
+        """Create bar plots (mean ± std) for acceptance rate, trade volume, and payoffs.
+        Also save CSV tables with mean and std for each behavior."""
+        out_dir = Path(self.results_dir) / "plots"
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        behaviors = sorted(self.behavior_summary.keys())
+        if not behaviors:
+            print("No behavior summary to plot")
+            return
+
+        # Gather arrays
+        acc_means = [self.behavior_summary[b]["acceptance_rate_mean"] for b in behaviors]
+        acc_stds = [self.behavior_summary[b]["acceptance_rate_std"] for b in behaviors]
+        tv_means = [self.behavior_summary[b]["avg_trade_volume_mean"] for b in behaviors]
+        tv_stds = [self.behavior_summary[b]["avg_trade_volume_std"] for b in behaviors]
+        p1_means = [self.behavior_summary[b]["player1_payoff_mean"] for b in behaviors]
+        p1_stds = [self.behavior_summary[b]["player1_payoff_std"] for b in behaviors]
+        p2_means = [self.behavior_summary[b]["player2_payoff_mean"] for b in behaviors]
+        p2_stds = [self.behavior_summary[b]["player2_payoff_std"] for b in behaviors]
+        win_means = [self.behavior_summary[b]["win_rate_player1"] for b in behaviors]
+        # std for win rate across games: approximate by computing per-behavior per-game binary win for P1
+        win_stds = []
+        for b in behaviors:
+            games = [g for g in self.raw_data if g["behavior"] == b]
+            wins = []
+            for g in games:
+                p1 = g.get("player1_final_resources", 0)
+                p2 = g.get("player2_final_resources", 0)
+                if p1 > p2:
+                    wins.append(1)
+                elif p2 > p1:
+                    wins.append(0)
+            win_stds.append(statistics.stdev(wins) if len(wins) > 1 else 0.0)
+
+        # Styling similar to provided figure
+        plt.rcParams.update({
+            "font.family": "DejaVu Sans",
+            "axes.titlesize": 14,
+            "axes.labelsize": 12,
+            "xtick.labelsize": 10,
+            "ytick.labelsize": 10,
+        })
+
+        colors = ["#4C4CB8", "#2E8BC0", "#18A162", "#6AD34F", "#D5E86B", "#B7E06C"]
+        # pad colors to behaviors
+        bar_colors = [colors[i % len(colors)] for i in range(len(behaviors))]
+
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+        # Acceptance rate
+        ax = axes[0, 0]
+        x = np.arange(len(behaviors))
+        # no error bars on visualizations; stds remain in CSV/tables
+        ax.bar(x, acc_means, color=bar_colors, edgecolor='black')
+        ax.set_xticks(x)
+        ax.set_xticklabels(behaviors, rotation=30, ha='right')
+        ax.set_ylim(0, 1.05)
+        ax.set_title('Average Acceptance Rate by Behavior')
+        for i, v in enumerate(acc_means):
+            ax.text(i, v + 0.02, f"{v*100:.2f}%", ha='center', fontsize=9)
+
+        # Trade volume
+        ax = axes[0, 1]
+        ax.bar(x, tv_means, color=bar_colors, edgecolor='black')
+        ax.set_xticks(x)
+        ax.set_xticklabels(behaviors, rotation=30, ha='right')
+        ax.set_title('Average Trade Volume by Behavior')
+        for i, v in enumerate(tv_means):
+            ax.text(i, v + (max(tv_means) * 0.02 if tv_means else 0.1), f"{v:.1f}", ha='center', fontsize=9)
+
+        # Payoffs (grouped bars)
+        ax = axes[1, 0]
+        width = 0.35
+        ax.bar(x - width/2, p1_means, width, label='Player 1', color='#2E86AB', edgecolor='black')
+        ax.bar(x + width/2, p2_means, width, label='Player 2', color='#A23E48', edgecolor='black')
+        ax.set_xticks(x)
+        ax.set_xticklabels(behaviors, rotation=30, ha='right')
+        ax.set_title('Average Payoffs by Behavior')
+        ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1))
+        for i in range(len(behaviors)):
+            ax.text(i - width/2, p1_means[i] + (max(p1_means + p2_means) * 0.02 if p1_means or p2_means else 0.1), f"{p1_means[i]:.1f}", ha='center', fontsize=9)
+            ax.text(i + width/2, p2_means[i] + (max(p1_means + p2_means) * 0.02 if p1_means or p2_means else 0.1), f"{p2_means[i]:.1f}", ha='center', fontsize=9)
+
+        # Win rate (player1)
+        ax = axes[1, 1]
+        ax.bar(x, win_means, color=bar_colors, edgecolor='black')
+        ax.set_xticks(x)
+        ax.set_xticklabels(behaviors, rotation=30, ha='right')
+        ax.set_ylim(0, 1.05)
+        ax.set_title('Average Win Rate (Player 1) by Behavior')
+        for i, v in enumerate(win_means):
+            ax.text(i, v + 0.02, f"{v*100:.2f}%", ha='center', fontsize=9)
+
+        plt.tight_layout()
+        fig_file = out_dir / "behavior_bar_summary.png"
+        fig.savefig(fig_file, dpi=150)
+        plt.close(fig)
+
+        # Save CSV table
+        csv_file = Path(self.results_dir) / "behavior_metrics_summary.csv"
+        with open(csv_file, "w", encoding="utf-8") as f:
+            headers = [
+                "behavior",
+                "total_games",
+                "acceptance_rate_mean",
+                "acceptance_rate_std",
+                "avg_trade_volume_mean",
+                "avg_trade_volume_std",
+                "player1_payoff_mean",
+                "player1_payoff_std",
+                "player2_payoff_mean",
+                "player2_payoff_std",
+                "win_rate_player1",
+            ]
+            f.write(",".join(headers) + "\n"
+            )
+            for b in behaviors:
+                m = self.behavior_summary[b]
+                row = [
+                    b,
+                    str(m.get("total_games", 0)),
+                    f"{m.get('acceptance_rate_mean', 0):.4f}",
+                    f"{m.get('acceptance_rate_std', 0):.4f}",
+                    f"{m.get('avg_trade_volume_mean', 0):.4f}",
+                    f"{m.get('avg_trade_volume_std', 0):.4f}",
+                    f"{m.get('player1_payoff_mean', 0):.4f}",
+                    f"{m.get('player1_payoff_std', 0):.4f}",
+                    f"{m.get('player2_payoff_mean', 0):.4f}",
+                    f"{m.get('player2_payoff_std', 0):.4f}",
+                    f"{m.get('win_rate_player1', 0):.4f}",
+                ]
+                f.write(",".join(row) + "\n")
+
+        print(f"Saved behavior bar plot: {fig_file}")
+        print(f"Saved behavior CSV table: {csv_file}")
+
 
     def save_results(self):
         """Save results to JSON files"""
@@ -547,40 +694,34 @@ class TradingResultsAnalyzer:
             headers = [
                 "behavior",
                 "total_games",
-                "accepts",
-                "rejects",
-                "acceptance_rate",
-                "win_rate_player1",
-                "win_rate_player2",
-                "draw_rate",
-                "avg_trade_volume",
-                "trade_volume_std",
+                "acceptance_rate_mean",
+                "acceptance_rate_std",
+                "avg_trade_volume_mean",
+                "avg_trade_volume_std",
                 "avg_negotiation_rounds",
                 "negotiation_rounds_std",
-                "player1_payoff_avg",
+                "player1_payoff_mean",
                 "player1_payoff_std",
-                "player2_payoff_avg",
+                "player2_payoff_mean",
                 "player2_payoff_std",
+                "win_rate_player1",
             ]
             f.write(",".join(headers) + "\n")
             for behavior, metrics in self.behavior_summary.items():
                 row = [
                     behavior,
-                    str(metrics["total_games"]),
-                    str(metrics["accepts"]),
-                    str(metrics["rejects"]),
-                    f"{metrics['acceptance_rate']:.4f}",
-                    f"{metrics['win_rate_player1']:.4f}",
-                    f"{metrics['win_rate_player2']:.4f}",
-                    f"{metrics['draw_rate']:.4f}",
-                    f"{metrics['avg_trade_volume']:.4f}",
-                    f"{metrics['trade_volume_std']:.4f}",
-                    f"{metrics['avg_negotiation_rounds']:.4f}",
-                    f"{metrics['negotiation_rounds_std']:.4f}",
-                    f"{metrics['player1_payoff_avg']:.4f}",
-                    f"{metrics['player1_payoff_std']:.4f}",
-                    f"{metrics['player2_payoff_avg']:.4f}",
-                    f"{metrics['player2_payoff_std']:.4f}",
+                    str(metrics.get("total_games", 0)),
+                    f"{metrics.get('acceptance_rate_mean', 0):.4f}",
+                    f"{metrics.get('acceptance_rate_std', 0):.4f}",
+                    f"{metrics.get('avg_trade_volume_mean', 0):.4f}",
+                    f"{metrics.get('avg_trade_volume_std', 0):.4f}",
+                    f"{metrics.get('avg_negotiation_rounds', 0):.4f}",
+                    f"{metrics.get('negotiation_rounds_std', 0):.4f}",
+                    f"{metrics.get('player1_payoff_mean', 0):.4f}",
+                    f"{metrics.get('player1_payoff_std', 0):.4f}",
+                    f"{metrics.get('player2_payoff_mean', 0):.4f}",
+                    f"{metrics.get('player2_payoff_std', 0):.4f}",
+                    f"{metrics.get('win_rate_player1', 0):.4f}",
                 ]
                 f.write(",".join(row) + "\n")
 
@@ -594,22 +735,12 @@ class TradingResultsAnalyzer:
                 f.write(f"{combo_key}\n")
                 f.write("-" * 40 + "\n")
                 f.write(f"Total Games: {metrics['total_games']}\n")
-                f.write(f"Acceptance Rate: {metrics['acceptance_rate']:.3f}\n")
-                f.write(f"Player 1 Win Rate: {metrics['win_rate_player1']:.3f}\n")
-                f.write(f"Player 2 Win Rate: {metrics['win_rate_player2']:.3f}\n")
-                f.write(f"Draw Rate: {metrics['draw_rate']:.3f}\n")
-                f.write(
-                    f"Average Trade Volume: {metrics['avg_trade_volume']:.1f} ± {metrics['trade_volume_std']:.1f}\n"
-                )
-                f.write(
-                    f"Average Negotiation Rounds: {metrics['avg_negotiation_rounds']:.1f} ± {metrics['negotiation_rounds_std']:.1f}\n"
-                )
-                f.write(
-                    f"Player 1 Average Payoff (total resources): {metrics['player1_payoff_avg']:.1f} ± {metrics['player1_payoff_std']:.1f}\n"
-                )
-                f.write(
-                    f"Player 2 Average Payoff (total resources): {metrics['player2_payoff_avg']:.1f} ± {metrics['player2_payoff_std']:.1f}\n"
-                )
+                f.write(f"Acceptance Rate (mean): {metrics.get('acceptance_rate_mean', 0):.3f} ± {metrics.get('acceptance_rate_std', 0):.3f}\n")
+                f.write(f"Player 1 Win Rate (excluding ties): {metrics.get('win_rate_player1', 0):.3f}\n")
+                f.write(f"Average Trade Volume: {metrics.get('avg_trade_volume_mean', 0):.1f} ± {metrics.get('avg_trade_volume_std', 0):.1f}\n")
+                f.write(f"Average Negotiation Rounds: {metrics.get('avg_negotiation_rounds', 0):.1f} ± {metrics.get('negotiation_rounds_std', 0):.1f}\n")
+                f.write(f"Player 1 Average Payoff: {metrics.get('player1_payoff_mean', 0):.1f} ± {metrics.get('player1_payoff_std', 0):.1f}\n")
+                f.write(f"Player 2 Average Payoff: {metrics.get('player2_payoff_mean', 0):.1f} ± {metrics.get('player2_payoff_std', 0):.1f}\n")
                 f.write("\n")
 
             # Behavior-level aggregated metrics (averaged across all model combinations)
@@ -618,23 +749,13 @@ class TradingResultsAnalyzer:
             for behavior, metrics in self.behavior_summary.items():
                 f.write(f"{behavior}\n")
                 f.write("-" * 40 + "\n")
-                f.write(f"Total Games: {metrics['total_games']}\n")
-                f.write(f"Acceptance Rate: {metrics['acceptance_rate']:.3f}\n")
-                f.write(f"Player 1 Win Rate: {metrics['win_rate_player1']:.3f}\n")
-                f.write(f"Player 2 Win Rate: {metrics['win_rate_player2']:.3f}\n")
-                f.write(f"Draw Rate: {metrics['draw_rate']:.3f}\n")
-                f.write(
-                    f"Average Trade Volume: {metrics['avg_trade_volume']:.1f} ± {metrics['trade_volume_std']:.1f}\n"
-                )
-                f.write(
-                    f"Average Negotiation Rounds: {metrics['avg_negotiation_rounds']:.1f} ± {metrics['negotiation_rounds_std']:.1f}\n"
-                )
-                f.write(
-                    f"Player 1 Average Payoff (total resources): {metrics['player1_payoff_avg']:.1f} ± {metrics['player1_payoff_std']:.1f}\n"
-                )
-                f.write(
-                    f"Player 2 Average Payoff (total resources): {metrics['player2_payoff_avg']:.1f} ± {metrics['player2_payoff_std']:.1f}\n"
-                )
+                f.write(f"Total Games: {metrics.get('total_games', 0)}\n")
+                f.write(f"Acceptance Rate (mean): {metrics.get('acceptance_rate_mean', 0):.3f} ± {metrics.get('acceptance_rate_std', 0):.3f}\n")
+                f.write(f"Player 1 Win Rate (excluding ties): {metrics.get('win_rate_player1', 0):.3f}\n")
+                f.write(f"Average Trade Volume: {metrics.get('avg_trade_volume_mean', 0):.1f} ± {metrics.get('avg_trade_volume_std', 0):.1f}\n")
+                f.write(f"Average Negotiation Rounds: {metrics.get('avg_negotiation_rounds', 0):.1f} ± {metrics.get('negotiation_rounds_std', 0):.1f}\n")
+                f.write(f"Player 1 Average Payoff: {metrics.get('player1_payoff_mean', 0):.1f} ± {metrics.get('player1_payoff_std', 0):.1f}\n")
+                f.write(f"Player 2 Average Payoff: {metrics.get('player2_payoff_mean', 0):.1f} ± {metrics.get('player2_payoff_std', 0):.1f}\n")
                 f.write("\n")
 
         print(f"\nResults saved:")
@@ -643,6 +764,8 @@ class TradingResultsAnalyzer:
         print(f"  Readable: {readable_file}")
         print(f"  Behavior summary (JSON): {behavior_summary_file}")
         print(f"  Behavior summary (CSV): {behavior_csv_file}")
+        plots_dir = Path(self.results_dir) / "plots"
+        print(f"  Plots and heatmaps: {plots_dir}")
 
     def create_heatmap_data(self):
         """Create data for heatmap visualization"""
@@ -676,10 +799,11 @@ class TradingResultsAnalyzer:
 
                     if combo_key in self.summary:
                         metrics = self.summary[combo_key]
-                        win_rates[model1][model2] = metrics["win_rate_player1"]
-                        # Payoff heatmaps: average total resources after trade
-                        payoff_p1[model1][model2] = metrics["player1_payoff_avg"]
-                        payoff_p2[model1][model2] = metrics["player2_payoff_avg"]
+                        # win rate per combo already excludes ties in calculate_metrics
+                        win_rates[model1][model2] = metrics.get("win_rate_player1", None)
+                        # Payoff heatmaps: average total resources after trade (mean)
+                        payoff_p1[model1][model2] = metrics.get("player1_payoff_mean", None)
+                        payoff_p2[model1][model2] = metrics.get("player2_payoff_mean", None)
                     else:
                         win_rates[model1][model2] = None
                         payoff_p1[model1][model2] = None
@@ -697,7 +821,63 @@ class TradingResultsAnalyzer:
         with open(heatmap_file, "w", encoding="utf-8") as f:
             json.dump(heatmap_data, f, indent=2)
 
-        print(f"  Heatmap data: {heatmap_file}")
+        # Also render heatmap images per behavior (win rate)
+        plots_dir = Path(self.results_dir) / "plots"
+        plots_dir.mkdir(parents=True, exist_ok=True)
+
+        for behavior, data in heatmap_data.items():
+            models = data["models"]
+            m = len(models)
+
+            # Render heatmaps for each type
+            for heatmap_type, title_suffix, value_format, cmap_name, vmin, vmax in [
+                ("win_rates", "Win Rate (P1)", lambda v: f"{v*100:.1f}%", 'YlGn', 0.0, 1.0),
+                ("payoff_player1", "Average Payoff (Player 1)", lambda v: f"{v:.1f}", 'viridis', None, None),
+                ("payoff_player2", "Average Payoff (Player 2)", lambda v: f"{v:.1f}", 'viridis', None, None),
+            ]:
+                matrix = np.full((m, m), np.nan, dtype=float)
+                for i, a in enumerate(models):
+                    for j, b in enumerate(models):
+                        val = data[heatmap_type].get(a, {}).get(b, None)
+                        if val is None:
+                            matrix[i, j] = np.nan
+                        else:
+                            matrix[i, j] = float(val)
+
+                fig, ax = plt.subplots(figsize=(8, 6))
+                cmap = plt.cm.get_cmap(cmap_name)
+                im = ax.imshow(matrix, vmin=vmin, vmax=vmax, cmap=cmap)
+                ax.set_xticks(range(m))
+                ax.set_yticks(range(m))
+                ax.set_xticklabels(models, rotation=45, ha='right')
+                ax.set_yticklabels(models)
+                ax.set_title(f'{title_suffix} heatmap — {behavior}')
+                cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+                ylabel = 'P1 win rate' if 'win' in heatmap_type else 'Average Payoff'
+                cbar.ax.set_ylabel(ylabel, rotation=270, labelpad=15)
+
+                # Annotate heatmap cells with numeric values in large readable font.
+                for i in range(m):
+                    for j in range(m):
+                        val = matrix[i, j]
+                        if np.isnan(val):
+                            txt = "-"
+                            txt_color = 'gray'
+                            fontsize = 10
+                        else:
+                            txt = value_format(val)
+                            # choose text color for contrast
+                            txt_color = 'white' if (val > 0.55 and "win" in heatmap_type) or (not np.isnan(matrix.max()) and val > matrix.max() * 0.7) else 'black'
+                            fontsize = 12
+                        ax.text(j, i, txt, ha='center', va='center', color=txt_color, fontsize=fontsize, fontweight='bold')
+
+                heatmap_file_img = plots_dir / f'heatmap_{heatmap_type}_{behavior}.png'
+                fig.tight_layout()
+                fig.savefig(heatmap_file_img, dpi=150)
+                plt.close(fig)
+
+        print(f"  Heatmap data JSON: {heatmap_file}")
+        print(f"  Heatmap images saved in: {plots_dir}")
 
         return heatmap_data
 
@@ -732,10 +912,16 @@ def main():
     # Calculate metrics
     summary = analyzer.calculate_metrics()
 
-    # Save results
+    # Aggregate behavior-level summaries
+    behavior_summary = analyzer.calculate_behavior_summary()
+
+    # Create bar plots and tables for behavior metrics
+    analyzer.create_bar_plots_and_tables()
+
+    # Save results (JSON/CSV/readable)
     analyzer.save_results()
 
-    # Create heatmap data
+    # Create heatmap data (and images) for win rates
     analyzer.create_heatmap_data()
 
     print(f"\n" + "=" * 60)
