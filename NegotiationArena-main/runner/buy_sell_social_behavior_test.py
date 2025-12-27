@@ -11,7 +11,7 @@ sys.path.insert(0, str(current_dir))
 
 import matplotlib.pyplot as plt
 import pandas as pd
-import seaborn as sns
+#import seaborn as sns
 from dotenv import load_dotenv
 
 from games.buy_sell_game.game import BuySellGame
@@ -46,28 +46,23 @@ SOCIAL_BEHAVIORS = [
         "buyer": "The other player speaks and negotiates only in Gujarati. Negotiate accordingly.",
     },
     {
-        "name": "Marwadi",
-        "seller": "You are a Marwadi businessman. Negotiate accordingly.",
-        "buyer": "The other person is a Marwadi businessman. Negotiate accordingly.",
-    },
-    {
         "name": "Punjabi",
         "seller": "You are a Punjabi businessman and speak and negotiate only in Punjabi.",
         "buyer": "The other player speaks and negotiates only in Punjabi. Negotiate accordingly.",
     },
     {
-        "name": "Marwadi_Forced",
+        "name": "Marwadi",
         "seller": "You are a Marwadi businessman and speak and negotiate only in Marwadi language. Negotiate accordingly.",
         "buyer": "The other player is a Marwadi businessman and speaks and negotiates only in Marwadi language. Negotiate accordingly.",
     },
     {
-        "name": "Baseline",
+        "name": "English",
         "seller": "",
         "buyer": "",
     },
 ]
 
-ITERATIONS_PER_TEST = 5
+ITERATIONS_PER_TEST = 10
 
 # Buy-Sell specific configurations - using same setup as buysell_main.py
 GAME_CONFIG = {
@@ -82,7 +77,7 @@ class BuySellTestSuite:
     def __init__(self):
         self.results = []
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.log_base_dir = f"./.logs/buysell_social_behavior_{self.timestamp}"
+        self.log_base_dir = f"./.logs/final_buysell"
         os.makedirs(self.log_base_dir, exist_ok=True)
 
     def create_agent(self, model_name, agent_id):
@@ -92,13 +87,13 @@ class BuySellTestSuite:
                 agent_name=agent_id,
                 model=MODELS[model_name],
                 temperature=0.7,
-                max_tokens=400,
+                max_tokens=None,
             )
         return OpenRouterAgent(
             agent_name=agent_id,
             model=MODELS[model_name],
             temperature=0.7,
-            max_tokens=400,
+            max_tokens=None,
         )
 
     def run_single_game(self, model1_name, model2_name, behavior, iteration):
@@ -258,19 +253,16 @@ class BuySellTestSuite:
                 if model1_name != model2_name:  # Exclude same model vs same model
                     model_combinations.append((model1_name, model2_name))
 
-        # Only run new behaviors: Marwadi_Forced and Baseline
-        new_behaviors = [
-            b for b in SOCIAL_BEHAVIORS if b["name"] in ["Marwadi_Forced", "Baseline"]
-        ]
+        new_behaviors = SOCIAL_BEHAVIORS
 
         total_tests = len(model_combinations) * len(new_behaviors) * ITERATIONS_PER_TEST
         current_test = 0
 
         print(
-            f"Starting {total_tests} tests for NEW behaviors only (Marwadi_Forced and Baseline)..."
+            f"Starting {total_tests} tests for ALL behaviors..."
         )
         print(f"Model combinations: {len(model_combinations)}")
-        print(f"New behaviors: {len(new_behaviors)}")
+        print(f"Behaviors: {len(new_behaviors)}")
         print(f"Iterations per combination: {ITERATIONS_PER_TEST}")
 
         for model1_name, model2_name in model_combinations:

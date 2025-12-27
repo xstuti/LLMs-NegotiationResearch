@@ -1,590 +1,578 @@
 #!/usr/bin/env python3
 """
-Comprehensive analysis script for BuySell Negotiation Arena results.
-Generates heatmaps, graphs, and statistical summaries.
+Analyze Buy-Sell Game Results
+
+This script analyzes the buy-sell game results from the log files,
+extracting key metrics from the all_results.json file.
 """
 
 import json
 import os
-from collections import defaultdict
-from pathlib import Path
-from typing import Any, Dict, List, Tuple
-
+import statistics
+import math
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
+import sys
+from collections import defaultdict
+from pathlib import Path
 
-# Set style for better-looking plots
-sns.set_style("whitegrid")
-plt.rcParams["figure.figsize"] = (12, 10)
+# Add current directory to Python path for module imports
+current_dir = Path(__file__).parent
+sys.path.insert(0, str(current_dir))
 
 
-class BuySellAnalyzer:
-    def __init__(self, results_dir: str):
+class BuySellResultsAnalyzer:
+    # Known behaviors to help with parsing
+    KNOWN_BEHAVIORS = [
+        "Hindi",
+        "Gujarati",
+        "Marwadi",
+        "Punjabi",
+        "English",
+    ]
+
+    # Known model patterns
+    KNOWN_MODELS = [
+        "GPT-4o",
+        "GPT-3.5",
+        "Claude-3-Haiku",
+        "Claude-3.5-Haiku",
+    ]
+
+    def __init__(self, results_dir):
         self.results_dir = Path(results_dir)
-        self.data = defaultdict(lambda: defaultdict(list))
-        self.models = ["Claude-3.5-Haiku", "Claude-3-Haiku", "GPT-4o", "GPT-3.5"]
-        self.languages = [
-            "Hindi",
-            "Gujarati",
-            "Marwadi",
-            "Punjabi",
-            "Marwadi_Forced",
-            "Baseline",
-        ]
-        self.all_results = []
+        self.raw_data = []
+        self.summary = {}
+        self.behavior_summary = {}
 
-    def extract_game_data(self, game_state_path: Path) -> Dict[str, Any]:
-        """Extract relevant data from a single game_state.json file."""
-        try:
-            with open(game_state_path, "r") as f:
-                data = json.load(f)
+    def analyze_all_games(self):
+        """Load all game results from all_results.json"""
+        results_file = self.results_dir / "all_results.json"
+        if not results_file.exists():
+            print(f"Error: {results_file} not found")
+            return []
 
-            # Find the END state in game_state array
-            game_states = data.get("game_state", [])
-            end_state = None
-            for state in game_states:
-                if state.get("current_iteration") == "END":
-                    end_state = state
-                    break
+        with open(results_file, "r", encoding="utf-8") as f:
+            self.raw_data = json.load(f)
 
-            if not end_state:
-                print(f"No END state found in {game_state_path}")
-                return None
+        print(f"Loaded {len(self.raw_data)} game results")
+        return self.raw_data
 
-            # Extract from summary
-            summary = end_state.get("summary", {})
-            final_response = summary.get("final_response", "")
-            player_outcome = summary.get("player_outcome", [0, 0])
-            proposed_trade = summary.get("proposed_trade", {})
+    def calculate_metrics(self):
+        """Calculate summary metrics for each model combination and behavior"""
+        # Group data by model combination and behavior
+        groups = defaultdict(list)
 
-            # Extract trade price if accepted
-            trade_price = None
-            if final_response == "ACCEPT" and proposed_trade:
-                # Navigate through the nested structure
-                trade_value = proposed_trade.get("_value", {})
-                blue_resource = trade_value.get("BLUE", {})
-                blue_value = blue_resource.get("_value", {})
-                trade_price = blue_value.get("ZUP", None)
+        for game in self.raw_data:
+            key = (game["seller_model"], game["buyer_model"], game["behavior"])
+            groups[key].append(game)
 
-            seller_adv = player_outcome[0] if len(player_outcome) > 0 else 0
-            buyer_adv = player_outcome[1] if len(player_outcome) > 1 else 0
-
-            return {
-                "final_response": final_response,
-                "seller_advantage": seller_adv,
-                "buyer_advantage": buyer_adv,
-                "trade_price": trade_price,
-                "accepted": final_response == "ACCEPT",
-                "summary": summary,
-            }
-        except Exception as e:
-            print(f"Error processing {game_state_path}: {e}")
-            import traceback
-
-            traceback.print_exc()
-            return None
-
-    def load_all_results(self):
-        """Load all game results from the directory structure."""
-        print("Loading results from:", self.results_dir)
-
-        # Iterate through all subdirectories
-        for subdir in self.results_dir.iterdir():
-            if not subdir.is_dir():
-                continue
-
-            # Parse directory name: Model1_vs_Model2_Language_iter_N
-            parts = subdir.name.split("_")
-            if len(parts) < 5 or "vs" not in parts:
-                continue
-
-            try:
-                vs_idx = parts.index("vs")
-                iter_idx = parts.index("iter")
-
-                # Extract model names and language
-                model1_parts = parts[:vs_idx]
-                # Language can have underscores (e.g., Marwadi_Forced), so join everything between model2 and "iter"
-                language_parts = parts[vs_idx + 1 : iter_idx]
-                iteration = int(parts[iter_idx + 1])
-
-                model1 = "_".join(model1_parts)
-
-                # Normalize model names (replace underscores with hyphens)
-                model1 = model1.replace("_", "-")
-
-                # Find where model2 ends and language begins by matching known models
-                # Try to match model2 from the start of language_parts
-                model2 = None
-                language = None
-
-                for i in range(1, len(language_parts) + 1):
-                    potential_model = "_".join(language_parts[:i]).replace("_", "-")
-                    if potential_model in self.models:
-                        model2 = potential_model
-                        language = "_".join(language_parts[i:])
-                        break
-
-                # Fallback: if no match found, assume first part is model2 and rest is language
-                if model2 is None:
-                    model2 = language_parts[0].replace("_", "-")
-                    language = (
-                        "_".join(language_parts[1:])
-                        if len(language_parts) > 1
-                        else language_parts[0]
-                    )
-
-                # Find game_state.json in subdirectories
-                game_state_files = list(subdir.glob("*/game_state.json"))
-
-                for game_state_file in game_state_files:
-                    game_data = self.extract_game_data(game_state_file)
-
-                    if game_data:
-                        result = {
-                            "model1": model1,
-                            "model2": model2,
-                            "language": language,
-                            "iteration": iteration,
-                            **game_data,
-                        }
-                        self.all_results.append(result)
-
-                        # Store in structured format
-                        key = f"{model1}_vs_{model2}_{language}"
-                        self.data[key]["seller_advantages"].append(
-                            game_data["seller_advantage"]
-                        )
-                        self.data[key]["buyer_advantages"].append(
-                            game_data["buyer_advantage"]
-                        )
-                        self.data[key]["trade_prices"].append(game_data["trade_price"])
-                        self.data[key]["accepted"].append(game_data["accepted"])
-                        self.data[key]["model1"] = model1
-                        self.data[key]["model2"] = model2
-                        self.data[key]["language"] = language
-
-            except (ValueError, IndexError) as e:
-                print(f"Skipping directory {subdir.name}: {e}")
-                continue
-
-        print(f"Loaded {len(self.all_results)} game results")
-
-    def compute_statistics(self) -> Dict:
-        """Compute comprehensive statistics for all model-language combinations."""
-        stats = {}
-
-        for key, data in self.data.items():
-            seller_advs = [x for x in data["seller_advantages"] if x is not None]
-            buyer_advs = [x for x in data["buyer_advantages"] if x is not None]
-            trade_prices = [x for x in data["trade_prices"] if x is not None]
-            accepted = data["accepted"]
-
-            stats[key] = {
-                "model1": data["model1"],
-                "model2": data["model2"],
-                "language": data["language"],
-                "num_games": len(accepted),
-                "acceptance_rate": sum(accepted) / len(accepted) if accepted else 0,
-                # Seller statistics
-                "seller_avg": np.mean(seller_advs) if seller_advs else 0,
-                "seller_std": np.std(seller_advs) if seller_advs else 0,
-                "seller_min": np.min(seller_advs) if seller_advs else 0,
-                "seller_max": np.max(seller_advs) if seller_advs else 0,
-                "seller_values": seller_advs,
-                # Buyer statistics
-                "buyer_avg": np.mean(buyer_advs) if buyer_advs else 0,
-                "buyer_std": np.std(buyer_advs) if buyer_advs else 0,
-                "buyer_min": np.min(buyer_advs) if buyer_advs else 0,
-                "buyer_max": np.max(buyer_advs) if buyer_advs else 0,
-                "buyer_values": buyer_advs,
-                # Trade price statistics
-                "price_avg": np.mean(trade_prices) if trade_prices else 0,
-                "price_std": np.std(trade_prices) if trade_prices else 0,
-                "price_min": np.min(trade_prices) if trade_prices else 0,
-                "price_max": np.max(trade_prices) if trade_prices else 0,
-                "price_values": trade_prices,
-            }
-
-        return stats
-
-    def create_consolidated_heatmaps(
-        self, language: str, stats: Dict, output_dir: Path
-    ):
-        """Create a single image with 4 heatmaps (2x2) for a language."""
-        metrics = [
-            ("seller_avg", "Average Seller Advantage"),
-            ("buyer_avg", "Average Buyer Advantage"),
-            ("acceptance_rate", "Acceptance Rate"),
-            ("price_avg", "Average Trade Price (ZUP)"),
-        ]
-
-        fig, axes = plt.subplots(2, 2, figsize=(20, 18))
-        fig.suptitle(
-            f"{language} - Model Comparison Heatmaps",
-            fontsize=18,
-            fontweight="bold",
-            y=0.995,
-        )
-
-        for idx, (metric, title) in enumerate(metrics):
-            row = idx // 2
-            col = idx % 2
-            ax = axes[row, col]
-
-            # Create matrix for the heatmap
-            matrix = np.zeros((len(self.models), len(self.models)))
-
-            for i, seller_model in enumerate(self.models):
-                for j, buyer_model in enumerate(self.models):
-                    key = f"{seller_model}_vs_{buyer_model}_{language}"
-                    if key in stats:
-                        matrix[i, j] = stats[key][metric]
-                    else:
-                        matrix[i, j] = np.nan
-
-            # Create mask for NaN values
-            mask = np.isnan(matrix)
-
-            # Determine colormap based on metric
-            if metric == "acceptance_rate":
-                cmap = "YlGn"
-                center = None
-            elif "price" in metric:
-                cmap = "YlOrRd"
-                center = None
-            else:
-                cmap = "RdYlGn"
-                center = 0
-
-            sns.heatmap(
-                matrix,
-                annot=True,
-                fmt=".2f",
-                cmap=cmap,
-                xticklabels=self.models,
-                yticklabels=self.models,
-                center=center,
-                mask=mask,
-                cbar_kws={"label": title},
-                ax=ax,
-                vmin=None if center is None else None,
-                vmax=None,
-            )
-
-            ax.set_xlabel("Buyer Model (Model 2)", fontsize=11, fontweight="bold")
-            ax.set_ylabel("Seller Model (Model 1)", fontsize=11, fontweight="bold")
-            ax.set_title(title, fontsize=13, fontweight="bold", pad=10)
-
-        plt.tight_layout()
-        filename = f"heatmap_{language}_all_metrics.png"
-        plt.savefig(output_dir / filename, dpi=300, bbox_inches="tight")
-        plt.close()
-        print(f"Created consolidated heatmap: {filename}")
-
-    def create_all_heatmaps(self, stats: Dict, output_dir: Path):
-        """Create consolidated heatmaps for all languages."""
-        for language in self.languages:
-            self.create_consolidated_heatmaps(language, stats, output_dir)
-
-    def create_cross_language_graphs(self, stats: Dict, output_dir: Path):
-        """Create bar graphs combining values across languages for same model combo."""
-        # Group by model combination
-        model_combos = set()
-        for key in stats.keys():
-            parts = key.rsplit("_", 1)
-            if len(parts) == 2:
-                model_combos.add(parts[0])
-
-        for combo in sorted(model_combos):
-            # Collect data for this combo across all languages
-            lang_seller_avgs = []
-            lang_buyer_avgs = []
-            lang_acceptance = []
-            lang_price_avgs = []
-            languages_present = []
-
-            for lang in self.languages:
-                key = f"{combo}_{lang}"
-                if key in stats:
-                    languages_present.append(lang)
-                    lang_seller_avgs.append(stats[key]["seller_avg"])
-                    lang_buyer_avgs.append(stats[key]["buyer_avg"])
-                    lang_acceptance.append(stats[key]["acceptance_rate"])
-                    lang_price_avgs.append(stats[key]["price_avg"])
-
-            if not languages_present:
-                continue
-
-            # Create figure with subplots
-            fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-            fig.suptitle(
-                f"{combo} - Cross-Language Comparison", fontsize=16, fontweight="bold"
-            )
-
-            x = np.arange(len(languages_present))
-            width = 0.6
-
-            # Seller advantage
-            axes[0, 0].bar(x, lang_seller_avgs, width, color="coral", alpha=0.8)
-            axes[0, 0].set_ylabel("Average Advantage", fontweight="bold")
-            axes[0, 0].set_title("Seller Advantage by Language")
-            axes[0, 0].set_xticks(x)
-            axes[0, 0].set_xticklabels(languages_present, rotation=45, ha="right")
-            axes[0, 0].axhline(y=0, color="black", linestyle="--", linewidth=0.8)
-            axes[0, 0].grid(axis="y", alpha=0.3)
-
-            # Buyer advantage
-            axes[0, 1].bar(x, lang_buyer_avgs, width, color="skyblue", alpha=0.8)
-            axes[0, 1].set_ylabel("Average Advantage", fontweight="bold")
-            axes[0, 1].set_title("Buyer Advantage by Language")
-            axes[0, 1].set_xticks(x)
-            axes[0, 1].set_xticklabels(languages_present, rotation=45, ha="right")
-            axes[0, 1].axhline(y=0, color="black", linestyle="--", linewidth=0.8)
-            axes[0, 1].grid(axis="y", alpha=0.3)
-
-            # Acceptance rate
-            axes[1, 0].bar(x, lang_acceptance, width, color="lightgreen", alpha=0.8)
-            axes[1, 0].set_ylabel("Acceptance Rate", fontweight="bold")
-            axes[1, 0].set_title("Acceptance Rate by Language")
-            axes[1, 0].set_xticks(x)
-            axes[1, 0].set_xticklabels(languages_present, rotation=45, ha="right")
-            axes[1, 0].set_ylim([0, 1.1])
-            axes[1, 0].grid(axis="y", alpha=0.3)
-
-            # Average trade price
-            axes[1, 1].bar(x, lang_price_avgs, width, color="plum", alpha=0.8)
-            axes[1, 1].set_ylabel("Average Price (ZUP)", fontweight="bold")
-            axes[1, 1].set_title("Average Trade Price by Language")
-            axes[1, 1].set_xticks(x)
-            axes[1, 1].set_xticklabels(languages_present, rotation=45, ha="right")
-            axes[1, 1].grid(axis="y", alpha=0.3)
-
-            plt.tight_layout()
-            safe_combo = combo.replace("/", "_")
-            filename = f"cross_language_{safe_combo}.png"
-            plt.savefig(output_dir / filename, dpi=300, bbox_inches="tight")
-            plt.close()
-            print(f"Created cross-language graph: {filename}")
-
-    def create_cross_model_graphs(self, stats: Dict, output_dir: Path):
-        """Create bar graphs combining values across models for same language."""
-        for language in self.languages:
-            # Collect all model combinations for this language
-            combos = []
-            seller_avgs = []
-            buyer_avgs = []
-            acceptance_rates = []
-            price_avgs = []
-
-            for key, stat in stats.items():
-                if stat["language"] == language:
-                    combo = f"{stat['model1']}_vs_{stat['model2']}"
-                    combos.append(combo)
-                    seller_avgs.append(stat["seller_avg"])
-                    buyer_avgs.append(stat["buyer_avg"])
-                    acceptance_rates.append(stat["acceptance_rate"])
-                    price_avgs.append(stat["price_avg"])
-
-            if not combos:
-                continue
-
-            # Sort by combo name for consistency
-            sorted_data = sorted(
-                zip(combos, seller_avgs, buyer_avgs, acceptance_rates, price_avgs)
-            )
-            combos, seller_avgs, buyer_avgs, acceptance_rates, price_avgs = zip(
-                *sorted_data
-            )
-
-            # Create figure with subplots
-            fig, axes = plt.subplots(2, 2, figsize=(20, 12))
-            fig.suptitle(
-                f"{language} - Cross-Model Comparison", fontsize=16, fontweight="bold"
-            )
-
-            x = np.arange(len(combos))
-            width = 0.6
-
-            # Seller advantage
-            axes[0, 0].bar(x, seller_avgs, width, color="coral", alpha=0.8)
-            axes[0, 0].set_ylabel("Average Advantage", fontweight="bold")
-            axes[0, 0].set_title("Seller Advantage by Model Combination")
-            axes[0, 0].set_xticks(x)
-            axes[0, 0].set_xticklabels(combos, rotation=90, ha="right", fontsize=8)
-            axes[0, 0].axhline(y=0, color="black", linestyle="--", linewidth=0.8)
-            axes[0, 0].grid(axis="y", alpha=0.3)
-
-            # Buyer advantage
-            axes[0, 1].bar(x, buyer_avgs, width, color="skyblue", alpha=0.8)
-            axes[0, 1].set_ylabel("Average Advantage", fontweight="bold")
-            axes[0, 1].set_title("Buyer Advantage by Model Combination")
-            axes[0, 1].set_xticks(x)
-            axes[0, 1].set_xticklabels(combos, rotation=90, ha="right", fontsize=8)
-            axes[0, 1].axhline(y=0, color="black", linestyle="--", linewidth=0.8)
-            axes[0, 1].grid(axis="y", alpha=0.3)
-
-            # Acceptance rate
-            axes[1, 0].bar(x, acceptance_rates, width, color="lightgreen", alpha=0.8)
-            axes[1, 0].set_ylabel("Acceptance Rate", fontweight="bold")
-            axes[1, 0].set_title("Acceptance Rate by Model Combination")
-            axes[1, 0].set_xticks(x)
-            axes[1, 0].set_xticklabels(combos, rotation=90, ha="right", fontsize=8)
-            axes[1, 0].set_ylim([0, 1.1])
-            axes[1, 0].grid(axis="y", alpha=0.3)
-
-            # Average trade price
-            axes[1, 1].bar(x, price_avgs, width, color="plum", alpha=0.8)
-            axes[1, 1].set_ylabel("Average Price (ZUP)", fontweight="bold")
-            axes[1, 1].set_title("Average Trade Price by Model Combination")
-            axes[1, 1].set_xticks(x)
-            axes[1, 1].set_xticklabels(combos, rotation=90, ha="right", fontsize=8)
-            axes[1, 1].grid(axis="y", alpha=0.3)
-
-            plt.tight_layout()
-            filename = f"cross_model_{language}.png"
-            plt.savefig(output_dir / filename, dpi=300, bbox_inches="tight")
-            plt.close()
-            print(f"Created cross-model graph: {filename}")
-
-    def save_summary_json(self, stats: Dict, output_dir: Path):
-        """Save comprehensive summary to JSON file."""
-        # Convert numpy types to native Python types for JSON serialization
         summary = {}
-        for key, stat in stats.items():
-            summary[key] = {
-                "model1": stat["model1"],
-                "model2": stat["model2"],
-                "language": stat["language"],
-                "num_games": int(stat["num_games"]),
-                "acceptance_rate": float(stat["acceptance_rate"]),
-                "seller_statistics": {
-                    "average": float(stat["seller_avg"]),
-                    "std_dev": float(stat["seller_std"]),
-                    "min": float(stat["seller_min"]),
-                    "max": float(stat["seller_max"]),
-                    "all_values": [float(x) for x in stat["seller_values"]],
-                },
-                "buyer_statistics": {
-                    "average": float(stat["buyer_avg"]),
-                    "std_dev": float(stat["buyer_std"]),
-                    "min": float(stat["buyer_min"]),
-                    "max": float(stat["buyer_max"]),
-                    "all_values": [float(x) for x in stat["buyer_values"]],
-                },
-                "trade_price_statistics": {
-                    "average": float(stat["price_avg"]),
-                    "std_dev": float(stat["price_std"]),
-                    "min": float(stat["price_min"]) if stat["price_values"] else None,
-                    "max": float(stat["price_max"]) if stat["price_values"] else None,
-                    "all_values": [float(x) for x in stat["price_values"]],
-                },
+
+        for (seller_model, buyer_model, behavior), games in groups.items():
+            combo_key = f"{seller_model}_vs_{buyer_model}_{behavior}"
+
+            # Filter valid games (exclude errors)
+            valid_games = [g for g in games if g.get("game_completed", False)]
+
+            if not valid_games:
+                print(f"Warning: No valid games found for {combo_key}")
+                continue
+
+            # Accepted games for metrics that should only include successful trades
+            accepted_games = [g for g in valid_games if g.get("trade_occurred", False)]
+
+            # Calculate requested metrics only
+            total_games = len(valid_games)
+            accepts = [1 if g.get("trade_occurred", False) else 0 for g in valid_games]
+
+            # Negotiation rounds (keep for all valid games)
+            negotiation_rounds = [g.get("negotiation_rounds", 0) for g in valid_games]
+
+            # Seller and buyer advantages (only from accepted trades)
+            seller_advantages = [g.get("seller_profit", 0) for g in accepted_games]
+            buyer_advantages = [g.get("buyer_savings", 0) for g in accepted_games]
+
+            # Win counts for seller (player 1), only for accepted trades
+            p1_wins = 0
+            p2_wins = 0
+            for g in accepted_games:
+                seller_profit = g.get("seller_profit", 0)
+                buyer_savings = g.get("buyer_savings", 0)
+                if seller_profit > buyer_savings:
+                    p1_wins += 1
+                elif buyer_savings > seller_profit:
+                    p2_wins += 1
+
+            non_draws = p1_wins + p2_wins
+            win_rate_p1 = p1_wins / non_draws if non_draws > 0 else 0.0
+
+            # Statistics (means and stds)
+            def mean_std(lst):
+                m = statistics.mean(lst) if lst else 0.0
+                s = statistics.stdev(lst) if len(lst) > 1 else 0.0
+                return m, s
+
+            accepts_mean, accepts_std = mean_std(accepts)
+            seller_mean, seller_std = mean_std(seller_advantages)
+            buyer_mean, buyer_std = mean_std(buyer_advantages)
+
+            metrics = {
+                "total_games": total_games,
+                "acceptance_rate_mean": accepts_mean,
+                "acceptance_rate_std": accepts_std,
+                "avg_negotiation_rounds": statistics.mean(negotiation_rounds) if negotiation_rounds else 0.0,
+                "negotiation_rounds_std": statistics.stdev(negotiation_rounds) if len(negotiation_rounds) > 1 else 0.0,
+                "seller_advantage_mean": seller_mean,
+                "seller_advantage_std": seller_std,
+                "buyer_advantage_mean": buyer_mean,
+                "buyer_advantage_std": buyer_std,
+                "player1_wins": p1_wins,
+                "player2_wins": p2_wins,
+                "non_draws": non_draws,
+                "win_rate_player1": win_rate_p1,
+                "seller_model": seller_model,
+                "buyer_model": buyer_model,
+                "behavior": behavior,
             }
 
-        # Add overall statistics
-        all_seller_advs = []
-        all_buyer_advs = []
-        all_prices = []
-        all_acceptances = []
+            summary[combo_key] = metrics
 
-        for stat in stats.values():
-            all_seller_advs.extend(stat["seller_values"])
-            all_buyer_advs.extend(stat["buyer_values"])
-            all_prices.extend(stat["price_values"])
-            all_acceptances.append(stat["acceptance_rate"])
+            # Print summary for this combination
+            print(f"\n{combo_key}:")
+            num_accepts = sum(accepts) if accepts else 0
+            num_rejects = total_games - num_accepts
+            draws = total_games - (p1_wins + p2_wins)
+            draw_rate = draws / total_games if total_games > 0 else 0.0
+            print(f"  Games: {total_games} | Accepts: {num_accepts} | Rejects: {num_rejects}")
+            print(f"  Win rate (Seller, excluding ties): {win_rate_p1:.3f} | Draw rate: {draw_rate:.3f}")
+            print(f"  Avg advantages - Seller: {metrics['seller_advantage_mean']:.1f}, Buyer: {metrics['buyer_advantage_mean']:.1f}")
+            print(f"  Avg negotiation rounds: {metrics['avg_negotiation_rounds']:.1f}")
 
-        summary["overall_statistics"] = {
-            "total_games": len(self.all_results),
-            "total_combinations": len(stats),
-            "seller_advantage": {
-                "mean": float(np.mean(all_seller_advs)) if all_seller_advs else 0,
-                "std": float(np.std(all_seller_advs)) if all_seller_advs else 0,
-            },
-            "buyer_advantage": {
-                "mean": float(np.mean(all_buyer_advs)) if all_buyer_advs else 0,
-                "std": float(np.std(all_buyer_advs)) if all_buyer_advs else 0,
-            },
-            "trade_price": {
-                "mean": float(np.mean(all_prices)) if all_prices else 0,
-                "std": float(np.std(all_prices)) if all_prices else 0,
-            },
-            "average_acceptance_rate": float(np.mean(all_acceptances))
-            if all_acceptances
-            else 0,
-        }
+        self.summary = summary
+        return summary
 
-        output_file = output_dir / "summary.json"
-        with open(output_file, "w") as f:
-            json.dump(summary, f, indent=2)
+    def calculate_behavior_summary(self):
+        """Aggregate metrics across all model combinations for each behavior."""
+        behavior_groups = defaultdict(list)
+        for game in self.raw_data:
+            behavior_groups[game["behavior"]].append(game)
 
-        print(f"Saved summary to: {output_file}")
+        behavior_summary = {}
 
-    def run_analysis(self):
-        """Run complete analysis pipeline."""
-        print("=" * 80)
-        print("BuySell Negotiation Arena - Comprehensive Analysis")
-        print("=" * 80)
+        for behavior, games in behavior_groups.items():
+            if not games:
+                continue
 
-        # Create output directory
-        output_dir = self.results_dir / "analysis_output"
-        output_dir.mkdir(exist_ok=True)
-        print(f"Output directory: {output_dir}")
+            # Filter valid games
+            valid_games = [g for g in games if g.get("game_completed", False)]
+            accepted_games = [g for g in valid_games if g.get("trade_occurred", False)]
 
-        # Load all results
-        self.load_all_results()
+            # Compute per-game metrics
+            accepts = [1 if g.get("trade_occurred", False) else 0 for g in valid_games]
+            negotiation_rounds = [g.get("negotiation_rounds", 0) for g in valid_games]
+            seller_advantages = [g.get("seller_profit", 0) for g in accepted_games]
+            buyer_advantages = [g.get("buyer_savings", 0) for g in accepted_games]
 
-        if not self.all_results:
-            print("ERROR: No results loaded!")
+            # Wins for seller
+            p1_wins = sum(1 for g in accepted_games if g.get("seller_profit", 0) > g.get("buyer_savings", 0))
+            p2_wins = sum(1 for g in accepted_games if g.get("buyer_savings", 0) > g.get("seller_profit", 0))
+            non_draws = p1_wins + p2_wins
+            win_rate_p1 = p1_wins / non_draws if non_draws > 0 else 0.0
+
+            def mean_std(lst):
+                m = statistics.mean(lst) if lst else 0.0
+                s = statistics.stdev(lst) if len(lst) > 1 else 0.0
+                return m, s
+
+            acc_m, acc_s = mean_std(accepts)
+            seller_m, seller_s = mean_std(seller_advantages)
+            buyer_m, buyer_s = mean_std(buyer_advantages)
+
+            behavior_metrics = {
+                "behavior": behavior,
+                "total_games": len(valid_games),
+                "acceptance_rate_mean": acc_m,
+                "acceptance_rate_std": acc_s,
+                "avg_negotiation_rounds": statistics.mean(negotiation_rounds) if negotiation_rounds else 0.0,
+                "negotiation_rounds_std": statistics.stdev(negotiation_rounds) if len(negotiation_rounds) > 1 else 0.0,
+                "seller_advantage_mean": seller_m,
+                "seller_advantage_std": seller_s,
+                "buyer_advantage_mean": buyer_m,
+                "buyer_advantage_std": buyer_s,
+                "player1_wins": p1_wins,
+                "player2_wins": p2_wins,
+                "non_draws": non_draws,
+                "win_rate_player1": win_rate_p1,
+            }
+
+            behavior_summary[behavior] = behavior_metrics
+
+        self.behavior_summary = behavior_summary
+        return behavior_summary
+
+    def create_bar_plots_and_tables(self):
+        """Create bar plots for acceptance rate, seller advantage, and buyer advantage by behavior.
+        Also save CSV tables with mean and std for each behavior."""
+        out_dir = Path(self.results_dir) / "plots"
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        behaviors = sorted(self.behavior_summary.keys())
+        if not behaviors:
+            print("No behavior summary to plot")
             return
 
-        # Compute statistics
-        print("\nComputing statistics...")
-        stats = self.compute_statistics()
+        # Gather arrays
+        acc_means = [self.behavior_summary[b]["acceptance_rate_mean"] for b in behaviors]
+        acc_stds = [self.behavior_summary[b]["acceptance_rate_std"] for b in behaviors]
+        seller_means = [self.behavior_summary[b]["seller_advantage_mean"] for b in behaviors]
+        seller_stds = [self.behavior_summary[b]["seller_advantage_std"] for b in behaviors]
+        buyer_means = [self.behavior_summary[b]["buyer_advantage_mean"] for b in behaviors]
+        buyer_stds = [self.behavior_summary[b]["buyer_advantage_std"] for b in behaviors]
+        win_means = [self.behavior_summary[b]["win_rate_player1"] for b in behaviors]
 
-        # Print some sample statistics
-        print("\nSample statistics:")
-        for key in list(stats.keys())[:3]:
-            stat = stats[key]
-            print(f"\n{key}:")
-            print(
-                f"  Seller avg: {stat['seller_avg']:.2f} (std: {stat['seller_std']:.2f})"
-            )
-            print(
-                f"  Buyer avg: {stat['buyer_avg']:.2f} (std: {stat['buyer_std']:.2f})"
-            )
-            print(f"  Acceptance rate: {stat['acceptance_rate']:.2%}")
-            print(f"  Price avg: {stat['price_avg']:.2f}")
+        # Styling similar to provided figure
+        plt.rcParams.update({
+            "font.family": "DejaVu Sans",
+            "axes.titlesize": 14,
+            "axes.labelsize": 12,
+            "xtick.labelsize": 10,
+            "ytick.labelsize": 10,
+        })
 
-        # Save summary JSON
-        print("\nSaving summary JSON...")
-        self.save_summary_json(stats, output_dir)
+        colors = ["#4C4CB8", "#2E8BC0", "#18A162", "#6AD34F", "#D5E86B", "#B7E06C"]
+        bar_colors = [colors[i % len(colors)] for i in range(len(behaviors))]
 
-        # Create consolidated heatmaps
-        print("\nCreating consolidated heatmaps...")
-        self.create_all_heatmaps(stats, output_dir)
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
-        # Create cross-language graphs
-        print("\nCreating cross-language graphs...")
-        self.create_cross_language_graphs(stats, output_dir)
+        # Acceptance rate
+        ax = axes[0, 0]
+        x = np.arange(len(behaviors))
+        ax.bar(x, acc_means, color=bar_colors, edgecolor='black')
+        ax.set_xticks(x)
+        ax.set_xticklabels(behaviors, rotation=30, ha='right')
+        ax.set_ylim(0, 1.05)
+        ax.set_title('Average Acceptance Rate by Behavior')
+        for i, v in enumerate(acc_means):
+            ax.text(i, v + 0.02, f"{v*100:.2f}%", ha='center', fontsize=9)
 
-        # Create cross-model graphs
-        print("\nCreating cross-model graphs...")
-        self.create_cross_model_graphs(stats, output_dir)
+        # Seller advantage
+        ax = axes[0, 1]
+        ax.bar(x, seller_means, color=bar_colors, edgecolor='black')
+        ax.set_xticks(x)
+        ax.set_xticklabels(behaviors, rotation=30, ha='right')
+        ax.set_title('Average Seller Advantage by Behavior')
+        for i, v in enumerate(seller_means):
+            ax.text(i, v + (max(seller_means) * 0.02 if seller_means else 0.1), f"{v:.1f}", ha='center', fontsize=9)
 
-        print("\n" + "=" * 80)
-        print("Analysis complete!")
-        print(f"Results saved to: {output_dir}")
-        print("=" * 80)
+        # Buyer advantage
+        ax = axes[1, 0]
+        ax.bar(x, buyer_means, color=bar_colors, edgecolor='black')
+        ax.set_xticks(x)
+        ax.set_xticklabels(behaviors, rotation=30, ha='right')
+        ax.set_title('Average Buyer Advantage by Behavior')
+        for i, v in enumerate(buyer_means):
+            ax.text(i, v + (max(buyer_means) * 0.02 if buyer_means else 0.1), f"{v:.1f}", ha='center', fontsize=9)
+
+        # Win rate (seller)
+        ax = axes[1, 1]
+        ax.bar(x, win_means, color=bar_colors, edgecolor='black')
+        ax.set_xticks(x)
+        ax.set_xticklabels(behaviors, rotation=30, ha='right')
+        ax.set_ylim(0, 1.05)
+        ax.set_title('Average Win Rate (Seller) by Behavior')
+        for i, v in enumerate(win_means):
+            ax.text(i, v + 0.02, f"{v*100:.2f}%", ha='center', fontsize=9)
+
+        plt.tight_layout()
+        fig_file = out_dir / "behavior_bar_summary.png"
+        fig.savefig(fig_file, dpi=150)
+        plt.close(fig)
+
+        # Save CSV table
+        csv_file = Path(self.results_dir) / "behavior_metrics_summary.csv"
+        with open(csv_file, "w", encoding="utf-8") as f:
+            headers = [
+                "behavior",
+                "total_games",
+                "acceptance_rate_mean",
+                "acceptance_rate_std",
+                "avg_negotiation_rounds",
+                "negotiation_rounds_std",
+                "seller_advantage_mean",
+                "seller_advantage_std",
+                "buyer_advantage_mean",
+                "buyer_advantage_std",
+                "win_rate_player1",
+            ]
+            f.write(",".join(headers) + "\n")
+            for b in behaviors:
+                metrics = self.behavior_summary[b]
+                row = [
+                    b,
+                    str(metrics["total_games"]),
+                    f"{metrics['acceptance_rate_mean']:.4f}",
+                    f"{metrics['acceptance_rate_std']:.4f}",
+                    f"{metrics['avg_negotiation_rounds']:.4f}",
+                    f"{metrics['negotiation_rounds_std']:.4f}",
+                    f"{metrics['seller_advantage_mean']:.4f}",
+                    f"{metrics['seller_advantage_std']:.4f}",
+                    f"{metrics['buyer_advantage_mean']:.4f}",
+                    f"{metrics['buyer_advantage_std']:.4f}",
+                    f"{metrics['win_rate_player1']:.4f}",
+                ]
+                f.write(",".join(row) + "\n")
+
+        print(f"Saved behavior bar plot: {fig_file}")
+        print(f"Saved behavior CSV table: {csv_file}")
+
+    def save_results(self):
+        """Save results to JSON files"""
+        # Save raw data (already loaded)
+        raw_data_file = self.results_dir / "raw_game_data.json"
+        with open(raw_data_file, "w", encoding="utf-8") as f:
+            json.dump(self.raw_data, f, indent=2, ensure_ascii=False)
+
+        # Save summary
+        summary_file = self.results_dir / "summary.json"
+        with open(summary_file, "w", encoding="utf-8") as f:
+            json.dump(self.summary, f, indent=2, ensure_ascii=False)
+
+        # Save behavior-level summary (averaged across model combinations for each behavior)
+        behavior_summary_file = self.results_dir / "behavior_summary.json"
+        with open(behavior_summary_file, "w", encoding="utf-8") as f:
+            json.dump(self.behavior_summary, f, indent=2, ensure_ascii=False)
+
+        # Also save behavior-level summary as CSV
+        behavior_csv_file = self.results_dir / "behavior_summary.csv"
+        with open(behavior_csv_file, "w", encoding="utf-8") as f:
+            headers = [
+                "behavior",
+                "total_games",
+                "acceptance_rate_mean",
+                "acceptance_rate_std",
+                "avg_negotiation_rounds",
+                "negotiation_rounds_std",
+                "seller_advantage_mean",
+                "seller_advantage_std",
+                "buyer_advantage_mean",
+                "buyer_advantage_std",
+                "win_rate_player1",
+            ]
+            f.write(",".join(headers) + "\n")
+            for behavior, metrics in self.behavior_summary.items():
+                row = [
+                    behavior,
+                    str(metrics["total_games"]),
+                    f"{metrics['acceptance_rate_mean']:.4f}",
+                    f"{metrics['acceptance_rate_std']:.4f}",
+                    f"{metrics['avg_negotiation_rounds']:.4f}",
+                    f"{metrics['negotiation_rounds_std']:.4f}",
+                    f"{metrics['seller_advantage_mean']:.4f}",
+                    f"{metrics['seller_advantage_std']:.4f}",
+                    f"{metrics['buyer_advantage_mean']:.4f}",
+                    f"{metrics['buyer_advantage_std']:.4f}",
+                    f"{metrics['win_rate_player1']:.4f}",
+                ]
+                f.write(",".join(row) + "\n")
+
+        # Create readable summary
+        readable_file = self.results_dir / "readable_summary.txt"
+        with open(readable_file, "w", encoding="utf-8") as f:
+            f.write("BUY-SELL GAME RESULTS SUMMARY\n")
+            f.write("=" * 50 + "\n\n")
+
+            for combo_key, metrics in self.summary.items():
+                f.write(f"{combo_key}:\n")
+                f.write(f"  Total games: {metrics['total_games']}\n")
+                f.write(f"  Acceptance rate: {metrics['acceptance_rate_mean']:.3f} ± {metrics['acceptance_rate_std']:.3f}\n")
+                f.write(f"  Avg negotiation rounds: {metrics['avg_negotiation_rounds']:.1f} ± {metrics['negotiation_rounds_std']:.1f}\n")
+                f.write(f"  Seller advantage: {metrics['seller_advantage_mean']:.1f} ± {metrics['seller_advantage_std']:.1f}\n")
+                f.write(f"  Buyer advantage: {metrics['buyer_advantage_mean']:.1f} ± {metrics['buyer_advantage_std']:.1f}\n")
+                f.write(f"  Win rate (Seller): {metrics['win_rate_player1']:.3f}\n")
+                f.write("\n")
+
+            # Behavior-level aggregated metrics
+            f.write("\nBEHAVIOR-LEVEL AVERAGES\n")
+            f.write("=" * 50 + "\n")
+            for behavior, metrics in self.behavior_summary.items():
+                f.write(f"{behavior}:\n")
+                f.write(f"  Total games: {metrics['total_games']}\n")
+                f.write(f"  Acceptance rate: {metrics['acceptance_rate_mean']:.3f} ± {metrics['acceptance_rate_std']:.3f}\n")
+                f.write(f"  Avg negotiation rounds: {metrics['avg_negotiation_rounds']:.1f} ± {metrics['negotiation_rounds_std']:.1f}\n")
+                f.write(f"  Seller advantage: {metrics['seller_advantage_mean']:.1f} ± {metrics['seller_advantage_std']:.1f}\n")
+                f.write(f"  Buyer advantage: {metrics['buyer_advantage_mean']:.1f} ± {metrics['buyer_advantage_std']:.1f}\n")
+                f.write(f"  Win rate (Seller): {metrics['win_rate_player1']:.3f}\n")
+                f.write("\n")
+
+        print(f"\nResults saved:")
+        print(f"  Raw data: {raw_data_file}")
+        print(f"  Summary: {summary_file}")
+        print(f"  Readable: {readable_file}")
+        print(f"  Behavior summary (JSON): {behavior_summary_file}")
+        print(f"  Behavior summary (CSV): {behavior_csv_file}")
+        plots_dir = Path(self.results_dir) / "plots"
+        print(f"  Plots and heatmaps: {plots_dir}")
+
+    def create_heatmap_data(self):
+        """Create data for heatmap visualization"""
+        # Get unique models and behaviors
+        models = set()
+        behaviors = set()
+
+        for combo_key, metrics in self.summary.items():
+            models.add(metrics["seller_model"])
+            models.add(metrics["buyer_model"])
+            behaviors.add(metrics["behavior"])
+
+        models = sorted(list(models))
+        behaviors = sorted(list(behaviors))
+
+        # Create matrices for each behavior
+        heatmap_data = {}
+
+        for behavior in behaviors:
+            win_rates = {}
+            seller_advantages = {}
+            buyer_advantages = {}
+            for model1 in models:
+                win_rates[model1] = {}
+                seller_advantages[model1] = {}
+                buyer_advantages[model1] = {}
+
+                for model2 in models:
+                    combo_key = f"{model1}_vs_{model2}_{behavior}"
+
+                    if combo_key in self.summary:
+                        metrics = self.summary[combo_key]
+                        win_rates[model1][model2] = metrics.get("win_rate_player1", None)
+                        seller_advantages[model1][model2] = metrics.get("seller_advantage_mean", None)
+                        buyer_advantages[model1][model2] = metrics.get("buyer_advantage_mean", None)
+                    else:
+                        win_rates[model1][model2] = None
+                        seller_advantages[model1][model2] = None
+                        buyer_advantages[model1][model2] = None
+
+            heatmap_data[behavior] = {
+                "win_rates": win_rates,
+                "seller_advantages": seller_advantages,
+                "buyer_advantages": buyer_advantages,
+                "models": models,
+            }
+
+        # Save heatmap data
+        heatmap_file = self.results_dir / "heatmap_data.json"
+        with open(heatmap_file, "w", encoding="utf-8") as f:
+            json.dump(heatmap_data, f, indent=2, ensure_ascii=False)
+
+        # Render heatmap images per behavior
+        plots_dir = Path(self.results_dir) / "plots"
+        plots_dir.mkdir(parents=True, exist_ok=True)
+
+        for behavior, data in heatmap_data.items():
+            models = data["models"]
+            m = len(models)
+
+            # Render heatmaps for each type
+            for heatmap_type, title_suffix, value_format, cmap_name, vmin, vmax in [
+                ("win_rates", "Win Rate (Seller)", lambda v: f"{v*100:.1f}%", 'YlGn', 0.0, 1.0),
+                ("seller_advantages", "Average Seller Advantage", lambda v: f"{v:.1f}", 'Blues', None, None),
+                ("buyer_advantages", "Average Buyer Advantage", lambda v: f"{v:.1f}", 'Oranges', None, None),
+            ]:
+                matrix = np.full((m, m), np.nan, dtype=float)
+                for i, a in enumerate(models):
+                    for j, b in enumerate(models):
+                        val = data[heatmap_type].get(a, {}).get(b, None)
+                        if val is None:
+                            matrix[i, j] = np.nan
+                        else:
+                            matrix[i, j] = float(val)
+
+                fig, ax = plt.subplots(figsize=(8, 6))
+                cmap = plt.cm.get_cmap(cmap_name)
+                im = ax.imshow(matrix, vmin=vmin, vmax=vmax, cmap=cmap)
+                ax.set_xticks(range(m))
+                ax.set_yticks(range(m))
+                ax.set_xticklabels(models, rotation=45, ha='right')
+                ax.set_yticklabels(models)
+                ax.set_title(f'{title_suffix} heatmap — {behavior}')
+                cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+                ylabel = 'Win Rate' if 'win' in heatmap_type else 'Average Advantage'
+                cbar.ax.set_ylabel(ylabel, rotation=270, labelpad=15)
+
+                # Annotate heatmap cells with numeric values in large readable font.
+                for i in range(m):
+                    for j in range(m):
+                        val = matrix[i, j]
+                        if np.isnan(val):
+                            txt = "-"
+                            txt_color = 'gray'
+                            fontsize = 10
+                        else:
+                            txt = value_format(val)
+                            txt_color = 'white' if (val > 0.55 and "win" in heatmap_type) or (not np.isnan(matrix.max()) and val > matrix.max() * 0.7) else 'black'
+                            fontsize = 12
+                        ax.text(j, i, txt, ha='center', va='center', color=txt_color, fontsize=fontsize, fontweight='bold')
+
+                heatmap_file_img = plots_dir / f'heatmap_{heatmap_type}_{behavior}.png'
+                fig.tight_layout()
+                fig.savefig(heatmap_file_img, dpi=150)
+                plt.close(fig)
+
+        print(f"  Heatmap data JSON: {heatmap_file}")
+        print(f"  Heatmap images saved in: {plots_dir}")
+
+        return heatmap_data
 
 
 def main():
-    # Set the results directory
-    results_dir = ".logs/buysell_final"
+    """Main function"""
+    if len(sys.argv) != 2:
+        print("Usage: python analyze_buysell_results.py <results_directory>")
+        print("Example: python analyze_buysell_results.py .logs/final_buysell")
+        return
 
-    # Create analyzer and run
-    analyzer = BuySellAnalyzer(results_dir)
-    analyzer.run_analysis()
+    results_dir = sys.argv[1]
+
+    if not os.path.exists(results_dir):
+        print(f"Error: Results directory does not exist: {results_dir}")
+        return
+
+    print(f"Analyzing results in: {results_dir}")
+    print("=" * 60)
+
+    analyzer = BuySellResultsAnalyzer(results_dir)
+
+    # Analyze all games
+    raw_data = analyzer.analyze_all_games()
+
+    if not raw_data:
+        print("No valid game data found!")
+        return
+
+    # Calculate metrics
+    summary = analyzer.calculate_metrics()
+
+    # Aggregate behavior-level summaries
+    behavior_summary = analyzer.calculate_behavior_summary()
+
+    # Create bar plots and tables for behavior metrics
+    analyzer.create_bar_plots_and_tables()
+
+    # Save results
+    analyzer.save_results()
+
+    # Create heatmap data (and images)
+    analyzer.create_heatmap_data()
+
+    print(f"\n" + "=" * 60)
+    print("ANALYSIS COMPLETE!")
+    print("=" * 60)
+    print(f"Processed {len(raw_data)} games")
+    print(f"Generated {len(summary)} combination summaries")
+    print(f"Check the generated files in: {results_dir}")
 
 
 if __name__ == "__main__":
