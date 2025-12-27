@@ -47,17 +47,274 @@ class BuySellResultsAnalyzer:
         self.summary = {}
         self.behavior_summary = {}
 
+    def find_game_directories(self):
+        """Find all game directories with the expected naming pattern recursively"""
+        game_dirs = []
+
+        for item in self.results_dir.rglob("*"):
+            if not item.is_dir():
+                continue
+            parts = item.name.split("_")
+            if len(parts) < 4:
+                continue
+            # last part should look like 'iter<num>' or 'iter_<num>' or 'iter' '<num>'
+            last = parts[-1]
+            iter_num = None
+            if last.startswith("iter"):
+                suffix = last[len("iter") :].lstrip("_")
+                if suffix.isdigit() and 1 <= int(suffix) <= 10:
+                    iter_num = int(suffix)
+            elif len(parts) >= 5 and parts[-2] == "iter" and parts[-1].isdigit() and 1 <= int(parts[-1]) <= 10:
+                iter_num = int(parts[-1])
+            if iter_num is None:
+                continue
+            # basic shape: model1_model2_language_iter<num>
+            game_dirs.append(item)
+
+        print(f"Found {len(game_dirs)} game directories")
+        return sorted(game_dirs)
+
+    def parse_directory_name(self, dir_name):
+        """Parse directory name to extract seller_model, buyer_model, behavior (language), and iteration.
+
+        Expected pattern: seller_model_buyer_model_behavior_iter<number>
+        Example: GPT-3.5_GPT-4o_English_iter_7 or Claude-3.5-Haiku_Claude-3.5-Haiku_English_iter_1
+        """
+        print(f"Parsing: {dir_name}")
+
+        try:
+            parts = dir_name.split("_")
+            if len(parts) < 4:
+                raise ValueError("Not enough segments for expected pattern")
+
+            # Determine iteration and adjust parts
+            iteration = None
+            behavior_idx = -2
+            if parts[-1].startswith("iter"):
+                iter_suffix = parts[-1][len("iter") :].lstrip("_")
+                iteration = int(iter_suffix)
+            elif len(parts) >= 5 and parts[-2] == "iter" and parts[-1].isdigit():
+                iteration = int(parts[-1])
+                behavior_idx = -3
+            else:
+                raise ValueError("Invalid iteration format")
+
+            # Behavior/language
+            behavior_candidate = parts[behavior_idx]
+            behavior = behavior_candidate
+            for known_behavior in self.KNOWN_BEHAVIORS:
+                if behavior_candidate == known_behavior:
+                    behavior = known_behavior
+                    break
+
+            # Remaining parts before behavior = seller_model + buyer_model
+            model_parts = parts[:behavior_idx]  # everything except behavior and iteration parts
+            if len(model_parts) < 2:
+                raise ValueError("Need at least two segments for seller_model and buyer_model")
+
+            # Try to match seller_model using known models (greedy on prefix)
+            def normalize(name):
+                return name.replace("-", "_")
+
+            best_idx = 1  # default split after first segment
+            best_match_len = 0
+            for i in range(1, len(model_parts)):
+                candidate = "_".join(model_parts[:i])
+                for known_model in self.KNOWN_MODELS:
+                    if normalize(candidate) == normalize(known_model):
+                        if i > best_match_len:
+                            best_match_len = i
+                            best_idx = i
+
+            seller_model = "_".join(model_parts[:best_idx])
+            buyer_model = "_".join(model_parts[best_idx:])
+
+            # Normalize to known canonical names if possible
+            for known_model in self.KNOWN_MODELS:
+                if normalize(seller_model) == normalize(known_model):
+                    seller_model = known_model
+                if normalize(buyer_model) == normalize(known_model):
+                    buyer_model = known_model
+
+            print(f"  Parsed: {seller_model} vs {buyer_model} | {behavior} | iter {iteration}")
+            return seller_model, buyer_model, behavior, iteration
+
+        except Exception as e:
+            print(f"  Error parsing {dir_name}: {e}")
+            return "Unknown", "Unknown", "Unknown", 1
+
+    def find_game_state_file(self, game_dir):
+        """Find the game_state.json file in the game directory"""
+        # Look for subdirectories (random directories)
+        for subdir in game_dir.iterdir():
+            if subdir.is_dir():
+                game_state_file = subdir / "game_state.json"
+                if game_state_file.exists():
+                    return game_state_file
+        return None
+
+    def extract_game_data(self, game_state_file, seller_model, buyer_model, behavior, iteration):
+        """Extract relevant data from a single game_state.json file for buy-sell game."""
+        try:
+            with open(game_state_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            # Get game_state array
+            game_state = data.get("game_state", [])
+            start_state = None
+            for state in game_state:
+                if state.get("current_iteration") == "START":
+                    start_state = state
+                    break
+
+            # Find the END state in game_state
+            end_state = None
+            accepted = False
+
+            for state in game_state:
+                if state.get("current_iteration") == "END":
+                    end_state = state
+                    break
+                # Check if any player accepted
+                for player_key in ["player1_response", "player2_response"]:
+                    resp = state.get(player_key, {})
+                    pub_info = resp.get("player_public_info_dict", {})
+                    if pub_info.get("player answer") == "ACCEPT":
+                        accepted = True
+                        if not end_state:
+                            end_state = state  # Use this state if no END
+
+            # Get valuations from START state or END state player_goals
+            seller_valuation = 40
+            buyer_valuation = 60
+
+            # Try from start_state settings
+            if start_state:
+                settings = start_state.get("settings", {})
+                player_valuation = settings.get("player_valuation", None)
+                if player_valuation and isinstance(player_valuation, list) and len(player_valuation) >= 2:
+                    seller_valuation = player_valuation[0] if isinstance(player_valuation[0], (int, float)) else 40
+                    buyer_valuation = player_valuation[1] if isinstance(player_valuation[1], (int, float)) else 60
+
+            # If not found or invalid, try from player_goals in end_state or start_state
+            if seller_valuation == 40 and buyer_valuation == 60:
+                goals_source = end_state or start_state
+                if goals_source:
+                    goals = goals_source.get("player_goals", [])
+                    if len(goals) >= 2:
+                        # Seller goal
+                        seller_goal = goals[0].get("_value", {}).get("_value", {}).get("_value", {})
+                        if isinstance(seller_goal, dict) and "X" in seller_goal:
+                            seller_valuation = seller_goal["X"]
+                        # Buyer goal
+                        buyer_goal = goals[1].get("_value", {}).get("_value", {}).get("_value", {})
+                        if isinstance(buyer_goal, dict) and "X" in buyer_goal:
+                            buyer_valuation = buyer_goal["X"]
+
+            if not end_state and not accepted:
+                print(f"Warning: No END state or ACCEPT found in {game_state_file}")
+                return None
+
+            # Basic summary section
+            summary = end_state.get("summary", {}) if end_state else {}
+
+            # If no summary and accepted, try to find proposed trade
+            proposed_trade = summary.get("proposed_trade")
+            if not proposed_trade and accepted:
+                # Find the last proposed trade before acceptance
+                for state in reversed(game_state):
+                    for player_key in ["player1_response", "player2_response"]:
+                        resp = state.get(player_key, {})
+                        pub_info = resp.get("player_public_info_dict", {})
+                        trade = pub_info.get("newly proposed trade")
+                        if trade and trade != "NONE" and isinstance(trade, dict):
+                            proposed_trade = trade
+                            break
+                    if proposed_trade:
+                        break
+
+            # Negotiation rounds: count numeric iterations
+            negotiation_rounds = 0
+            try:
+                numeric_iterations = []
+                for state in game_state:
+                    it = state.get("current_iteration")
+                    if isinstance(it, int):
+                        numeric_iterations.append(it)
+                    else:
+                        try:
+                            numeric_iterations.append(int(it))
+                        except (TypeError, ValueError):
+                            continue
+                negotiation_rounds = max(numeric_iterations) if numeric_iterations else 0
+            except Exception:
+                negotiation_rounds = 0
+
+            # Trade price: ZUP given by buyer (BLUE)
+            trade_price = None
+            if isinstance(proposed_trade, dict) and proposed_trade.get("_type") == "trade":
+                trade_value = proposed_trade.get("_value", {})
+                blue_res = trade_value.get("BLUE", {}).get("_value", {})
+                trade_price = blue_res.get("ZUP", None)
+
+            # Final response
+            final_response = summary.get("final_response", "UNKNOWN")
+            if final_response == "UNKNOWN" and accepted:
+                final_response = "ACCEPT"
+
+            # Trade occurred if accepted
+            trade_occurred = final_response == "ACCEPT" or accepted
+
+            # Advantages only for accepted trades
+            seller_advantage = None
+            buyer_advantage = None
+            if trade_occurred and trade_price is not None:
+                seller_advantage = trade_price - seller_valuation
+                buyer_advantage = buyer_valuation - trade_price
+
+            game_data = {
+                "seller_model": seller_model,
+                "buyer_model": buyer_model,
+                "behavior": behavior,
+                "iteration": iteration,
+                "game_completed": end_state is not None or accepted,
+                "trade_occurred": trade_occurred,
+                "negotiation_rounds": negotiation_rounds,
+                "seller_advantage": seller_advantage,
+                "buyer_advantage": buyer_advantage,
+                "trade_price": trade_price,
+                "seller_valuation": seller_valuation,
+                "buyer_valuation": buyer_valuation,
+                "final_response": final_response,
+                "file_path": str(game_state_file),
+            }
+
+            return game_data
+
+        except Exception as e:
+            print(f"Error processing {game_state_file}: {str(e)}")
+            return None
+
     def analyze_all_games(self):
-        """Load all game results from all_results.json"""
-        results_file = self.results_dir / "all_results.json"
-        if not results_file.exists():
-            print(f"Error: {results_file} not found")
-            return []
+        """Analyze all games by parsing game_state.json files"""
+        game_dirs = self.find_game_directories()
 
-        with open(results_file, "r", encoding="utf-8") as f:
-            self.raw_data = json.load(f)
+        for game_dir in game_dirs:
+            try:
+                seller_model, buyer_model, behavior, iteration = self.parse_directory_name(game_dir.name)
+                game_state_file = self.find_game_state_file(game_dir)
 
-        print(f"Loaded {len(self.raw_data)} game results")
+                if game_state_file:
+                    game_data = self.extract_game_data(game_state_file, seller_model, buyer_model, behavior, iteration)
+                    if game_data:
+                        self.raw_data.append(game_data)
+                else:
+                    print(f"Warning: No game_state.json found in {game_dir}")
+
+            except Exception as e:
+                print(f"Error processing {game_dir}: {str(e)}")
+
+        print(f"\nTotal games processed: {len(self.raw_data)}")
         return self.raw_data
 
     def calculate_metrics(self):
@@ -74,7 +331,7 @@ class BuySellResultsAnalyzer:
         for (seller_model, buyer_model, behavior), games in groups.items():
             combo_key = f"{seller_model}_vs_{buyer_model}_{behavior}"
 
-            # Filter valid games (exclude errors)
+            # Filter valid games (exclude errors) - games that completed
             valid_games = [g for g in games if g.get("game_completed", False)]
 
             if not valid_games:
@@ -92,18 +349,18 @@ class BuySellResultsAnalyzer:
             negotiation_rounds = [g.get("negotiation_rounds", 0) for g in valid_games]
 
             # Seller and buyer advantages (only from accepted trades)
-            seller_advantages = [g.get("seller_profit", 0) for g in accepted_games]
-            buyer_advantages = [g.get("buyer_savings", 0) for g in accepted_games]
+            seller_advantages = [g.get("seller_advantage", 0) for g in accepted_games]
+            buyer_advantages = [g.get("buyer_advantage", 0) for g in accepted_games]
 
             # Win counts for seller (player 1), only for accepted trades
             p1_wins = 0
             p2_wins = 0
             for g in accepted_games:
-                seller_profit = g.get("seller_profit", 0)
-                buyer_savings = g.get("buyer_savings", 0)
-                if seller_profit > buyer_savings:
+                seller_adv = g.get("seller_advantage", 0)
+                buyer_adv = g.get("buyer_advantage", 0)
+                if seller_adv > buyer_adv:
                     p1_wins += 1
-                elif buyer_savings > seller_profit:
+                elif buyer_adv > seller_adv:
                     p2_wins += 1
 
             non_draws = p1_wins + p2_wins
@@ -173,12 +430,12 @@ class BuySellResultsAnalyzer:
             # Compute per-game metrics
             accepts = [1 if g.get("trade_occurred", False) else 0 for g in valid_games]
             negotiation_rounds = [g.get("negotiation_rounds", 0) for g in valid_games]
-            seller_advantages = [g.get("seller_profit", 0) for g in accepted_games]
-            buyer_advantages = [g.get("buyer_savings", 0) for g in accepted_games]
+            seller_advantages = [g.get("seller_advantage", 0) for g in accepted_games]
+            buyer_advantages = [g.get("buyer_advantage", 0) for g in accepted_games]
 
             # Wins for seller
-            p1_wins = sum(1 for g in accepted_games if g.get("seller_profit", 0) > g.get("buyer_savings", 0))
-            p2_wins = sum(1 for g in accepted_games if g.get("buyer_savings", 0) > g.get("seller_profit", 0))
+            p1_wins = sum(1 for g in accepted_games if g.get("seller_advantage", 0) > g.get("buyer_advantage", 0))
+            p2_wins = sum(1 for g in accepted_games if g.get("buyer_advantage", 0) > g.get("seller_advantage", 0))
             non_draws = p1_wins + p2_wins
             win_rate_p1 = p1_wins / non_draws if non_draws > 0 else 0.0
 
