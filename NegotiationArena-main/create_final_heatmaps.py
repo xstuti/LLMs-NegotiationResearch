@@ -412,48 +412,80 @@ class UltimatumHeatmapGenerator:
         behavior_stats = {}
 
         for behavior in behaviors:
-            stats = {
-                "acceptance_rates": [],
-                "win_rates": [],
-                "payoffs_p1": [],
-                "payoffs_p2": [],
-                "initial_offers": [],
-                "total_games": 0,
-            }
+            # Collect raw data and counts
+            all_player1_payoffs = []
+            all_player2_payoffs = []
+            all_initial_offers = []
+            total_accepts = 0
+            total_rejects = 0
+            total_player1_wins = 0
+            total_player2_wins = 0
+            total_draws = 0
+            total_games = 0
 
             # Aggregate data from summary
             for combo_key, metrics in self.summary_data.items():
                 if metrics["behavior"] == behavior:
-                    stats["acceptance_rates"].append(metrics["acceptance_rate"])
-                    stats["win_rates"].append(metrics["win_rate_player1"])
-                    stats["payoffs_p1"].append(metrics["player1_payoff_avg"])
-                    stats["payoffs_p2"].append(metrics["player2_payoff_avg"])
-                    stats["initial_offers"].append(metrics["initial_offer_avg"])
-                    stats["total_games"] += metrics["total_games"]
+                    # Collect raw payoff and offer data
+                    all_player1_payoffs.extend(metrics.get("player1_payoffs", []))
+                    all_player2_payoffs.extend(metrics.get("player2_payoffs", []))
+                    all_initial_offers.extend(metrics.get("initial_offers", []))
+
+                    # Sum up counts
+                    total_accepts += metrics.get("accepts", 0)
+                    total_rejects += metrics.get("rejects", 0)
+                    total_player1_wins += metrics.get("player1_wins", 0)
+                    total_player2_wins += metrics.get("player2_wins", 0)
+                    total_draws += metrics.get("draws", 0)
+                    total_games += metrics.get("total_games", 0)
+
+            # Calculate aggregate statistics
+            total_non_draw_games = total_games - total_draws
 
             behavior_stats[behavior] = {
-                "avg_acceptance": np.mean(stats["acceptance_rates"])
-                if stats["acceptance_rates"]
+                # Acceptance rate calculated from total accepts/rejects
+                "avg_acceptance": total_accepts / total_games if total_games > 0 else 0,
+                "std_acceptance": np.sqrt(
+                    (total_accepts / total_games)
+                    * (total_rejects / total_games)
+                    / total_games
+                )
+                if total_games > 0
                 else 0,
-                "avg_win_rate": np.mean(stats["win_rates"])
-                if stats["win_rates"]
+                # Win rate calculated from total wins / non-draw games
+                "avg_win_rate": total_player1_wins / total_non_draw_games
+                if total_non_draw_games > 0
                 else 0,
-                "avg_payoff_p1": np.mean(stats["payoffs_p1"])
-                if stats["payoffs_p1"]
+                "std_win_rate": np.sqrt(
+                    (total_player1_wins / total_non_draw_games)
+                    * (total_player2_wins / total_non_draw_games)
+                    / total_non_draw_games
+                )
+                if total_non_draw_games > 0
                 else 0,
-                "avg_payoff_p2": np.mean(stats["payoffs_p2"])
-                if stats["payoffs_p2"]
+                # Payoffs calculated from raw data
+                "avg_payoff_p1": np.mean(all_player1_payoffs)
+                if all_player1_payoffs
                 else 0,
-                "avg_initial_offer": np.mean(stats["initial_offers"])
-                if stats["initial_offers"]
+                "std_payoff_p1": np.std(all_player1_payoffs)
+                if all_player1_payoffs
                 else 0,
-                "total_games": stats["total_games"],
-                "std_acceptance": np.std(stats["acceptance_rates"])
-                if stats["acceptance_rates"]
+                "avg_payoff_p2": np.mean(all_player2_payoffs)
+                if all_player2_payoffs
                 else 0,
-                "std_payoff_p1": np.std(stats["payoffs_p1"])
-                if stats["payoffs_p1"]
+                "std_payoff_p2": np.std(all_player2_payoffs)
+                if all_player2_payoffs
                 else 0,
+                # Initial offers calculated from raw data
+                "avg_initial_offer": np.mean(all_initial_offers)
+                if all_initial_offers
+                else 0,
+                "std_initial_offer": np.std(all_initial_offers)
+                if all_initial_offers
+                else 0,
+                # Counts
+                "total_games": total_games,
+                "total_non_draw_games": total_non_draw_games,
             }
 
         # Create figure with multiple subplots
@@ -465,13 +497,17 @@ class UltimatumHeatmapGenerator:
         # 1. Acceptance Rate Comparison
         ax1 = axes[0, 0]
         acceptance_rates = [behavior_stats[b]["avg_acceptance"] for b in behaviors]
+        acceptance_stds = [behavior_stats[b]["std_acceptance"] for b in behaviors]
         colors = plt.cm.viridis(np.linspace(0.2, 0.9, len(behaviors)))
         bars1 = ax1.bar(
             display_behaviors,
             acceptance_rates,
+            yerr=acceptance_stds,
             color=colors,
             edgecolor="black",
             linewidth=1.5,
+            capsize=5,
+            error_kw={"linewidth": 2, "ecolor": "black", "alpha": 0.6},
         )
         ax1.set_title(
             "Average Acceptance Rate by Behavior", fontweight="bold", fontsize=14
@@ -481,11 +517,11 @@ class UltimatumHeatmapGenerator:
         ax1.grid(axis="y", alpha=0.3, linestyle="--")
 
         # Add value labels
-        for bar, rate in zip(bars1, acceptance_rates):
+        for bar, rate, std in zip(bars1, acceptance_rates, acceptance_stds):
             height = bar.get_height()
             ax1.text(
                 bar.get_x() + bar.get_width() / 2.0,
-                height + 0.02,
+                height + std + 0.02,
                 f"{rate:.2%}",
                 ha="center",
                 va="bottom",
@@ -498,27 +534,36 @@ class UltimatumHeatmapGenerator:
         # 2. Average Initial Offer Comparison
         ax2 = axes[0, 1]
         initial_offers = [behavior_stats[b]["avg_initial_offer"] for b in behaviors]
+        initial_offer_stds = [behavior_stats[b]["std_initial_offer"] for b in behaviors]
         bars2 = ax2.bar(
             display_behaviors,
             initial_offers,
+            yerr=initial_offer_stds,
             color=colors,
             edgecolor="black",
             linewidth=1.5,
+            capsize=5,
+            error_kw={"linewidth": 2, "ecolor": "black", "alpha": 0.6},
         )
         ax2.set_title(
             "Average Initial Offer by Behavior", fontweight="bold", fontsize=14
         )
         ax2.set_ylabel("Initial Offer ($)", fontweight="bold")
-        ax2.set_ylim(0, max(initial_offers) * 1.2 if initial_offers else 100)
+        max_val = (
+            max([o + s for o, s in zip(initial_offers, initial_offer_stds)])
+            if initial_offers
+            else 100
+        )
+        ax2.set_ylim(0, max_val * 1.2)
         ax2.grid(axis="y", alpha=0.3, linestyle="--")
 
         # Add value labels
-        for bar, offer in zip(bars2, initial_offers):
+        for bar, offer, std in zip(bars2, initial_offers, initial_offer_stds):
             height = bar.get_height()
             ax2.text(
                 bar.get_x() + bar.get_width() / 2.0,
-                height + 1,
-                f"${offer:.1f}",
+                height + std + 1,
+                f"${offer:.1f}±{std:.1f}",
                 ha="center",
                 va="bottom",
                 fontweight="bold",
@@ -534,24 +579,32 @@ class UltimatumHeatmapGenerator:
 
         payoffs_p1 = [behavior_stats[b]["avg_payoff_p1"] for b in behaviors]
         payoffs_p2 = [behavior_stats[b]["avg_payoff_p2"] for b in behaviors]
+        payoffs_p1_std = [behavior_stats[b]["std_payoff_p1"] for b in behaviors]
+        payoffs_p2_std = [behavior_stats[b]["std_payoff_p2"] for b in behaviors]
 
         bars3a = ax3.bar(
             x - width / 2,
             payoffs_p1,
             width,
+            yerr=payoffs_p1_std,
             label="Player 1",
             color="#2E86AB",
             edgecolor="black",
             linewidth=1.2,
+            capsize=5,
+            error_kw={"linewidth": 2, "ecolor": "black", "alpha": 0.6},
         )
         bars3b = ax3.bar(
             x + width / 2,
             payoffs_p2,
             width,
+            yerr=payoffs_p2_std,
             label="Player 2",
             color="#A23B72",
             edgecolor="black",
             linewidth=1.2,
+            capsize=5,
+            error_kw={"linewidth": 2, "ecolor": "black", "alpha": 0.6},
         )
 
         ax3.set_title("Average Payoffs by Behavior", fontweight="bold", fontsize=14)
@@ -562,22 +615,22 @@ class UltimatumHeatmapGenerator:
         ax3.grid(axis="y", alpha=0.3, linestyle="--")
 
         # Add value labels
-        for bar in bars3a:
+        for bar, std in zip(bars3a, payoffs_p1_std):
             height = bar.get_height()
             ax3.text(
                 bar.get_x() + bar.get_width() / 2.0,
-                height + 1,
-                f"${height:.1f}",
+                height + std + 1,
+                f"${height:.1f}±{std:.1f}",
                 ha="center",
                 va="bottom",
                 fontsize=9,
             )
-        for bar in bars3b:
+        for bar, std in zip(bars3b, payoffs_p2_std):
             height = bar.get_height()
             ax3.text(
                 bar.get_x() + bar.get_width() / 2.0,
-                height + 1,
-                f"${height:.1f}",
+                height + std + 1,
+                f"${height:.1f}±{std:.1f}",
                 ha="center",
                 va="bottom",
                 fontsize=9,
@@ -588,8 +641,16 @@ class UltimatumHeatmapGenerator:
         # 4. Win Rate Comparison
         ax4 = axes[1, 1]
         win_rates = [behavior_stats[b]["avg_win_rate"] for b in behaviors]
+        win_rate_stds = [behavior_stats[b]["std_win_rate"] for b in behaviors]
         bars4 = ax4.bar(
-            display_behaviors, win_rates, color=colors, edgecolor="black", linewidth=1.5
+            display_behaviors,
+            win_rates,
+            yerr=win_rate_stds,
+            color=colors,
+            edgecolor="black",
+            linewidth=1.5,
+            capsize=5,
+            error_kw={"linewidth": 2, "ecolor": "black", "alpha": 0.6},
         )
         ax4.set_title(
             "Average Win Rate (Player 1) by Behavior", fontweight="bold", fontsize=14
@@ -599,11 +660,11 @@ class UltimatumHeatmapGenerator:
         ax4.grid(axis="y", alpha=0.3, linestyle="--")
 
         # Add value labels
-        for bar, rate in zip(bars4, win_rates):
+        for bar, rate, std in zip(bars4, win_rates, win_rate_stds):
             height = bar.get_height()
             ax4.text(
                 bar.get_x() + bar.get_width() / 2.0,
-                height + 0.02,
+                height + std + 0.02,
                 f"{rate:.2%}",
                 ha="center",
                 va="bottom",
@@ -629,11 +690,12 @@ class UltimatumHeatmapGenerator:
                 {
                     "Behavior": behavior.replace("_", " "),
                     "Total Games": stats["total_games"],
-                    "Avg Acceptance Rate": f"{stats['avg_acceptance']:.2%}",
-                    "Avg Initial Offer": f"${stats['avg_initial_offer']:.2f}",
-                    "Avg Payoff P1": f"${stats['avg_payoff_p1']:.2f}",
-                    "Avg Payoff P2": f"${stats['avg_payoff_p2']:.2f}",
-                    "Avg Win Rate P1": f"{stats['avg_win_rate']:.2%}",
+                    "Non-Draw Games": stats["total_non_draw_games"],
+                    "Acceptance Rate": f"{stats['avg_acceptance']:.2%} ± {stats['std_acceptance']:.2%}",
+                    "Initial Offer": f"${stats['avg_initial_offer']:.2f} ± {stats['std_initial_offer']:.2f}",
+                    "Payoff P1": f"${stats['avg_payoff_p1']:.2f} ± {stats['std_payoff_p1']:.2f}",
+                    "Payoff P2": f"${stats['avg_payoff_p2']:.2f} ± {stats['std_payoff_p2']:.2f}",
+                    "Win Rate P1": f"{stats['avg_win_rate']:.2%} ± {stats['std_win_rate']:.2%}",
                 }
             )
 

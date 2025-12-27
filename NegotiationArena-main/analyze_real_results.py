@@ -245,14 +245,19 @@ class UltimatumResultsAnalyzer:
             # Extract final response
             final_response = summary.get("final_response", "UNKNOWN")
 
-            # Extract final resources
+            # Extract final resources - sum ALL resource types
             final_resources = summary.get("final_resources", [])
             player1_final = 0
             player2_final = 0
 
             if len(final_resources) >= 2:
-                player1_final = final_resources[0].get("_value", {}).get("Dollars", 0)
-                player2_final = final_resources[1].get("_value", {}).get("Dollars", 0)
+                # Sum all resources for player 1
+                player1_resources = final_resources[0].get("_value", {})
+                player1_final = sum(player1_resources.values())
+
+                # Sum all resources for player 2
+                player2_resources = final_resources[1].get("_value", {})
+                player2_final = sum(player2_resources.values())
 
             # Determine outcome
             if final_response == "REJECT":

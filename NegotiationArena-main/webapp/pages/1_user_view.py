@@ -4,14 +4,16 @@ sys.path.append("../")
 sys.path.append(".")
 
 
-import os
 import json
+import os
 from glob import glob
-from utils import *
+
 import streamlit as st
+from utils import *
+
+from games import *
 from negotiationarena.constants import *
 from webapp.basic_elements.game_filtering import *
-from games import *
 
 # data loading
 root_dir = os.path.abspath(__file__).split("/")[:-3]
@@ -21,9 +23,7 @@ log_dir = st.text_input(
 log_files = glob(os.path.join(log_dir, "*", "*.json"))
 games = load_states_from_dir(log_dir)
 games_summary_df = compute_game_summary(games)
-games_summary_df["list_name"] = games_summary_df[
-    ["game_name", "log_path"]
-].apply(
+games_summary_df["list_name"] = games_summary_df[["game_name", "log_path"]].apply(
     lambda row: f"{row.game_name} - {from_timestamp_str(os.path.basename(row.log_path))}",
     axis=1,
 )
@@ -38,9 +38,7 @@ if games:
     # Selection Element
     games_summary_df = game_filter(games_summary_df)
 
-    selected_game = st.selectbox(
-        "Which Game?", list(games_summary_df["list_name"])
-    )
+    selected_game = st.selectbox("Which Game?", list(games_summary_df["list_name"]))
     option = st.selectbox("Which Player?", (1, 2))
 
     game_to_load = get_log_path_from_summary(selected_game, games_summary_df)
@@ -50,9 +48,7 @@ if games:
         game_state = json.load(f)
 
     st.write("You are looking at Player:", option)
-    for index, msg in enumerate(
-        game_state["players"][option - 1]["conversation"]
-    ):
+    for index, msg in enumerate(game_state["players"][option - 1]["conversation"]):
         txtmsg = msg["content"]
         sys_prompt = True if index == 0 else False
 

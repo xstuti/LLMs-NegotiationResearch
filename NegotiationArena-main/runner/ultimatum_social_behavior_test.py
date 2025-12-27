@@ -15,7 +15,6 @@ import seaborn as sns
 from dotenv import load_dotenv
 
 from games.ultimatum.game import MultiTurnUltimatumGame
-from negotiationarena.agents.gemini import GeminiAgent
 from negotiationarena.agents.openrouter_agent import OpenRouterAgent
 from negotiationarena.constants import *
 from negotiationarena.game_objects.goal import UltimatumGoal
@@ -27,17 +26,38 @@ load_dotenv(".env.local")
 MODELS = {
     "GPT-4o": "openai/gpt-4o",
     "GPT-3.5": "openai/gpt-3.5-turbo",
-    # "Google-2.0-Flash": "google/gemini-2.0-flash-001",
     "Claude-3-Haiku": "anthropic/claude-3-haiku",
     "Claude-3.5-Haiku": "anthropic/claude-3.5-haiku",
-    # "GPT-oss": "openai/gpt-oss-20b:free",
+    # "GPT-oss": "openai/gpt-oss-20b",
+    # "GPT-oss-120": "openai/gpt-oss-120b",
+    # "Deepseek-3.2": "deepseek/deepseek-v3.2",
 }
 
 SOCIAL_BEHAVIORS = [
     {
-        "name": "Marwadi_Forced",
-        "player1": "You are a Marwadi businessman and MUST speak and negotiate ONLY in Marwadi language. Do not use English or any other language. Negotiate accordingly.",
-        "player2": "The other player is a Marwadi businessman and speaks ONLY in Marwadi language. Negotiate accordingly.",
+        "name": "Hindi",
+        "player1": "You speak and bargain only in Hindi in Devanagari script. Negotiate accordingly.",
+        "player2": "The other player speaks and bargains only in Hindi. Negotiate accordingly.",
+    },
+    {
+        "name": "Gujarati",
+        "player1": "You are a Gujarati businessman and speak and negotiate only in Gujarati.",
+        "player2": "The other player speaks and negotiates only in Gujarati. Negotiate accordingly.",
+    },
+    {
+        "name": "Marwadi-NoLang",
+        "player1": "You are a Marwadi businessman. Negotiate accordingly.",
+        "player2": "The other person is a Marwadi businessman. Negotiate accordingly.",
+    },
+    {
+        "name": "Punjabi",
+        "player1": "You are a Punjabi businessman and speak and negotiate only in Punjabi.",
+        "player2": "The other player speaks and negotiates only in Punjabi. Negotiate accordingly.",
+    },
+    {
+        "name": "Marwadi",
+        "player1": "You are a Marwadi businessman and speak and negotiate only in Marwadi language. Negotiate accordingly.",
+        "player2": "The other player is a Marwadi businessman and speaks and negotiates only in Marwadi language. Negotiate accordingly.",
     },
     {
         "name": "Baseline",
@@ -46,30 +66,72 @@ SOCIAL_BEHAVIORS = [
     },
 ]
 
-ITERATIONS_PER_TEST = 5
+ITERATIONS_PER_TEST = 10
 
 
 class UltimatumTestSuite:
-    def __init__(self):
+    def __init__(self, resume_from=None, complete_mode=False):
         self.results = []
-        self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.log_base_dir = f"./.logs/ultimatum_social_behavior_{self.timestamp}"
-        os.makedirs(self.log_base_dir, exist_ok=True)
+        self.completed_tests = set()
+        self.complete_mode = complete_mode
+
+        if resume_from:
+            # Resume from existing directory
+            self.log_base_dir = resume_from
+            self.timestamp = Path(resume_from).name.replace(
+                "ultimatum_social_behavior_", ""
+            )
+            print(f"Resuming from: {self.log_base_dir}")
+            self.load_existing_results()
+        else:
+            # Start fresh
+            self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.log_base_dir = f"./.logs/ultimatum_social_behavior_{self.timestamp}"
+            os.makedirs(self.log_base_dir, exist_ok=True)
+            print(f"Starting new test suite: {self.log_base_dir}")
+
+    def load_existing_results(self):
+        """Load existing results from all_results.json and populate completed tests set"""
+        results_file = os.path.join(self.log_base_dir, "all_results.json")
+
+        if os.path.exists(results_file):
+            try:
+                with open(results_file, "r") as f:
+                    self.results = json.load(f)
+
+                # Create set of completed tests for quick lookup
+                for result in self.results:
+                    test_key = (
+                        result["model1"],
+                        result["model2"],
+                        result["behavior"],
+                        result["iteration"],
+                    )
+                    self.completed_tests.add(test_key)
+
+                print(f"Loaded {len(self.results)} existing results")
+                print(f"Found {len(self.completed_tests)} completed tests")
+            except Exception as e:
+                print(f"Error loading existing results: {e}")
+                print("Starting fresh...")
+                self.results = []
+                self.completed_tests = set()
+        else:
+            print(f"No existing results file found at {results_file}")
+            print("Starting fresh...")
+
+    def is_test_completed(self, model1_name, model2_name, behavior_name, iteration):
+        """Check if a specific test has already been completed"""
+        test_key = (model1_name, model2_name, behavior_name, iteration)
+        return test_key in self.completed_tests
 
     def create_agent(self, model_name, agent_id):
         """Create an OpenRouter agent with the specified model"""
-        if "Gemini" in model_name:
-            return GeminiAgent(
-                agent_name=agent_id,
-                model=MODELS[model_name],
-                temperature=0.7,
-                max_tokens=400,
-            )
         return OpenRouterAgent(
             agent_name=agent_id,
             model=MODELS[model_name],
             temperature=0.7,
-            max_tokens=400,
+            max_tokens=5000,
         )
 
     def run_single_game(self, model1_name, model2_name, behavior, iteration):
@@ -144,8 +206,111 @@ class UltimatumTestSuite:
                 "log_dir": log_dir,
             }
 
+    def get_incomplete_combinations(self):
+        """Identify combinations that have fewer than 10 iterations in summary.json"""
+        summary_file = os.path.join(self.log_base_dir, "summary.json")
+
+        if not os.path.exists(summary_file):
+            print("No summary.json found. Cannot determine incomplete combinations.")
+            return []
+
+        try:
+            with open(summary_file, "r") as f:
+                summary_data = json.load(f)
+        except Exception as e:
+            print(f"Error reading summary.json: {e}")
+            return []
+
+        incomplete = []
+        for key, data in summary_data.items():
+            total_games = data.get("total_games", 0)
+            if total_games < ITERATIONS_PER_TEST:
+                # Parse the key to get model1, model2, behavior
+                parts = key.split("_")
+                if "vs" in parts:
+                    vs_idx = parts.index("vs")
+                    model1 = "_".join(parts[:vs_idx])
+                    model2 = "_".join(parts[vs_idx + 1 : -1])
+                    behavior = parts[-1]
+
+                    missing_count = ITERATIONS_PER_TEST - total_games
+                    incomplete.append(
+                        {
+                            "model1": model1,
+                            "model2": model2,
+                            "behavior": behavior,
+                            "completed": total_games,
+                            "missing": missing_count,
+                        }
+                    )
+
+        return incomplete
+
     def run_all_tests(self):
         """Run all combinations of models and behaviors (excluding same model vs same model)"""
+
+        # If in complete mode, only run missing iterations
+        if self.complete_mode:
+            incomplete_combinations = self.get_incomplete_combinations()
+
+            if not incomplete_combinations:
+                print("All combinations are complete with 10 iterations each!")
+                return self.results
+
+            print(f"\nFound {len(incomplete_combinations)} incomplete combinations")
+            print("=" * 60)
+
+            total_missing = sum(c["missing"] for c in incomplete_combinations)
+            current_test = 0
+
+            for combo in incomplete_combinations:
+                print(
+                    f"\nCompleting {combo['model1']} vs {combo['model2']} - {combo['behavior']}"
+                )
+                print(f"  Currently has: {combo['completed']} iterations")
+                print(f"  Need to run: {combo['missing']} more iterations")
+
+                # Find the matching behavior dict
+                behavior_dict = None
+                for b in SOCIAL_BEHAVIORS:
+                    if b["name"] == combo["behavior"]:
+                        behavior_dict = b
+                        break
+
+                if not behavior_dict:
+                    print(
+                        f"  ERROR: Behavior '{combo['behavior']}' not found in SOCIAL_BEHAVIORS"
+                    )
+                    continue
+
+                # Run the missing iterations
+                for iteration in range(combo["completed"] + 1, ITERATIONS_PER_TEST + 1):
+                    current_test += 1
+                    print(
+                        f"  Running iteration {iteration}/{ITERATIONS_PER_TEST} ({current_test}/{total_missing})"
+                    )
+
+                    result = self.run_single_game(
+                        combo["model1"], combo["model2"], behavior_dict, iteration
+                    )
+                    self.results.append(result)
+
+                    # Add to completed tests set
+                    test_key = (
+                        combo["model1"],
+                        combo["model2"],
+                        combo["behavior"],
+                        iteration,
+                    )
+                    self.completed_tests.add(test_key)
+
+                    # Save intermediate results
+                    self.save_results()
+
+            print(f"\nCompleted {total_missing} missing iterations!")
+            return self.results
+
+        # Normal mode - run all tests
         # Calculate total tests excluding same model comparisons
         model_combinations = []
         for model1_name in MODELS.keys():
@@ -174,6 +339,16 @@ class UltimatumTestSuite:
 
                 for iteration in range(ITERATIONS_PER_TEST):
                     current_test += 1
+
+                    # Check if this test has already been completed
+                    if self.is_test_completed(
+                        model1_name, model2_name, behavior["name"], iteration + 1
+                    ):
+                        print(
+                            f"  Iteration {iteration + 1}/{ITERATIONS_PER_TEST} ({current_test}/{total_tests}) - SKIPPED (already completed)"
+                        )
+                        continue
+
                     print(
                         f"  Iteration {iteration + 1}/{ITERATIONS_PER_TEST} ({current_test}/{total_tests})"
                     )
@@ -182,6 +357,15 @@ class UltimatumTestSuite:
                         model1_name, model2_name, behavior, iteration + 1
                     )
                     self.results.append(result)
+
+                    # Add to completed tests set
+                    test_key = (
+                        model1_name,
+                        model2_name,
+                        behavior["name"],
+                        iteration + 1,
+                    )
+                    self.completed_tests.add(test_key)
 
                     # Save intermediate results
                     self.save_results()
@@ -344,8 +528,50 @@ class UltimatumTestSuite:
         print(f"Summary report saved: {report_file}")
 
 
+def find_latest_log_dir():
+    """Find the most recent log directory"""
+    logs_dir = Path("./.logs")
+    if not logs_dir.exists():
+        return None
+
+    log_dirs = [
+        d
+        for d in logs_dir.iterdir()
+        if d.is_dir() and d.name.startswith("ultimatum_social_behavior_")
+    ]
+
+    if not log_dirs:
+        return None
+
+    # Sort by modification time and get the most recent
+    latest_dir = max(log_dirs, key=lambda d: d.stat().st_mtime)
+    return str(latest_dir)
+
+
 def main():
     """Main function to run the test suite"""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Run ultimatum game social behavior tests"
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume from the most recent log directory",
+    )
+    parser.add_argument(
+        "--resume-from",
+        type=str,
+        help="Resume from a specific log directory path",
+    )
+    parser.add_argument(
+        "--complete",
+        action="store_true",
+        help="Complete missing iterations up to 10 for each combination (requires --resume or --resume-from)",
+    )
+
+    args = parser.parse_args()
 
     # Check if OpenRouter API key is available
     if not os.environ.get("OPENROUTER_API_KEY"):
@@ -353,8 +579,26 @@ def main():
         print("Please set your OpenRouter API key in the .env.local file")
         return
 
+    # Complete mode automatically enables resume
+    if args.complete:
+        args.resume = True
+
+    # Determine if we should resume
+    resume_dir = None
+    if args.resume_from:
+        resume_dir = args.resume_from
+        if not os.path.exists(resume_dir):
+            print(f"ERROR: Specified directory does not exist: {resume_dir}")
+            return
+    elif args.resume or args.complete:
+        resume_dir = find_latest_log_dir()
+        if resume_dir:
+            print(f"Found latest log directory: {resume_dir}")
+        else:
+            print("No previous log directory found. Starting fresh.")
+
     # Create test suite
-    test_suite = UltimatumTestSuite()
+    test_suite = UltimatumTestSuite(resume_from=resume_dir, complete_mode=args.complete)
 
     # Run all tests
     results = test_suite.run_all_tests()
