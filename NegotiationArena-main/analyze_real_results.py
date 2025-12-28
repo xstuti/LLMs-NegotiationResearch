@@ -18,9 +18,21 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-# Add current directory to Python path for module imports
-current_dir = Path(__file__).parent
-sys.path.insert(0, str(current_dir))
+# Set publication-quality matplotlib parameters
+plt.rcParams.update(
+    {
+        "font.size": 12,
+        "font.family": "serif",
+        "axes.linewidth": 1.2,
+        "axes.labelsize": 12,
+        "axes.titlesize": 14,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "legend.fontsize": 11,
+        "figure.titlesize": 16,
+        "figure.dpi": 300,
+    }
+)
 
 
 class TradingResultsAnalyzer:
@@ -163,15 +175,82 @@ class TradingResultsAnalyzer:
             with open(game_state_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
-            # Find the END iteration in game_state
+            # Core structures
             game_state = data.get("game_state", [])
-            end_state = None
+            players = data.get("players", [])
 
+            # Locate START and END states (if present)
+            start_state = None
+            end_state = None
             for state in game_state:
-                if state.get("current_iteration") == "END":
+                ci = state.get("current_iteration")
+                if ci == "START":
+                    start_state = state
+                if ci == "END":
                     end_state = state
                     break
 
+            # Determine whether any player actually ACCEPTed by scanning
+            # 1) state-level public info dicts (player1_response/player2_response)
+            # 2) top-level state entries that include player_public_info_dict
+            # 3) each player's `conversation` contents for <player answer> tags
+            accepted = False
+            final_accepting_state = None
+
+            # (A) scan game_state entries
+            for state in game_state:
+                # check explicit player response objects
+                for player_key in ["player1_response", "player2_response", "player_public_info_dict"]:
+                    resp = state.get(player_key, {})
+                    if isinstance(resp, dict):
+                        pub_info = resp.get("player_public_info_dict", resp) if player_key != "player_public_info_dict" else resp
+                        if isinstance(pub_info, dict) and pub_info.get("player answer", "").upper() == "ACCEPT":
+                            accepted = True
+                            final_accepting_state = state
+                            break
+                if accepted:
+                    break
+
+                # also check the human-readable public answer string for accept/proposal/reject tags
+                pstr = state.get("player_public_answer_string")
+                if isinstance(pstr, str) and pstr:
+                    up = pstr.upper()
+                    if "<ACCEPT" in up or "<ACCEPT>" in up:
+                        accepted = True
+                        final_accepting_state = state
+                        break
+
+            # (B) scan players' conversation text if still not found
+            if not accepted:
+                import re
+
+                # match either <player answer>ACCEPT</player answer> or tags like <ACCEPT>, <PROPOSAL>, <REJECT>
+                tag_player_ans_re = re.compile(r"<\s*player\s+answer\s*>\s*([A-Za-z]+)\s*<", re.IGNORECASE)
+                tag_simple_re = re.compile(r"<\s*(ACCEPT|REJECT|PROPOSAL)\b", re.IGNORECASE)
+                for p in players:
+                    conv = p.get("conversation", [])
+                    for msg in conv:
+                        content = msg.get("content") if isinstance(msg, dict) else (msg if isinstance(msg, str) else "")
+                        if not content:
+                            continue
+                        # check full player-answer tag first
+                        m = tag_player_ans_re.search(content)
+                        if m:
+                            ans = m.group(1).upper()
+                            if ans == "ACCEPT":
+                                accepted = True
+                                break
+                        # check for simple tags like <ACCEPT>
+                        m2 = tag_simple_re.search(content)
+                        if m2:
+                            ans2 = m2.group(1).upper()
+                            if ans2 == "ACCEPT":
+                                accepted = True
+                                break
+                    if accepted:
+                        break
+
+            # Find the END iteration in game_state
             if not end_state:
                 # Check if the game ended successfully without END state
                 if game_state:
@@ -259,9 +338,11 @@ class TradingResultsAnalyzer:
             # Extract final response
             # -------------------------------
             final_response = summary.get("final_response", "UNKNOWN")
-            if final_response == "UNKNOWN" and end_state == game_state[-1]:
-                # If we used last state and no final_response, assume ACCEPT
-                final_response = "ACCEPT"
+            if not final_response or final_response == "UNKNOWN":
+                if accepted:
+                    final_response = "ACCEPT"
+                else:
+                    final_response = "REJECT"  # or UNKNOWN, but assume REJECT if not accepted
 
             # -------------------------------
             # Extract final resources and compute payoffs
@@ -817,24 +898,33 @@ class TradingResultsAnalyzer:
             }
 
         # Save heatmap data
-        heatmap_file = self.results_dir / "heatmap_data.json"
+        heatmap_file = self.results_dir / "all_heatmaps_trading_data.json"
         with open(heatmap_file, "w", encoding="utf-8") as f:
             json.dump(heatmap_data, f, indent=2)
 
-        # Also render heatmap images per behavior (win rate)
+        # Render all heatmaps in one big image
         plots_dir = Path(self.results_dir) / "plots"
         plots_dir.mkdir(parents=True, exist_ok=True)
 
-        for behavior, data in heatmap_data.items():
+        behaviors = list(heatmap_data.keys())
+        num_behaviors = len(behaviors)
+        num_types = 2  # payoff_player1, payoff_player2
+
+        fig, axes = plt.subplots(nrows=num_behaviors, ncols=num_types, figsize=(12, 4 * num_behaviors))
+
+        type_configs = [
+            ("payoff_player1", "Average Payoff (Player 1)", lambda v: f"{v:.1f}", 'Blues', None, None),
+            ("payoff_player2", "Average Payoff (Player 2)", lambda v: f"{v:.1f}", 'Blues', None, None),
+        ]
+
+        for b_idx, behavior in enumerate(behaviors):
+            data = heatmap_data[behavior]
             models = data["models"]
             m = len(models)
 
-            # Render heatmaps for each type
-            for heatmap_type, title_suffix, value_format, cmap_name, vmin, vmax in [
-                ("win_rates", "Win Rate (P1)", lambda v: f"{v*100:.1f}%", 'YlGn', 0.0, 1.0),
-                ("payoff_player1", "Average Payoff (Player 1)", lambda v: f"{v:.1f}", 'viridis', None, None),
-                ("payoff_player2", "Average Payoff (Player 2)", lambda v: f"{v:.1f}", 'viridis', None, None),
-            ]:
+            for t_idx, (heatmap_type, title_suffix, value_format, cmap_name, vmin, vmax) in enumerate(type_configs):
+                ax = axes[b_idx, t_idx]
+
                 matrix = np.full((m, m), np.nan, dtype=float)
                 for i, a in enumerate(models):
                     for j, b in enumerate(models):
@@ -844,40 +934,56 @@ class TradingResultsAnalyzer:
                         else:
                             matrix[i, j] = float(val)
 
-                fig, ax = plt.subplots(figsize=(8, 6))
+                masked_matrix = np.ma.masked_invalid(matrix)
                 cmap = plt.cm.get_cmap(cmap_name)
-                im = ax.imshow(matrix, vmin=vmin, vmax=vmax, cmap=cmap)
+                im = ax.imshow(masked_matrix, vmin=vmin, vmax=vmax, cmap=cmap)
                 ax.set_xticks(range(m))
                 ax.set_yticks(range(m))
                 ax.set_xticklabels(models, rotation=45, ha='right')
                 ax.set_yticklabels(models)
-                ax.set_title(f'{title_suffix} heatmap — {behavior}')
-                cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-                ylabel = 'P1 win rate' if 'win' in heatmap_type else 'Average Payoff'
-                cbar.ax.set_ylabel(ylabel, rotation=270, labelpad=15)
 
-                # Annotate heatmap cells with numeric values in large readable font.
+                # Set titles only for the top row and left column
+                if b_idx == 0:
+                    ax.set_title(title_suffix, fontsize=14, pad=6)
+                    ax.set_ylabel(f'{behavior}\nModel 1', fontsize=12, labelpad=6)
+
+                if t_idx == 0:
+                    ax.set_ylabel(f'{behavior}\nModel 1', fontsize=12)
+
+                # Add colorbar
+                cbar = fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02)
+                cbar.ax.set_ylabel('Average Payoff', rotation=270, labelpad=15)
+
+                # Annotate heatmap cells
                 for i in range(m):
                     for j in range(m):
                         val = matrix[i, j]
-                        if np.isnan(val):
+                        if i == j:
+                            txt = "N/A"
+                            txt_color = 'gray'
+                            fontsize = 8
+                        elif np.ma.is_masked(masked_matrix[i, j]):
                             txt = "-"
                             txt_color = 'gray'
-                            fontsize = 10
+                            fontsize = 8
                         else:
                             txt = value_format(val)
-                            # choose text color for contrast
-                            txt_color = 'white' if (val > 0.55 and "win" in heatmap_type) or (not np.isnan(matrix.max()) and val > matrix.max() * 0.7) else 'black'
-                            fontsize = 12
+                            # Use white text for high values, black for low
+                            if not np.isnan(matrix.max()) and val > matrix.max() * 0.7:
+                                txt_color = 'white'
+                            else:
+                                txt_color = 'black'
+                            fontsize = 10
                         ax.text(j, i, txt, ha='center', va='center', color=txt_color, fontsize=fontsize, fontweight='bold')
 
-                heatmap_file_img = plots_dir / f'heatmap_{heatmap_type}_{behavior}.png'
-                fig.tight_layout()
-                fig.savefig(heatmap_file_img, dpi=150)
-                plt.close(fig)
+        plt.tight_layout(pad=0.8, w_pad=0.4, h_pad=0.6)
+
+        all_heatmaps_file = plots_dir / 'all_heatmaps.png'
+        fig.savefig(all_heatmaps_file, dpi=150)
+        plt.close(fig)
 
         print(f"  Heatmap data JSON: {heatmap_file}")
-        print(f"  Heatmap images saved in: {plots_dir}")
+        print(f"  All heatmaps image: {all_heatmaps_file}")
 
         return heatmap_data
 
