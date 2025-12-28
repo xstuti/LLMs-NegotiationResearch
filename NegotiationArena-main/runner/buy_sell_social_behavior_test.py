@@ -106,7 +106,7 @@ class BuySellTestSuite:
         # Setup log directory for this specific test
         log_dir = os.path.join(
             self.log_base_dir,
-            f"{model1_name}_vs_{model2_name}_{behavior['name']}_iter_{iteration}",
+            f"{model1_name}_{model2_name}_{behavior['name']}_iter_{iteration}",
         )
 
         # Use exact same configuration as buysell_main.py

@@ -17,6 +17,23 @@ import numpy as np
 import sys
 from collections import defaultdict
 from pathlib import Path
+from matplotlib.patches import Rectangle
+
+# Set publication-quality matplotlib parameters
+plt.rcParams.update(
+    {
+        "font.size": 12,
+        "font.family": "serif",
+        "axes.linewidth": 1.2,
+        "axes.labelsize": 12,
+        "axes.titlesize": 14,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "legend.fontsize": 11,
+        "figure.titlesize": 16,
+        "figure.dpi": 300,
+    }
+)
 
 # Add current directory to Python path for module imports
 current_dir = Path(__file__).parent
@@ -878,23 +895,31 @@ class BuySellResultsAnalyzer:
         with open(heatmap_file, "w", encoding="utf-8") as f:
             json.dump(heatmap_data, f, indent=2, ensure_ascii=False)
 
-        # Render heatmap images per behavior
+        # Render combined heatmap image for all behaviors
         plots_dir = Path(self.results_dir) / "plots"
         plots_dir.mkdir(parents=True, exist_ok=True)
 
-        for behavior, data in heatmap_data.items():
-            models = data["models"]
-            m = len(models)
+        behaviors_list = list(heatmap_data.keys())
+        n_behaviors = len(behaviors_list)
+        if n_behaviors == 0:
+            print("No heatmap data to plot")
+            return heatmap_data
 
-            # Combined heatmap for seller and buyer advantages
-            fig, axes = plt.subplots(1, 2, figsize=(16, 6))
-            fig.suptitle(f'Advantages Heatmap — {behavior}', fontsize=16)
+        # Get models from first behavior (assuming same for all)
+        models = heatmap_data[behaviors_list[0]]["models"]
+        m = len(models)
 
-            for idx, (heatmap_type, title_suffix, value_format, cmap_name) in enumerate([
-                ("seller_advantages", "Average Seller Advantage", lambda v: f"{v:.1f}", 'Blues'),
-                ("buyer_advantages", "Average Buyer Advantage", lambda v: f"{v:.1f}", 'Oranges'),
+        # Combined heatmap for all behaviors: n_behaviors rows, 2 columns (seller, buyer)
+        fig, axes = plt.subplots(n_behaviors, 2, figsize=(12, 4 * n_behaviors))
+
+        for row_idx, behavior in enumerate(behaviors_list):
+            data = heatmap_data[behavior]
+
+            for col_idx, (heatmap_type, title_suffix, value_format, cmap_name) in enumerate([
+                ("seller_advantages", f"Seller Advantage — {behavior}", lambda v: f"{v:.1f}", 'Blues'),
+                ("buyer_advantages", f"Buyer Advantage — {behavior}", lambda v: f"{v:.1f}", 'Oranges'),
             ]):
-                ax = axes[idx]
+                ax = axes[row_idx, col_idx]
                 matrix = np.full((m, m), np.nan, dtype=float)
                 for i, a in enumerate(models):
                     for j, b in enumerate(models):
@@ -904,41 +929,91 @@ class BuySellResultsAnalyzer:
                         else:
                             matrix[i, j] = float(val)
 
-                cmap = plt.cm.get_cmap(cmap_name)
-                im = ax.imshow(matrix, cmap=cmap)
-                ax.set_xticks(range(m))
-                ax.set_yticks(range(m))
-                ax.set_xticklabels(models, rotation=45, ha='right')
-                ax.set_yticklabels(models)
-                ax.set_title(title_suffix)
-                cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-                cbar.ax.set_ylabel('Average Advantage', rotation=270, labelpad=15)
+                # Create masked array for missing data
+                masked = np.ma.masked_invalid(matrix)
 
-                # Annotate heatmap cells with numeric values in large readable font.
+                # Create custom colormap
+                cmap = plt.cm.get_cmap(cmap_name)
+
+                # Get valid range for normalization
+                valid_vals = matrix[~np.isnan(matrix)]
+                if len(valid_vals) > 0:
+                    vmin, vmax = valid_vals.min(), valid_vals.max()
+                else:
+                    vmin, vmax = 0, 10
+
+                im = ax.imshow(masked, cmap=cmap, vmin=vmin, vmax=vmax, aspect="equal")
+
+                # Add text annotations
                 for i in range(m):
                     for j in range(m):
                         val = matrix[i, j]
                         if i == j:  # diagonal
-                            txt = "N/A"
-                            txt_color = 'gray'
-                            fontsize = 10
+                            # Gray out diagonal
+                            rect = Rectangle(
+                                (j - 0.5, i - 0.5),
+                                1,
+                                1,
+                                facecolor="lightgray",
+                                alpha=0.3,
+                                edgecolor="gray",
+                            )
+                            ax.add_patch(rect)
+                            ax.text(
+                                j,
+                                i,
+                                "N/A",
+                                ha="center",
+                                va="center",
+                                color="gray",
+                                fontweight="bold",
+                                fontsize=10,
+                            )
                         elif np.isnan(val):
-                            txt = "-"
-                            txt_color = 'gray'
-                            fontsize = 10
+                            ax.text(
+                                j,
+                                i,
+                                "-",
+                                ha="center",
+                                va="center",
+                                color="gray",
+                                fontweight="bold",
+                                fontsize=10,
+                            )
                         else:
-                            txt = value_format(val)
-                            txt_color = 'white' if (not np.isnan(matrix.max()) and val > matrix.max() * 0.7) else 'black'
-                            fontsize = 12
-                        ax.text(j, i, txt, ha='center', va='center', color=txt_color, fontsize=fontsize, fontweight='bold')
+                            # Normalize for text color
+                            norm_value = (val - vmin) / (vmax - vmin) if vmax > vmin else 0
+                            text_color = "white" if norm_value > 0.6 else "black"
+                            ax.text(
+                                j,
+                                i,
+                                value_format(val),
+                                ha="center",
+                                va="center",
+                                color=text_color,
+                                fontweight="bold",
+                                fontsize=11,
+                            )
 
-            heatmap_file_img = plots_dir / f'all_heatmaps_buysell_{behavior}.png'
-            fig.tight_layout()
-            fig.savefig(heatmap_file_img, dpi=150)
-            plt.close(fig)
+                ax.set_title(title_suffix, fontweight="bold", pad=15)
+                ax.set_xlabel("Player 2", fontweight="bold")
+                ax.set_ylabel("Player 1", fontweight="bold")
+                ax.set_xticks(range(m))
+                ax.set_yticks(range(m))
+                ax.set_xticklabels(models, rotation=45, ha="right")
+                ax.set_yticklabels(models)
+
+                # Add colorbar
+                cbar = plt.colorbar(im, ax=ax, shrink=0.8, aspect=20)
+                cbar.ax.set_ylabel('Average Advantage', rotation=270, labelpad=15)
+
+        heatmap_file_img = plots_dir / 'all_heatmaps_buysell.png'
+        fig.tight_layout()
+        fig.savefig(heatmap_file_img, dpi=300, bbox_inches="tight", facecolor="white")
+        plt.close(fig)
 
         print(f"  Heatmap data JSON: {heatmap_file}")
-        print(f"  Combined heatmap images saved in: {plots_dir}")
+        print(f"  Combined heatmap image saved: {plots_dir / 'all_heatmaps_buysell.png'}")
 
         return heatmap_data
 
