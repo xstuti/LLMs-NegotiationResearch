@@ -159,79 +159,218 @@ class BuySellResultsAnalyzer:
             with open(game_state_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
-            # Get game_state array
+            # Core structures
             game_state = data.get("game_state", [])
+            players = data.get("players", [])
+
+            # Locate START and END states (if present)
             start_state = None
-            for state in game_state:
-                if state.get("current_iteration") == "START":
-                    start_state = state
-                    break
-
-            # Find the END state in game_state
             end_state = None
-            accepted = False
-
             for state in game_state:
-                if state.get("current_iteration") == "END":
+                ci = state.get("current_iteration")
+                if ci == "START":
+                    start_state = state
+                if ci == "END":
                     end_state = state
                     break
-                # Check if any player accepted
-                for player_key in ["player1_response", "player2_response"]:
-                    resp = state.get(player_key, {})
-                    pub_info = resp.get("player_public_info_dict", {})
-                    if pub_info.get("player answer") == "ACCEPT":
-                        accepted = True
-                        if not end_state:
-                            end_state = state  # Use this state if no END
 
-            # Get valuations from START state or END state player_goals
+            # Determine whether any player actually ACCEPTed by scanning
+            # 1) state-level public info dicts (player1_response/player2_response)
+            # 2) top-level state entries that include player_public_info_dict
+            # 3) each player's `conversation` contents for <player answer> tags
+            accepted = False
+            final_accepting_state = None
+
+            # (A) scan game_state entries
+            for state in game_state:
+                # check explicit player response objects
+                for player_key in ["player1_response", "player2_response", "player_public_info_dict"]:
+                    resp = state.get(player_key, {})
+                    if isinstance(resp, dict):
+                        pub_info = resp.get("player_public_info_dict", resp) if player_key != "player_public_info_dict" else resp
+                        if isinstance(pub_info, dict) and pub_info.get("player answer", "").upper() == "ACCEPT":
+                            accepted = True
+                            final_accepting_state = state
+                            break
+                if accepted:
+                    break
+
+                # also check the human-readable public answer string for accept/proposal/reject tags
+                pstr = state.get("player_public_answer_string")
+                if isinstance(pstr, str) and pstr:
+                    up = pstr.upper()
+                    if "<ACCEPT" in up or "<ACCEPT>" in up:
+                        accepted = True
+                        final_accepting_state = state
+                        break
+
+            # (B) scan players' conversation text if still not found
+            if not accepted:
+                import re
+
+                # match either <player answer>ACCEPT</player answer> or tags like <ACCEPT>, <PROPOSAL>, <REJECT>
+                tag_player_ans_re = re.compile(r"<\s*player\s+answer\s*>\s*([A-Za-z]+)\s*<", re.IGNORECASE)
+                tag_simple_re = re.compile(r"<\s*(ACCEPT|REJECT|PROPOSAL)\b", re.IGNORECASE)
+                for p in players:
+                    conv = p.get("conversation", [])
+                    for msg in conv:
+                        content = msg.get("content") if isinstance(msg, dict) else (msg if isinstance(msg, str) else "")
+                        if not content:
+                            continue
+                        # check full player-answer tag first
+                        m = tag_player_ans_re.search(content)
+                        if m:
+                            ans = m.group(1).upper()
+                            if ans == "ACCEPT":
+                                accepted = True
+                                break
+                        # check for simple tags like <ACCEPT>
+                        m2 = tag_simple_re.search(content)
+                        if m2:
+                            ans2 = m2.group(1).upper()
+                            if ans2 == "ACCEPT":
+                                accepted = True
+                                break
+                    if accepted:
+                        break
+
+            # Detect whether any interaction (proposal/accept/reject) occurred at all.
+            # We'll scan both state-level public info and player conversations for player answers.
+            any_interaction = False
+            interaction_reason = None
+
+            # Check game_state entries for public info with player answer
+            for state in game_state:
+                pub = state.get("player_public_info_dict") or {}
+                if isinstance(pub, dict):
+                    pa = pub.get("player answer") or pub.get("player_answer")
+                    if isinstance(pa, str) and pa.strip():
+                        any_interaction = True
+                        interaction_reason = f"Found player_public_info_dict with answer={pa}"
+                        break
+                # some logs embed a combined player_public_answer_string
+                pstr = state.get("player_public_answer_string")
+                if isinstance(pstr, str) and ("<PROPOSAL>" in pstr.upper() or "<ACCEPT>" in pstr.upper() or "<REJECT>" in pstr.upper()):
+                    any_interaction = True
+                    interaction_reason = "Found player_public_answer_string containing tags"
+                    break
+
+            # If still none, scan players' conversation for any <player answer> tags (PROPOSAL/ACCEPT/REJECT)
+            if not any_interaction:
+                import re as _re
+                tag_any_re = _re.compile(r"<\s*player\s+answer\s*>\s*([A-Za-z]+)\s*<", _re.IGNORECASE)
+                for p in players:
+                    conv = p.get("conversation", [])
+                    for msg in conv:
+                        content = msg.get("content") if isinstance(msg, dict) else (msg if isinstance(msg, str) else "")
+                        if not content:
+                            continue
+                        m = tag_any_re.search(content)
+                        if m:
+                            any_interaction = True
+                            interaction_reason = f"Found conversation tag with answer={m.group(1)}"
+                            break
+                    if any_interaction:
+                        break
+
+            no_interaction = not any_interaction
+            no_interaction_reason = None if any_interaction else "no proposals or player answers found"
+
+            # Determine valuations (seller/buyer) from multiple possible places
             seller_valuation = 40
             buyer_valuation = 60
 
-            # Try from start_state settings
+            # 1) try settings.player_valuation in start_state
             if start_state:
                 settings = start_state.get("settings", {})
-                player_valuation = settings.get("player_valuation", None)
-                if player_valuation and isinstance(player_valuation, list) and len(player_valuation) >= 2:
-                    seller_valuation = player_valuation[0] if isinstance(player_valuation[0], (int, float)) else 40
-                    buyer_valuation = player_valuation[1] if isinstance(player_valuation[1], (int, float)) else 60
+                player_valuation = settings.get("player_valuation")
+                if isinstance(player_valuation, list) and len(player_valuation) >= 2:
+                    if isinstance(player_valuation[0], (int, float)):
+                        seller_valuation = player_valuation[0]
+                    if isinstance(player_valuation[1], (int, float)):
+                        buyer_valuation = player_valuation[1]
 
-            # If not found or invalid, try from player_goals in end_state or start_state
-            if seller_valuation == 40 and buyer_valuation == 60:
+            # 2) fallback: try player_goals in end_state or start_state
+            if (seller_valuation, buyer_valuation) == (40, 60):
                 goals_source = end_state or start_state
                 if goals_source:
                     goals = goals_source.get("player_goals", [])
-                    if len(goals) >= 2:
-                        # Seller goal
-                        seller_goal = goals[0].get("_value", {}).get("_value", {}).get("_value", {})
-                        if isinstance(seller_goal, dict) and "X" in seller_goal:
-                            seller_valuation = seller_goal["X"]
-                        # Buyer goal
-                        buyer_goal = goals[1].get("_value", {}).get("_value", {}).get("_value", {})
-                        if isinstance(buyer_goal, dict) and "X" in buyer_goal:
-                            buyer_valuation = buyer_goal["X"]
+                    if isinstance(goals, list) and len(goals) >= 2:
+                        try:
+                            seller_goal = goals[0].get("_value", {}).get("_value", {}).get("_value", {})
+                            if isinstance(seller_goal, dict) and "X" in seller_goal and isinstance(seller_goal["X"], (int, float)):
+                                seller_valuation = seller_goal["X"]
+                        except Exception:
+                            pass
+                        try:
+                            buyer_goal = goals[1].get("_value", {}).get("_value", {}).get("_value", {})
+                            if isinstance(buyer_goal, dict) and "X" in buyer_goal and isinstance(buyer_goal["X"], (int, float)):
+                                buyer_valuation = buyer_goal["X"]
+                        except Exception:
+                            pass
 
-            if not end_state and not accepted:
-                print(f"Warning: No END state or ACCEPT found in {game_state_file}")
-                return None
+            # Basic summary section: prefer end_state.summary, then top-level summary
+            summary = {}
+            if end_state and isinstance(end_state, dict):
+                summary = end_state.get("summary", {}) or {}
+            summary = summary or data.get("summary", {}) or {}
 
-            # Basic summary section
-            summary = end_state.get("summary", {}) if end_state else {}
-
-            # If no summary and accepted, try to find proposed trade
+            # Extract proposed_trade robustly: summary.proposed_trade may be dict or a string
             proposed_trade = summary.get("proposed_trade")
-            if not proposed_trade and accepted:
-                # Find the last proposed trade before acceptance
+
+            # If no structured proposed_trade, try scanning states/player public info for last proposed trade string
+            if not proposed_trade:
+                # look for recently proposed trade in reversed game_state
                 for state in reversed(game_state):
-                    for player_key in ["player1_response", "player2_response"]:
+                    # try known response keys
+                    for player_key in ["player1_response", "player2_response", "player_public_info_dict"]:
                         resp = state.get(player_key, {})
-                        pub_info = resp.get("player_public_info_dict", {})
-                        trade = pub_info.get("newly proposed trade")
-                        if trade and trade != "NONE" and isinstance(trade, dict):
+                        pub_info = resp.get("player_public_info_dict", resp) if isinstance(resp, dict) else {}
+                        trade = pub_info.get("newly proposed trade") if isinstance(pub_info, dict) else None
+                        if trade and trade != "NONE":
                             proposed_trade = trade
                             break
                     if proposed_trade:
                         break
+
+            # Helper: attempt to extract buyer ZUP price from different formats
+            def extract_zup_price(obj):
+                """Return int price if found, otherwise None."""
+                import re
+
+                # If structured dict following _type/_value pattern
+                if isinstance(obj, dict):
+                    # typical structure: {"_type":"trade","_value":{"RED":{...},"BLUE":{"_value":{"ZUP":90}}}}
+                    try:
+                        tv = obj.get("_value", {})
+                        blue = tv.get("BLUE", {})
+                        if isinstance(blue, dict):
+                            bval = blue.get("_value", {})
+                            if isinstance(bval, dict) and "ZUP" in bval and isinstance(bval["ZUP"], (int, float)):
+                                return int(bval["ZUP"])
+                    except Exception:
+                        pass
+                    # legacy keys
+                    try:
+                        # sometimes keys are uppercase names
+                        blue = obj.get("BLUE") or obj.get("blue")
+                        if isinstance(blue, dict):
+                            bval = blue.get("_value", blue.get("value", {}))
+                            if isinstance(bval, dict) and "ZUP" in bval and isinstance(bval["ZUP"], (int, float)):
+                                return int(bval["ZUP"])
+                    except Exception:
+                        pass
+
+                # If it's a string, use regex
+                if isinstance(obj, str):
+                    m = re.search(r"ZUP\s*[:]*\s*(\d{1,6})", obj, re.IGNORECASE)
+                    if m:
+                        try:
+                            return int(m.group(1))
+                        except Exception:
+                            return None
+
+                return None
 
             # Negotiation rounds: count numeric iterations
             negotiation_rounds = 0
@@ -250,25 +389,30 @@ class BuySellResultsAnalyzer:
             except Exception:
                 negotiation_rounds = 0
 
-            # Trade price: ZUP given by buyer (BLUE)
+            # Determine trade_price via structured proposed_trade or extracted string
             trade_price = None
-            if isinstance(proposed_trade, dict) and proposed_trade.get("_type") == "trade":
-                trade_value = proposed_trade.get("_value", {})
-                blue_res = trade_value.get("BLUE", {}).get("_value", {})
-                trade_price = blue_res.get("ZUP", None)
+            if proposed_trade is not None:
+                trade_price = extract_zup_price(proposed_trade)
+
+            # If still None, try from summary final proposed trade structures
+            if trade_price is None and isinstance(summary, dict):
+                trade_price = extract_zup_price(summary.get("proposed_trade"))
 
             # Final response
-            final_response = summary.get("final_response", "UNKNOWN")
-            if final_response == "UNKNOWN" and accepted:
-                final_response = "ACCEPT"
+            final_response = summary.get("final_response") if isinstance(summary, dict) else None
+            if not final_response:
+                if accepted:
+                    final_response = "ACCEPT"
+                else:
+                    final_response = "UNKNOWN"
 
-            # Trade occurred if accepted
-            trade_occurred = final_response == "ACCEPT" or accepted
+            # Trade occurred if accepted or final_response == ACCEPT
+            trade_occurred = (str(final_response).upper() == "ACCEPT") or accepted
 
             # Advantages only for accepted trades
             seller_advantage = None
             buyer_advantage = None
-            if trade_occurred and trade_price is not None:
+            if trade_occurred and trade_price is not None and isinstance(seller_valuation, (int, float)) and isinstance(buyer_valuation, (int, float)):
                 seller_advantage = trade_price - seller_valuation
                 buyer_advantage = buyer_valuation - trade_price
 
@@ -277,7 +421,8 @@ class BuySellResultsAnalyzer:
                 "buyer_model": buyer_model,
                 "behavior": behavior,
                 "iteration": iteration,
-                "game_completed": end_state is not None or accepted,
+                # game_completed: True if there is an END summary or an actual accepted response
+                "game_completed": (end_state is not None or accepted) and not no_interaction,
                 "trade_occurred": trade_occurred,
                 "negotiation_rounds": negotiation_rounds,
                 "seller_advantage": seller_advantage,
@@ -286,6 +431,8 @@ class BuySellResultsAnalyzer:
                 "seller_valuation": seller_valuation,
                 "buyer_valuation": buyer_valuation,
                 "final_response": final_response,
+                "no_interaction": no_interaction,
+                "no_interaction_reason": no_interaction_reason,
                 "file_path": str(game_state_file),
             }
 
@@ -438,6 +585,8 @@ class BuySellResultsAnalyzer:
             p2_wins = sum(1 for g in accepted_games if g.get("buyer_advantage", 0) > g.get("seller_advantage", 0))
             non_draws = p1_wins + p2_wins
             win_rate_p1 = p1_wins / non_draws if non_draws > 0 else 0.0
+            draws = len(accepted_games) - non_draws
+            draw_rate = draws / len(valid_games) if len(valid_games) > 0 else 0.0
 
             def mean_std(lst):
                 m = statistics.mean(lst) if lst else 0.0
@@ -463,6 +612,7 @@ class BuySellResultsAnalyzer:
                 "player2_wins": p2_wins,
                 "non_draws": non_draws,
                 "win_rate_player1": win_rate_p1,
+                "draw_rate": draw_rate,
             }
 
             behavior_summary[behavior] = behavior_metrics
@@ -563,6 +713,7 @@ class BuySellResultsAnalyzer:
                 "buyer_advantage_mean",
                 "buyer_advantage_std",
                 "win_rate_player1",
+                "draw_rate",
             ]
             f.write(",".join(headers) + "\n")
             for b in behaviors:
@@ -579,6 +730,7 @@ class BuySellResultsAnalyzer:
                     f"{metrics['buyer_advantage_mean']:.4f}",
                     f"{metrics['buyer_advantage_std']:.4f}",
                     f"{metrics['win_rate_player1']:.4f}",
+                    f"{metrics['draw_rate']:.4f}",
                 ]
                 f.write(",".join(row) + "\n")
 
@@ -617,6 +769,7 @@ class BuySellResultsAnalyzer:
                 "buyer_advantage_mean",
                 "buyer_advantage_std",
                 "win_rate_player1",
+                "draw_rate",
             ]
             f.write(",".join(headers) + "\n")
             for behavior, metrics in self.behavior_summary.items():
@@ -632,6 +785,7 @@ class BuySellResultsAnalyzer:
                     f"{metrics['buyer_advantage_mean']:.4f}",
                     f"{metrics['buyer_advantage_std']:.4f}",
                     f"{metrics['win_rate_player1']:.4f}",
+                    f"{metrics['draw_rate']:.4f}",
                 ]
                 f.write(",".join(row) + "\n")
 
@@ -732,12 +886,15 @@ class BuySellResultsAnalyzer:
             models = data["models"]
             m = len(models)
 
-            # Render heatmaps for each type
-            for heatmap_type, title_suffix, value_format, cmap_name, vmin, vmax in [
-                ("win_rates", "Win Rate (Seller)", lambda v: f"{v*100:.1f}%", 'YlGn', 0.0, 1.0),
-                ("seller_advantages", "Average Seller Advantage", lambda v: f"{v:.1f}", 'Blues', None, None),
-                ("buyer_advantages", "Average Buyer Advantage", lambda v: f"{v:.1f}", 'Oranges', None, None),
-            ]:
+            # Combined heatmap for seller and buyer advantages
+            fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+            fig.suptitle(f'Advantages Heatmap — {behavior}', fontsize=16)
+
+            for idx, (heatmap_type, title_suffix, value_format, cmap_name) in enumerate([
+                ("seller_advantages", "Average Seller Advantage", lambda v: f"{v:.1f}", 'Blues'),
+                ("buyer_advantages", "Average Buyer Advantage", lambda v: f"{v:.1f}", 'Oranges'),
+            ]):
+                ax = axes[idx]
                 matrix = np.full((m, m), np.nan, dtype=float)
                 for i, a in enumerate(models):
                     for j, b in enumerate(models):
@@ -747,39 +904,41 @@ class BuySellResultsAnalyzer:
                         else:
                             matrix[i, j] = float(val)
 
-                fig, ax = plt.subplots(figsize=(8, 6))
                 cmap = plt.cm.get_cmap(cmap_name)
-                im = ax.imshow(matrix, vmin=vmin, vmax=vmax, cmap=cmap)
+                im = ax.imshow(matrix, cmap=cmap)
                 ax.set_xticks(range(m))
                 ax.set_yticks(range(m))
                 ax.set_xticklabels(models, rotation=45, ha='right')
                 ax.set_yticklabels(models)
-                ax.set_title(f'{title_suffix} heatmap — {behavior}')
+                ax.set_title(title_suffix)
                 cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-                ylabel = 'Win Rate' if 'win' in heatmap_type else 'Average Advantage'
-                cbar.ax.set_ylabel(ylabel, rotation=270, labelpad=15)
+                cbar.ax.set_ylabel('Average Advantage', rotation=270, labelpad=15)
 
                 # Annotate heatmap cells with numeric values in large readable font.
                 for i in range(m):
                     for j in range(m):
                         val = matrix[i, j]
-                        if np.isnan(val):
+                        if i == j:  # diagonal
+                            txt = "N/A"
+                            txt_color = 'gray'
+                            fontsize = 10
+                        elif np.isnan(val):
                             txt = "-"
                             txt_color = 'gray'
                             fontsize = 10
                         else:
                             txt = value_format(val)
-                            txt_color = 'white' if (val > 0.55 and "win" in heatmap_type) or (not np.isnan(matrix.max()) and val > matrix.max() * 0.7) else 'black'
+                            txt_color = 'white' if (not np.isnan(matrix.max()) and val > matrix.max() * 0.7) else 'black'
                             fontsize = 12
                         ax.text(j, i, txt, ha='center', va='center', color=txt_color, fontsize=fontsize, fontweight='bold')
 
-                heatmap_file_img = plots_dir / f'heatmap_{heatmap_type}_{behavior}.png'
-                fig.tight_layout()
-                fig.savefig(heatmap_file_img, dpi=150)
-                plt.close(fig)
+            heatmap_file_img = plots_dir / f'all_heatmaps_buysell_{behavior}.png'
+            fig.tight_layout()
+            fig.savefig(heatmap_file_img, dpi=150)
+            plt.close(fig)
 
         print(f"  Heatmap data JSON: {heatmap_file}")
-        print(f"  Heatmap images saved in: {plots_dir}")
+        print(f"  Combined heatmap images saved in: {plots_dir}")
 
         return heatmap_data
 

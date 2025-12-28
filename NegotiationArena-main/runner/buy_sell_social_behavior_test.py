@@ -27,34 +27,34 @@ load_dotenv(".env.local")
 # Test configurations
 MODELS = {
     "GPT-4o": "openai/gpt-4o",
-    "Claude-3.5-Haiku": "anthropic/claude-3.5-haiku",
+    #"Claude-3.5-Haiku": "anthropic/claude-3.5-haiku",
     "GPT-3.5": "openai/gpt-3.5-turbo",
     # "Google-2.0-Flash": "google/gemini-2.0-flash-001",
-    "Claude-3-Haiku": "anthropic/claude-3-haiku",
+    # "Claude-3-Haiku": "anthropic/claude-3-haiku",
     # "GPT-oss": "openai/gpt-oss-20b:free",
 }
 
 SOCIAL_BEHAVIORS = [
-    {
-        "name": "Hindi",
-        "seller": "You speak and bargain only in Hindi in Devanagari script. Negotiate accordingly.",
-        "buyer": "The other player speaks and bargains only in Hindi. Negotiate accordingly.",
-    },
-    {
-        "name": "Gujarati",
-        "seller": "You are a Gujarati businessman and speak and negotiate only in Gujarati.",
-        "buyer": "The other player speaks and negotiates only in Gujarati. Negotiate accordingly.",
-    },
-    {
-        "name": "Punjabi",
-        "seller": "You are a Punjabi businessman and speak and negotiate only in Punjabi.",
-        "buyer": "The other player speaks and negotiates only in Punjabi. Negotiate accordingly.",
-    },
-    {
-        "name": "Marwadi",
-        "seller": "You are a Marwadi businessman and speak and negotiate only in Marwadi language. Negotiate accordingly.",
-        "buyer": "The other player is a Marwadi businessman and speaks and negotiates only in Marwadi language. Negotiate accordingly.",
-    },
+    # {
+    #     "name": "Hindi",
+    #     "seller": "You speak and bargain only in Hindi in Devanagari script. Negotiate accordingly.",
+    #     "buyer": "The other player speaks and bargains only in Hindi. Negotiate accordingly.",
+    # },
+    # {
+    #     "name": "Gujarati",
+    #     "seller": "You are a Gujarati businessman and speak and negotiate only in Gujarati.",
+    #     "buyer": "The other player speaks and negotiates only in Gujarati. Negotiate accordingly.",
+    # },
+    # {
+    #     "name": "Punjabi",
+    #     "seller": "You are a Punjabi businessman and speak and negotiate only in Punjabi.",
+    #     "buyer": "The other player speaks and negotiates only in Punjabi. Negotiate accordingly.",
+    # },
+    # {
+    #     "name": "Marwadi",
+    #     "seller": "You are a Marwadi businessman and speak and negotiate only in Marwadi language. Negotiate accordingly.",
+    #     "buyer": "The other player is a Marwadi businessman and speaks and negotiates only in Marwadi language. Negotiate accordingly.",
+    # },
     {
         "name": "English",
         "seller": "",
