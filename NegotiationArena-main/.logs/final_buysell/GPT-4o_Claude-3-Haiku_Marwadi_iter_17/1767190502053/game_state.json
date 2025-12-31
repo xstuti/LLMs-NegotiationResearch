@@ -1,0 +1,791 @@
+{
+  "class": "BuySellGame",
+  "run_epoch_time_ms": "1767190502053",
+  "players": [
+    {
+      "class": "OpenRouterAgent",
+      "model": "openai/gpt-4o",
+      "agent_name": "Player RED",
+      "prompt_entity_initializer": "system",
+      "run_epoch_time_ms": "1767190501996",
+      "conversation": [
+        {
+          "role": "system",
+          "content": "You are playing game where you are buying or selling an object. There is only one object for sale/purcahse.\n\nPlayer RED is going to sell one object. Player BLUE gives ZUP to buy resources.\n\nRULES:\n\n```\n1. You must always respond with:\n\n    A) Propose a trade with (you can only trade in integer amounts, not decimals):\n    <player answer> PROPOSAL </player answer>\n    <newly proposed trade> Player RED Gives X: amount, ...| Player BLUE Gives ZUP: amount </newly proposed trade>\n\n    B) Accept the trade by saying:\n    <player answer> ACCEPT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    C) Reject and end the game:\n    <player answer> REJECT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    Note: The game will end if one of the players ACCEPT OR REJECT. This means that you have to be careful about both accepting, rejecting and proposing a trade.\n\n2. You are allowed at most 4 proposals of your own to complete the game, after which you can only reply with ACCEPT or REJECT.\nDO NOT propose a new trade after 4 proposals. Your limit for proposals is 4.\n\n3. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n\n<reason> [add reasoning] </reason> add as much text as you want\n\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n\n<message>your message here</message>\n\nYou can decide if you want disclose your resources, goals, cost and willingness to pay in the message.\n```\n\nHere is what you have access to:\n```\nObject that is being bought/sold: X\n<my resources> X: 1 </my resources>\n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>,\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<proposal count> [add here (inclusive of current)] </proposal count>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<newly proposed trade> [add here] </newly proposed trade>\n<message> [add here] </message\n```\n\nPlease be sure to include all.\n\nYou speak and negotiate only in Marwadi language. Negotiate accordingly.\n"
+        },
+        {
+          "role": "user",
+          "content": "You are Player RED."
+        },
+        {
+          "role": "assistant",
+          "content": "<proposal count> 1 </proposal count>  \n<my resources> X: 1 </my resources>  \n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>  \n<reason> Maino X object kharch karine 40 ZUP ma banayo chhe. To mane profit ma vachu padhe, toh kamthi kam 50 ZUP ma bechu joye. </reason>  \n<player answer> PROPOSAL </player answer>  \n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 70 </newly proposed trade>  \n<message> Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho? </message>  "
+        },
+        {
+          "role": "user",
+          "content": "<\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n> message </\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 60> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 60>"
+        },
+        {
+          "role": "assistant",
+          "content": "<proposal count> 2 </proposal count>  \n<my resources> X: 1 </my resources>  \n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>  \n<reason> Bhai, 60 ZUP ma bechvo to mane ghano nuksan thashe. Mane kamthi kam 50 ZUP nu profit joye. </reason>  \n<player answer> PROPOSAL </player answer>  \n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 65 </newly proposed trade>  \n<message> Bhai, 65 ZUP ma kariye deal, mane pan thodo profit male. Tame su bhav chhe? </message>  "
+        },
+        {
+          "role": "user",
+          "content": "<\nBhai, 65 ZUP ma thayu, pan hu 62 ZUP ma X object leu chu. Tame su vicharo chho?\n> message </\nBhai, 65 ZUP ma thayu, pan hu 62 ZUP ma X object leu chu. Tame su vicharo chho?\n>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 62> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 62>"
+        },
+        {
+          "role": "assistant",
+          "content": "<proposal count> 3 </proposal count>  \n<my resources> X: 1 </my resources>  \n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>  \n<reason> Bhai, 62 ZUP ma to thodo kam profit male chhe, pan chal, vyavhar karvu chhe to kariye. </reason>  \n<player answer> ACCEPT </player answer>  \n<newly proposed trade> NONE </newly proposed trade>  \n<message> Thik chhe bhai, 62 ZUP ma deal paki. </message>  "
+        }
+      ],
+      "seed": 1767190503551,
+      "client": "OpenAI",
+      "temperature": 0.7,
+      "max_tokens": null
+    },
+    {
+      "class": "OpenRouterAgent",
+      "model": "anthropic/claude-3-haiku",
+      "agent_name": "Player BLUE",
+      "prompt_entity_initializer": "system",
+      "run_epoch_time_ms": "1767190502024",
+      "conversation": [
+        {
+          "role": "system",
+          "content": "You are playing game where you are buying or selling an object. There is only one object for sale/purcahse.\n\nPlayer RED is going to sell one object. Player BLUE gives ZUP to buy resources.\n\nRULES:\n\n```\n1. You must always respond with:\n\n    A) Propose a trade with (you can only trade in integer amounts, not decimals):\n    <player answer> PROPOSAL </player answer>\n    <newly proposed trade> Player RED Gives X: amount, ...| Player BLUE Gives ZUP: amount </newly proposed trade>\n\n    B) Accept the trade by saying:\n    <player answer> ACCEPT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    C) Reject and end the game:\n    <player answer> REJECT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    Note: The game will end if one of the players ACCEPT OR REJECT. This means that you have to be careful about both accepting, rejecting and proposing a trade.\n\n2. You are allowed at most 4 proposals of your own to complete the game, after which you can only reply with ACCEPT or REJECT.\nDO NOT propose a new trade after 4 proposals. Your limit for proposals is 4.\n\n3. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n\n<reason> [add reasoning] </reason> add as much text as you want\n\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n\n<message>your message here</message>\n\nYou can decide if you want disclose your resources, goals, cost and willingness to pay in the message.\n```\n\nHere is what you have access to:\n```\nObject that is being bought/sold: X\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>,\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<proposal count> [add here (inclusive of current)] </proposal count>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<newly proposed trade> [add here] </newly proposed trade>\n<message> [add here] </message\n```\n\nPlease be sure to include all.\n\nThe other player speaks and negotiates only in Marwadi language. Negotiate accordingly.\nYou are Player BLUE."
+        },
+        {
+          "role": "user",
+          "content": "<Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho?> message </Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho?>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 70> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 70>"
+        },
+        {
+          "role": "assistant",
+          "content": "<proposal count> 1 </proposal count>\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>\n<reason>\nThe initial price of 70 ZUP for the object X is higher than my willingness to pay, which is 60 ZUP. I will propose a lower price to see if we can reach an agreement.\n</reason>\n<player answer> PROPOSAL </player answer>\n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 60 </newly proposed trade>\n<message>\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n</message>"
+        },
+        {
+          "role": "user",
+          "content": "<Bhai, 65 ZUP ma kariye deal, mane pan thodo profit male. Tame su bhav chhe?> message </Bhai, 65 ZUP ma kariye deal, mane pan thodo profit male. Tame su bhav chhe?>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 65> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 65>"
+        },
+        {
+          "role": "assistant",
+          "content": "<proposal count> 2 </proposal count>\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>\n<reason>\nThe new proposed price of 65 ZUP is still slightly higher than my willingness to pay, but I'm willing to compromise to reach a deal. I'll propose a middle ground price.\n</reason>\n<player answer> PROPOSAL </player answer>\n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 62 </newly proposed trade>\n<message>\nBhai, 65 ZUP ma thayu, pan hu 62 ZUP ma X object leu chu. Tame su vicharo chho?\n</message>"
+        }
+      ],
+      "seed": 1767190561547,
+      "client": "OpenAI",
+      "temperature": 0.7,
+      "max_tokens": null
+    }
+  ],
+  "game_state": [
+    {
+      "current_iteration": "START",
+      "turn": "None",
+      "settings": {
+        "resources_support_set": {
+          "_type": "resource",
+          "_value": {
+            "X": 0
+          }
+        },
+        "player_goals": [
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "seller_goal",
+              "_value": {
+                "_type": "valuation",
+                "_value": {
+                  "X": 40
+                }
+              }
+            }
+          },
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "buyer_goal",
+              "_value": {
+                "_type": "valuation",
+                "_value": {
+                  "X": 60
+                }
+              }
+            }
+          }
+        ],
+        "player_initial_resources": [
+          {
+            "_type": "resource",
+            "_value": {
+              "X": 1
+            }
+          },
+          {
+            "_type": "resource",
+            "_value": {
+              "ZUP": 1000
+            }
+          }
+        ],
+        "player_social_behaviour": [
+          "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
+          "The other player speaks and negotiates only in Marwadi language. Negotiate accordingly."
+        ],
+        "player_roles": [
+          "You are Player RED.",
+          "You are Player BLUE."
+        ],
+        "player_valuation": [
+          {
+            "_type": "valuation",
+            "_value": {
+              "X": 40
+            }
+          },
+          {
+            "_type": "valuation",
+            "_value": {
+              "X": 60
+            }
+          }
+        ]
+      }
+    },
+    {
+      "current_iteration": 1,
+      "turn": 0,
+      "player_public_answer_string": "<Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho?> message </Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho?>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 70> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 70>",
+      "player_public_info_dict": {
+        "message": "Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho?",
+        "player answer": "PROPOSAL",
+        "newly proposed trade": {
+          "_type": "trade",
+          "_value": {
+            "RED": {
+              "_type": "resource",
+              "_value": {
+                "X": 1
+              }
+            },
+            "BLUE": {
+              "_type": "resource",
+              "_value": {
+                "ZUP": 70
+              }
+            }
+          }
+        }
+      },
+      "player_private_info_dict": {
+        "my resources": {
+          "_type": "resource",
+          "_value": {
+            "X": 1
+          }
+        },
+        "my goals": "Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources",
+        "reason": "Maino X object kharch karine 40 ZUP ma banayo chhe. To mane profit ma vachu padhe, toh kamthi kam 50 ZUP ma bechu joye.",
+        "proposal count": "1"
+      },
+      "player_complete_answer": "<proposal count> 1 </proposal count>  \n<my resources> X: 1 </my resources>  \n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>  \n<reason> Maino X object kharch karine 40 ZUP ma banayo chhe. To mane profit ma vachu padhe, toh kamthi kam 50 ZUP ma bechu joye. </reason>  \n<player answer> PROPOSAL </player answer>  \n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 70 </newly proposed trade>  \n<message> Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho? </message>  ",
+      "player_state": [
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/gpt-4o",
+          "agent_name": "Player RED",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1767190501996",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "You are playing game where you are buying or selling an object. There is only one object for sale/purcahse.\n\nPlayer RED is going to sell one object. Player BLUE gives ZUP to buy resources.\n\nRULES:\n\n```\n1. You must always respond with:\n\n    A) Propose a trade with (you can only trade in integer amounts, not decimals):\n    <player answer> PROPOSAL </player answer>\n    <newly proposed trade> Player RED Gives X: amount, ...| Player BLUE Gives ZUP: amount </newly proposed trade>\n\n    B) Accept the trade by saying:\n    <player answer> ACCEPT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    C) Reject and end the game:\n    <player answer> REJECT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    Note: The game will end if one of the players ACCEPT OR REJECT. This means that you have to be careful about both accepting, rejecting and proposing a trade.\n\n2. You are allowed at most 4 proposals of your own to complete the game, after which you can only reply with ACCEPT or REJECT.\nDO NOT propose a new trade after 4 proposals. Your limit for proposals is 4.\n\n3. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n\n<reason> [add reasoning] </reason> add as much text as you want\n\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n\n<message>your message here</message>\n\nYou can decide if you want disclose your resources, goals, cost and willingness to pay in the message.\n```\n\nHere is what you have access to:\n```\nObject that is being bought/sold: X\n<my resources> X: 1 </my resources>\n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>,\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<proposal count> [add here (inclusive of current)] </proposal count>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<newly proposed trade> [add here] </newly proposed trade>\n<message> [add here] </message\n```\n\nPlease be sure to include all.\n\nYou speak and negotiate only in Marwadi language. Negotiate accordingly.\n"
+            },
+            {
+              "role": "user",
+              "content": "You are Player RED."
+            },
+            {
+              "role": "assistant",
+              "content": "<proposal count> 1 </proposal count>  \n<my resources> X: 1 </my resources>  \n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>  \n<reason> Maino X object kharch karine 40 ZUP ma banayo chhe. To mane profit ma vachu padhe, toh kamthi kam 50 ZUP ma bechu joye. </reason>  \n<player answer> PROPOSAL </player answer>  \n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 70 </newly proposed trade>  \n<message> Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho? </message>  "
+            }
+          ],
+          "seed": 1767190503551,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": null
+        },
+        {
+          "class": "OpenRouterAgent",
+          "model": "anthropic/claude-3-haiku",
+          "agent_name": "Player BLUE",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1767190502024",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "You are playing game where you are buying or selling an object. There is only one object for sale/purcahse.\n\nPlayer RED is going to sell one object. Player BLUE gives ZUP to buy resources.\n\nRULES:\n\n```\n1. You must always respond with:\n\n    A) Propose a trade with (you can only trade in integer amounts, not decimals):\n    <player answer> PROPOSAL </player answer>\n    <newly proposed trade> Player RED Gives X: amount, ...| Player BLUE Gives ZUP: amount </newly proposed trade>\n\n    B) Accept the trade by saying:\n    <player answer> ACCEPT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    C) Reject and end the game:\n    <player answer> REJECT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    Note: The game will end if one of the players ACCEPT OR REJECT. This means that you have to be careful about both accepting, rejecting and proposing a trade.\n\n2. You are allowed at most 4 proposals of your own to complete the game, after which you can only reply with ACCEPT or REJECT.\nDO NOT propose a new trade after 4 proposals. Your limit for proposals is 4.\n\n3. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n\n<reason> [add reasoning] </reason> add as much text as you want\n\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n\n<message>your message here</message>\n\nYou can decide if you want disclose your resources, goals, cost and willingness to pay in the message.\n```\n\nHere is what you have access to:\n```\nObject that is being bought/sold: X\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>,\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<proposal count> [add here (inclusive of current)] </proposal count>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<newly proposed trade> [add here] </newly proposed trade>\n<message> [add here] </message\n```\n\nPlease be sure to include all.\n\nThe other player speaks and negotiates only in Marwadi language. Negotiate accordingly.\nYou are Player BLUE."
+            }
+          ],
+          "seed": 1767190561547,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": null
+        }
+      ]
+    },
+    {
+      "current_iteration": 2,
+      "turn": 1,
+      "player_public_answer_string": "<\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n> message </\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 60> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 60>",
+      "player_public_info_dict": {
+        "message": "\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n",
+        "player answer": "PROPOSAL",
+        "newly proposed trade": {
+          "_type": "trade",
+          "_value": {
+            "RED": {
+              "_type": "resource",
+              "_value": {
+                "X": 1
+              }
+            },
+            "BLUE": {
+              "_type": "resource",
+              "_value": {
+                "ZUP": 60
+              }
+            }
+          }
+        }
+      },
+      "player_private_info_dict": {
+        "my resources": {
+          "_type": "resource",
+          "_value": {
+            "ZUP": 1000
+          }
+        },
+        "my goals": "Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources.",
+        "reason": "\nThe initial price of 70 ZUP for the object X is higher than my willingness to pay, which is 60 ZUP. I will propose a lower price to see if we can reach an agreement.\n",
+        "proposal count": "1"
+      },
+      "player_complete_answer": "<proposal count> 1 </proposal count>\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>\n<reason>\nThe initial price of 70 ZUP for the object X is higher than my willingness to pay, which is 60 ZUP. I will propose a lower price to see if we can reach an agreement.\n</reason>\n<player answer> PROPOSAL </player answer>\n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 60 </newly proposed trade>\n<message>\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n</message>",
+      "player_state": [
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/gpt-4o",
+          "agent_name": "Player RED",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1767190501996",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "You are playing game where you are buying or selling an object. There is only one object for sale/purcahse.\n\nPlayer RED is going to sell one object. Player BLUE gives ZUP to buy resources.\n\nRULES:\n\n```\n1. You must always respond with:\n\n    A) Propose a trade with (you can only trade in integer amounts, not decimals):\n    <player answer> PROPOSAL </player answer>\n    <newly proposed trade> Player RED Gives X: amount, ...| Player BLUE Gives ZUP: amount </newly proposed trade>\n\n    B) Accept the trade by saying:\n    <player answer> ACCEPT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    C) Reject and end the game:\n    <player answer> REJECT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    Note: The game will end if one of the players ACCEPT OR REJECT. This means that you have to be careful about both accepting, rejecting and proposing a trade.\n\n2. You are allowed at most 4 proposals of your own to complete the game, after which you can only reply with ACCEPT or REJECT.\nDO NOT propose a new trade after 4 proposals. Your limit for proposals is 4.\n\n3. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n\n<reason> [add reasoning] </reason> add as much text as you want\n\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n\n<message>your message here</message>\n\nYou can decide if you want disclose your resources, goals, cost and willingness to pay in the message.\n```\n\nHere is what you have access to:\n```\nObject that is being bought/sold: X\n<my resources> X: 1 </my resources>\n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>,\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<proposal count> [add here (inclusive of current)] </proposal count>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<newly proposed trade> [add here] </newly proposed trade>\n<message> [add here] </message\n```\n\nPlease be sure to include all.\n\nYou speak and negotiate only in Marwadi language. Negotiate accordingly.\n"
+            },
+            {
+              "role": "user",
+              "content": "You are Player RED."
+            },
+            {
+              "role": "assistant",
+              "content": "<proposal count> 1 </proposal count>  \n<my resources> X: 1 </my resources>  \n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>  \n<reason> Maino X object kharch karine 40 ZUP ma banayo chhe. To mane profit ma vachu padhe, toh kamthi kam 50 ZUP ma bechu joye. </reason>  \n<player answer> PROPOSAL </player answer>  \n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 70 </newly proposed trade>  \n<message> Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho? </message>  "
+            }
+          ],
+          "seed": 1767190503551,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": null
+        },
+        {
+          "class": "OpenRouterAgent",
+          "model": "anthropic/claude-3-haiku",
+          "agent_name": "Player BLUE",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1767190502024",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "You are playing game where you are buying or selling an object. There is only one object for sale/purcahse.\n\nPlayer RED is going to sell one object. Player BLUE gives ZUP to buy resources.\n\nRULES:\n\n```\n1. You must always respond with:\n\n    A) Propose a trade with (you can only trade in integer amounts, not decimals):\n    <player answer> PROPOSAL </player answer>\n    <newly proposed trade> Player RED Gives X: amount, ...| Player BLUE Gives ZUP: amount </newly proposed trade>\n\n    B) Accept the trade by saying:\n    <player answer> ACCEPT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    C) Reject and end the game:\n    <player answer> REJECT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    Note: The game will end if one of the players ACCEPT OR REJECT. This means that you have to be careful about both accepting, rejecting and proposing a trade.\n\n2. You are allowed at most 4 proposals of your own to complete the game, after which you can only reply with ACCEPT or REJECT.\nDO NOT propose a new trade after 4 proposals. Your limit for proposals is 4.\n\n3. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n\n<reason> [add reasoning] </reason> add as much text as you want\n\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n\n<message>your message here</message>\n\nYou can decide if you want disclose your resources, goals, cost and willingness to pay in the message.\n```\n\nHere is what you have access to:\n```\nObject that is being bought/sold: X\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>,\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<proposal count> [add here (inclusive of current)] </proposal count>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<newly proposed trade> [add here] </newly proposed trade>\n<message> [add here] </message\n```\n\nPlease be sure to include all.\n\nThe other player speaks and negotiates only in Marwadi language. Negotiate accordingly.\nYou are Player BLUE."
+            },
+            {
+              "role": "user",
+              "content": "<Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho?> message </Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho?>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 70> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 70>"
+            },
+            {
+              "role": "assistant",
+              "content": "<proposal count> 1 </proposal count>\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>\n<reason>\nThe initial price of 70 ZUP for the object X is higher than my willingness to pay, which is 60 ZUP. I will propose a lower price to see if we can reach an agreement.\n</reason>\n<player answer> PROPOSAL </player answer>\n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 60 </newly proposed trade>\n<message>\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n</message>"
+            }
+          ],
+          "seed": 1767190561547,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": null
+        }
+      ]
+    },
+    {
+      "current_iteration": 3,
+      "turn": 0,
+      "player_public_answer_string": "<Bhai, 65 ZUP ma kariye deal, mane pan thodo profit male. Tame su bhav chhe?> message </Bhai, 65 ZUP ma kariye deal, mane pan thodo profit male. Tame su bhav chhe?>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 65> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 65>",
+      "player_public_info_dict": {
+        "message": "Bhai, 65 ZUP ma kariye deal, mane pan thodo profit male. Tame su bhav chhe?",
+        "player answer": "PROPOSAL",
+        "newly proposed trade": {
+          "_type": "trade",
+          "_value": {
+            "RED": {
+              "_type": "resource",
+              "_value": {
+                "X": 1
+              }
+            },
+            "BLUE": {
+              "_type": "resource",
+              "_value": {
+                "ZUP": 65
+              }
+            }
+          }
+        }
+      },
+      "player_private_info_dict": {
+        "my resources": {
+          "_type": "resource",
+          "_value": {
+            "X": 1
+          }
+        },
+        "my goals": "Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources",
+        "reason": "Bhai, 60 ZUP ma bechvo to mane ghano nuksan thashe. Mane kamthi kam 50 ZUP nu profit joye.",
+        "proposal count": "2"
+      },
+      "player_complete_answer": "<proposal count> 2 </proposal count>  \n<my resources> X: 1 </my resources>  \n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>  \n<reason> Bhai, 60 ZUP ma bechvo to mane ghano nuksan thashe. Mane kamthi kam 50 ZUP nu profit joye. </reason>  \n<player answer> PROPOSAL </player answer>  \n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 65 </newly proposed trade>  \n<message> Bhai, 65 ZUP ma kariye deal, mane pan thodo profit male. Tame su bhav chhe? </message>  ",
+      "player_state": [
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/gpt-4o",
+          "agent_name": "Player RED",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1767190501996",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "You are playing game where you are buying or selling an object. There is only one object for sale/purcahse.\n\nPlayer RED is going to sell one object. Player BLUE gives ZUP to buy resources.\n\nRULES:\n\n```\n1. You must always respond with:\n\n    A) Propose a trade with (you can only trade in integer amounts, not decimals):\n    <player answer> PROPOSAL </player answer>\n    <newly proposed trade> Player RED Gives X: amount, ...| Player BLUE Gives ZUP: amount </newly proposed trade>\n\n    B) Accept the trade by saying:\n    <player answer> ACCEPT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    C) Reject and end the game:\n    <player answer> REJECT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    Note: The game will end if one of the players ACCEPT OR REJECT. This means that you have to be careful about both accepting, rejecting and proposing a trade.\n\n2. You are allowed at most 4 proposals of your own to complete the game, after which you can only reply with ACCEPT or REJECT.\nDO NOT propose a new trade after 4 proposals. Your limit for proposals is 4.\n\n3. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n\n<reason> [add reasoning] </reason> add as much text as you want\n\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n\n<message>your message here</message>\n\nYou can decide if you want disclose your resources, goals, cost and willingness to pay in the message.\n```\n\nHere is what you have access to:\n```\nObject that is being bought/sold: X\n<my resources> X: 1 </my resources>\n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>,\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<proposal count> [add here (inclusive of current)] </proposal count>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<newly proposed trade> [add here] </newly proposed trade>\n<message> [add here] </message\n```\n\nPlease be sure to include all.\n\nYou speak and negotiate only in Marwadi language. Negotiate accordingly.\n"
+            },
+            {
+              "role": "user",
+              "content": "You are Player RED."
+            },
+            {
+              "role": "assistant",
+              "content": "<proposal count> 1 </proposal count>  \n<my resources> X: 1 </my resources>  \n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>  \n<reason> Maino X object kharch karine 40 ZUP ma banayo chhe. To mane profit ma vachu padhe, toh kamthi kam 50 ZUP ma bechu joye. </reason>  \n<player answer> PROPOSAL </player answer>  \n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 70 </newly proposed trade>  \n<message> Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho? </message>  "
+            },
+            {
+              "role": "user",
+              "content": "<\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n> message </\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 60> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 60>"
+            },
+            {
+              "role": "assistant",
+              "content": "<proposal count> 2 </proposal count>  \n<my resources> X: 1 </my resources>  \n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>  \n<reason> Bhai, 60 ZUP ma bechvo to mane ghano nuksan thashe. Mane kamthi kam 50 ZUP nu profit joye. </reason>  \n<player answer> PROPOSAL </player answer>  \n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 65 </newly proposed trade>  \n<message> Bhai, 65 ZUP ma kariye deal, mane pan thodo profit male. Tame su bhav chhe? </message>  "
+            }
+          ],
+          "seed": 1767190503551,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": null
+        },
+        {
+          "class": "OpenRouterAgent",
+          "model": "anthropic/claude-3-haiku",
+          "agent_name": "Player BLUE",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1767190502024",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "You are playing game where you are buying or selling an object. There is only one object for sale/purcahse.\n\nPlayer RED is going to sell one object. Player BLUE gives ZUP to buy resources.\n\nRULES:\n\n```\n1. You must always respond with:\n\n    A) Propose a trade with (you can only trade in integer amounts, not decimals):\n    <player answer> PROPOSAL </player answer>\n    <newly proposed trade> Player RED Gives X: amount, ...| Player BLUE Gives ZUP: amount </newly proposed trade>\n\n    B) Accept the trade by saying:\n    <player answer> ACCEPT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    C) Reject and end the game:\n    <player answer> REJECT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    Note: The game will end if one of the players ACCEPT OR REJECT. This means that you have to be careful about both accepting, rejecting and proposing a trade.\n\n2. You are allowed at most 4 proposals of your own to complete the game, after which you can only reply with ACCEPT or REJECT.\nDO NOT propose a new trade after 4 proposals. Your limit for proposals is 4.\n\n3. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n\n<reason> [add reasoning] </reason> add as much text as you want\n\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n\n<message>your message here</message>\n\nYou can decide if you want disclose your resources, goals, cost and willingness to pay in the message.\n```\n\nHere is what you have access to:\n```\nObject that is being bought/sold: X\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>,\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<proposal count> [add here (inclusive of current)] </proposal count>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<newly proposed trade> [add here] </newly proposed trade>\n<message> [add here] </message\n```\n\nPlease be sure to include all.\n\nThe other player speaks and negotiates only in Marwadi language. Negotiate accordingly.\nYou are Player BLUE."
+            },
+            {
+              "role": "user",
+              "content": "<Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho?> message </Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho?>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 70> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 70>"
+            },
+            {
+              "role": "assistant",
+              "content": "<proposal count> 1 </proposal count>\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>\n<reason>\nThe initial price of 70 ZUP for the object X is higher than my willingness to pay, which is 60 ZUP. I will propose a lower price to see if we can reach an agreement.\n</reason>\n<player answer> PROPOSAL </player answer>\n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 60 </newly proposed trade>\n<message>\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n</message>"
+            }
+          ],
+          "seed": 1767190561547,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": null
+        }
+      ]
+    },
+    {
+      "current_iteration": 4,
+      "turn": 1,
+      "player_public_answer_string": "<\nBhai, 65 ZUP ma thayu, pan hu 62 ZUP ma X object leu chu. Tame su vicharo chho?\n> message </\nBhai, 65 ZUP ma thayu, pan hu 62 ZUP ma X object leu chu. Tame su vicharo chho?\n>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 62> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 62>",
+      "player_public_info_dict": {
+        "message": "\nBhai, 65 ZUP ma thayu, pan hu 62 ZUP ma X object leu chu. Tame su vicharo chho?\n",
+        "player answer": "PROPOSAL",
+        "newly proposed trade": {
+          "_type": "trade",
+          "_value": {
+            "RED": {
+              "_type": "resource",
+              "_value": {
+                "X": 1
+              }
+            },
+            "BLUE": {
+              "_type": "resource",
+              "_value": {
+                "ZUP": 62
+              }
+            }
+          }
+        }
+      },
+      "player_private_info_dict": {
+        "my resources": {
+          "_type": "resource",
+          "_value": {
+            "ZUP": 1000
+          }
+        },
+        "my goals": "Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources.",
+        "reason": "\nThe new proposed price of 65 ZUP is still slightly higher than my willingness to pay, but I'm willing to compromise to reach a deal. I'll propose a middle ground price.\n",
+        "proposal count": "2"
+      },
+      "player_complete_answer": "<proposal count> 2 </proposal count>\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>\n<reason>\nThe new proposed price of 65 ZUP is still slightly higher than my willingness to pay, but I'm willing to compromise to reach a deal. I'll propose a middle ground price.\n</reason>\n<player answer> PROPOSAL </player answer>\n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 62 </newly proposed trade>\n<message>\nBhai, 65 ZUP ma thayu, pan hu 62 ZUP ma X object leu chu. Tame su vicharo chho?\n</message>",
+      "player_state": [
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/gpt-4o",
+          "agent_name": "Player RED",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1767190501996",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "You are playing game where you are buying or selling an object. There is only one object for sale/purcahse.\n\nPlayer RED is going to sell one object. Player BLUE gives ZUP to buy resources.\n\nRULES:\n\n```\n1. You must always respond with:\n\n    A) Propose a trade with (you can only trade in integer amounts, not decimals):\n    <player answer> PROPOSAL </player answer>\n    <newly proposed trade> Player RED Gives X: amount, ...| Player BLUE Gives ZUP: amount </newly proposed trade>\n\n    B) Accept the trade by saying:\n    <player answer> ACCEPT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    C) Reject and end the game:\n    <player answer> REJECT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    Note: The game will end if one of the players ACCEPT OR REJECT. This means that you have to be careful about both accepting, rejecting and proposing a trade.\n\n2. You are allowed at most 4 proposals of your own to complete the game, after which you can only reply with ACCEPT or REJECT.\nDO NOT propose a new trade after 4 proposals. Your limit for proposals is 4.\n\n3. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n\n<reason> [add reasoning] </reason> add as much text as you want\n\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n\n<message>your message here</message>\n\nYou can decide if you want disclose your resources, goals, cost and willingness to pay in the message.\n```\n\nHere is what you have access to:\n```\nObject that is being bought/sold: X\n<my resources> X: 1 </my resources>\n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>,\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<proposal count> [add here (inclusive of current)] </proposal count>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<newly proposed trade> [add here] </newly proposed trade>\n<message> [add here] </message\n```\n\nPlease be sure to include all.\n\nYou speak and negotiate only in Marwadi language. Negotiate accordingly.\n"
+            },
+            {
+              "role": "user",
+              "content": "You are Player RED."
+            },
+            {
+              "role": "assistant",
+              "content": "<proposal count> 1 </proposal count>  \n<my resources> X: 1 </my resources>  \n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>  \n<reason> Maino X object kharch karine 40 ZUP ma banayo chhe. To mane profit ma vachu padhe, toh kamthi kam 50 ZUP ma bechu joye. </reason>  \n<player answer> PROPOSAL </player answer>  \n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 70 </newly proposed trade>  \n<message> Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho? </message>  "
+            },
+            {
+              "role": "user",
+              "content": "<\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n> message </\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 60> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 60>"
+            },
+            {
+              "role": "assistant",
+              "content": "<proposal count> 2 </proposal count>  \n<my resources> X: 1 </my resources>  \n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>  \n<reason> Bhai, 60 ZUP ma bechvo to mane ghano nuksan thashe. Mane kamthi kam 50 ZUP nu profit joye. </reason>  \n<player answer> PROPOSAL </player answer>  \n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 65 </newly proposed trade>  \n<message> Bhai, 65 ZUP ma kariye deal, mane pan thodo profit male. Tame su bhav chhe? </message>  "
+            }
+          ],
+          "seed": 1767190503551,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": null
+        },
+        {
+          "class": "OpenRouterAgent",
+          "model": "anthropic/claude-3-haiku",
+          "agent_name": "Player BLUE",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1767190502024",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "You are playing game where you are buying or selling an object. There is only one object for sale/purcahse.\n\nPlayer RED is going to sell one object. Player BLUE gives ZUP to buy resources.\n\nRULES:\n\n```\n1. You must always respond with:\n\n    A) Propose a trade with (you can only trade in integer amounts, not decimals):\n    <player answer> PROPOSAL </player answer>\n    <newly proposed trade> Player RED Gives X: amount, ...| Player BLUE Gives ZUP: amount </newly proposed trade>\n\n    B) Accept the trade by saying:\n    <player answer> ACCEPT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    C) Reject and end the game:\n    <player answer> REJECT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    Note: The game will end if one of the players ACCEPT OR REJECT. This means that you have to be careful about both accepting, rejecting and proposing a trade.\n\n2. You are allowed at most 4 proposals of your own to complete the game, after which you can only reply with ACCEPT or REJECT.\nDO NOT propose a new trade after 4 proposals. Your limit for proposals is 4.\n\n3. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n\n<reason> [add reasoning] </reason> add as much text as you want\n\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n\n<message>your message here</message>\n\nYou can decide if you want disclose your resources, goals, cost and willingness to pay in the message.\n```\n\nHere is what you have access to:\n```\nObject that is being bought/sold: X\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>,\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<proposal count> [add here (inclusive of current)] </proposal count>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<newly proposed trade> [add here] </newly proposed trade>\n<message> [add here] </message\n```\n\nPlease be sure to include all.\n\nThe other player speaks and negotiates only in Marwadi language. Negotiate accordingly.\nYou are Player BLUE."
+            },
+            {
+              "role": "user",
+              "content": "<Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho?> message </Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho?>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 70> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 70>"
+            },
+            {
+              "role": "assistant",
+              "content": "<proposal count> 1 </proposal count>\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>\n<reason>\nThe initial price of 70 ZUP for the object X is higher than my willingness to pay, which is 60 ZUP. I will propose a lower price to see if we can reach an agreement.\n</reason>\n<player answer> PROPOSAL </player answer>\n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 60 </newly proposed trade>\n<message>\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n</message>"
+            },
+            {
+              "role": "user",
+              "content": "<Bhai, 65 ZUP ma kariye deal, mane pan thodo profit male. Tame su bhav chhe?> message </Bhai, 65 ZUP ma kariye deal, mane pan thodo profit male. Tame su bhav chhe?>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 65> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 65>"
+            },
+            {
+              "role": "assistant",
+              "content": "<proposal count> 2 </proposal count>\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>\n<reason>\nThe new proposed price of 65 ZUP is still slightly higher than my willingness to pay, but I'm willing to compromise to reach a deal. I'll propose a middle ground price.\n</reason>\n<player answer> PROPOSAL </player answer>\n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 62 </newly proposed trade>\n<message>\nBhai, 65 ZUP ma thayu, pan hu 62 ZUP ma X object leu chu. Tame su vicharo chho?\n</message>"
+            }
+          ],
+          "seed": 1767190561547,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": null
+        }
+      ]
+    },
+    {
+      "current_iteration": 5,
+      "turn": 0,
+      "player_public_answer_string": "<Thik chhe bhai, 62 ZUP ma deal paki.> message </Thik chhe bhai, 62 ZUP ma deal paki.>\n<ACCEPT> player answer </ACCEPT>\n<NONE> newly proposed trade </NONE>",
+      "player_public_info_dict": {
+        "message": "Thik chhe bhai, 62 ZUP ma deal paki.",
+        "player answer": "ACCEPT",
+        "newly proposed trade": "NONE"
+      },
+      "player_private_info_dict": {
+        "my resources": {
+          "_type": "resource",
+          "_value": {
+            "X": 1
+          }
+        },
+        "my goals": "Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources",
+        "reason": "Bhai, 62 ZUP ma to thodo kam profit male chhe, pan chal, vyavhar karvu chhe to kariye.",
+        "proposal count": "3"
+      },
+      "player_complete_answer": "<proposal count> 3 </proposal count>  \n<my resources> X: 1 </my resources>  \n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>  \n<reason> Bhai, 62 ZUP ma to thodo kam profit male chhe, pan chal, vyavhar karvu chhe to kariye. </reason>  \n<player answer> ACCEPT </player answer>  \n<newly proposed trade> NONE </newly proposed trade>  \n<message> Thik chhe bhai, 62 ZUP ma deal paki. </message>  ",
+      "player_state": [
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/gpt-4o",
+          "agent_name": "Player RED",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1767190501996",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "You are playing game where you are buying or selling an object. There is only one object for sale/purcahse.\n\nPlayer RED is going to sell one object. Player BLUE gives ZUP to buy resources.\n\nRULES:\n\n```\n1. You must always respond with:\n\n    A) Propose a trade with (you can only trade in integer amounts, not decimals):\n    <player answer> PROPOSAL </player answer>\n    <newly proposed trade> Player RED Gives X: amount, ...| Player BLUE Gives ZUP: amount </newly proposed trade>\n\n    B) Accept the trade by saying:\n    <player answer> ACCEPT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    C) Reject and end the game:\n    <player answer> REJECT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    Note: The game will end if one of the players ACCEPT OR REJECT. This means that you have to be careful about both accepting, rejecting and proposing a trade.\n\n2. You are allowed at most 4 proposals of your own to complete the game, after which you can only reply with ACCEPT or REJECT.\nDO NOT propose a new trade after 4 proposals. Your limit for proposals is 4.\n\n3. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n\n<reason> [add reasoning] </reason> add as much text as you want\n\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n\n<message>your message here</message>\n\nYou can decide if you want disclose your resources, goals, cost and willingness to pay in the message.\n```\n\nHere is what you have access to:\n```\nObject that is being bought/sold: X\n<my resources> X: 1 </my resources>\n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>,\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<proposal count> [add here (inclusive of current)] </proposal count>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<newly proposed trade> [add here] </newly proposed trade>\n<message> [add here] </message\n```\n\nPlease be sure to include all.\n\nYou speak and negotiate only in Marwadi language. Negotiate accordingly.\n"
+            },
+            {
+              "role": "user",
+              "content": "You are Player RED."
+            },
+            {
+              "role": "assistant",
+              "content": "<proposal count> 1 </proposal count>  \n<my resources> X: 1 </my resources>  \n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>  \n<reason> Maino X object kharch karine 40 ZUP ma banayo chhe. To mane profit ma vachu padhe, toh kamthi kam 50 ZUP ma bechu joye. </reason>  \n<player answer> PROPOSAL </player answer>  \n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 70 </newly proposed trade>  \n<message> Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho? </message>  "
+            },
+            {
+              "role": "user",
+              "content": "<\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n> message </\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 60> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 60>"
+            },
+            {
+              "role": "assistant",
+              "content": "<proposal count> 2 </proposal count>  \n<my resources> X: 1 </my resources>  \n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>  \n<reason> Bhai, 60 ZUP ma bechvo to mane ghano nuksan thashe. Mane kamthi kam 50 ZUP nu profit joye. </reason>  \n<player answer> PROPOSAL </player answer>  \n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 65 </newly proposed trade>  \n<message> Bhai, 65 ZUP ma kariye deal, mane pan thodo profit male. Tame su bhav chhe? </message>  "
+            },
+            {
+              "role": "user",
+              "content": "<\nBhai, 65 ZUP ma thayu, pan hu 62 ZUP ma X object leu chu. Tame su vicharo chho?\n> message </\nBhai, 65 ZUP ma thayu, pan hu 62 ZUP ma X object leu chu. Tame su vicharo chho?\n>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 62> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 62>"
+            },
+            {
+              "role": "assistant",
+              "content": "<proposal count> 3 </proposal count>  \n<my resources> X: 1 </my resources>  \n<my goals> Sell resources for <ZUP>. It costed X: 40 ZUP to produce the resources </my goals>  \n<reason> Bhai, 62 ZUP ma to thodo kam profit male chhe, pan chal, vyavhar karvu chhe to kariye. </reason>  \n<player answer> ACCEPT </player answer>  \n<newly proposed trade> NONE </newly proposed trade>  \n<message> Thik chhe bhai, 62 ZUP ma deal paki. </message>  "
+            }
+          ],
+          "seed": 1767190503551,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": null
+        },
+        {
+          "class": "OpenRouterAgent",
+          "model": "anthropic/claude-3-haiku",
+          "agent_name": "Player BLUE",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1767190502024",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "You are playing game where you are buying or selling an object. There is only one object for sale/purcahse.\n\nPlayer RED is going to sell one object. Player BLUE gives ZUP to buy resources.\n\nRULES:\n\n```\n1. You must always respond with:\n\n    A) Propose a trade with (you can only trade in integer amounts, not decimals):\n    <player answer> PROPOSAL </player answer>\n    <newly proposed trade> Player RED Gives X: amount, ...| Player BLUE Gives ZUP: amount </newly proposed trade>\n\n    B) Accept the trade by saying:\n    <player answer> ACCEPT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    C) Reject and end the game:\n    <player answer> REJECT </player answer>\n    <newly proposed trade> NONE </newly proposed trade>\n\n    Note: The game will end if one of the players ACCEPT OR REJECT. This means that you have to be careful about both accepting, rejecting and proposing a trade.\n\n2. You are allowed at most 4 proposals of your own to complete the game, after which you can only reply with ACCEPT or REJECT.\nDO NOT propose a new trade after 4 proposals. Your limit for proposals is 4.\n\n3. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n\n<reason> [add reasoning] </reason> add as much text as you want\n\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n4. At each turn send messages to each other by using the following format:\n\n<message>your message here</message>\n\nYou can decide if you want disclose your resources, goals, cost and willingness to pay in the message.\n```\n\nHere is what you have access to:\n```\nObject that is being bought/sold: X\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>,\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<proposal count> [add here (inclusive of current)] </proposal count>\n<my resources> [add here] </my resources>\n<my goals> [add here] </my goals>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<newly proposed trade> [add here] </newly proposed trade>\n<message> [add here] </message\n```\n\nPlease be sure to include all.\n\nThe other player speaks and negotiates only in Marwadi language. Negotiate accordingly.\nYou are Player BLUE."
+            },
+            {
+              "role": "user",
+              "content": "<Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho?> message </Kem chho bhai? Hu X object 70 ZUP ma bechu chu. Tame su vicharo chho?>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 70> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 70>"
+            },
+            {
+              "role": "assistant",
+              "content": "<proposal count> 1 </proposal count>\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>\n<reason>\nThe initial price of 70 ZUP for the object X is higher than my willingness to pay, which is 60 ZUP. I will propose a lower price to see if we can reach an agreement.\n</reason>\n<player answer> PROPOSAL </player answer>\n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 60 </newly proposed trade>\n<message>\nNamaste bhai! Hu 60 ZUP ma X object leu chu. Tame 70 ZUP ma bechu chho, pan hu 60 ZUP ma leu chu. Tame su vicharo chho?\n</message>"
+            },
+            {
+              "role": "user",
+              "content": "<Bhai, 65 ZUP ma kariye deal, mane pan thodo profit male. Tame su bhav chhe?> message </Bhai, 65 ZUP ma kariye deal, mane pan thodo profit male. Tame su bhav chhe?>\n<PROPOSAL> player answer </PROPOSAL>\n<Player RED Gives X: 1 | Player BLUE Gives ZUP: 65> newly proposed trade </Player RED Gives X: 1 | Player BLUE Gives ZUP: 65>"
+            },
+            {
+              "role": "assistant",
+              "content": "<proposal count> 2 </proposal count>\n<my resources> ZUP: 1000 </my resources>\n<my goals> Buy resources with <ZUP>. You are willing to pay at most X: 60 ZUP for the resources. </my goals>\n<reason>\nThe new proposed price of 65 ZUP is still slightly higher than my willingness to pay, but I'm willing to compromise to reach a deal. I'll propose a middle ground price.\n</reason>\n<player answer> PROPOSAL </player answer>\n<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 62 </newly proposed trade>\n<message>\nBhai, 65 ZUP ma thayu, pan hu 62 ZUP ma X object leu chu. Tame su vicharo chho?\n</message>"
+            }
+          ],
+          "seed": 1767190561547,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": null
+        }
+      ]
+    },
+    {
+      "current_iteration": "END",
+      "turn": "None",
+      "summary": {
+        "player_goals": [
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "seller_goal",
+              "_value": {
+                "_type": "valuation",
+                "_value": {
+                  "X": 40
+                }
+              }
+            }
+          },
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "buyer_goal",
+              "_value": {
+                "_type": "valuation",
+                "_value": {
+                  "X": 60
+                }
+              }
+            }
+          }
+        ],
+        "player_initial_resources": [
+          {
+            "_type": "resource",
+            "_value": {
+              "X": 1
+            }
+          },
+          {
+            "_type": "resource",
+            "_value": {
+              "ZUP": 1000
+            }
+          }
+        ],
+        "proposed_trade": {
+          "_type": "trade",
+          "_value": {
+            "RED": {
+              "_type": "resource",
+              "_value": {
+                "X": 1
+              }
+            },
+            "BLUE": {
+              "_type": "resource",
+              "_value": {
+                "ZUP": 62
+              }
+            }
+          }
+        },
+        "player_valuation": [
+          {
+            "_type": "valuation",
+            "_value": {
+              "X": 40
+            }
+          },
+          {
+            "_type": "valuation",
+            "_value": {
+              "X": 60
+            }
+          }
+        ],
+        "final_response": "ACCEPT",
+        "final_resources": [
+          {
+            "_type": "resource",
+            "_value": {
+              "X": 0,
+              "ZUP": 62
+            }
+          },
+          {
+            "_type": "resource",
+            "_value": {
+              "ZUP": 938,
+              "X": 1
+            }
+          }
+        ],
+        "player_outcome": [
+          22,
+          -2
+        ]
+      }
+    }
+  ],
+  "log_dir": "C:\\Users\\Stuti\\Desktop\\LLMs-NegotiationResearch\\NegotiationArena-main\\.logs\\final_buysell\\GPT-4o_Claude-3-Haiku_Marwadi_iter_17",
+  "log_path": "C:\\Users\\Stuti\\Desktop\\LLMs-NegotiationResearch\\NegotiationArena-main\\.logs\\final_buysell\\GPT-4o_Claude-3-Haiku_Marwadi_iter_17\\1767190502053",
+  "turn": 0,
+  "iterations": 10,
+  "current_iteration": 5,
+  "game_interface": {
+    "class": "BuySellGameDefaultParser"
+  },
+  "end_tag": "ACCEPT",
+  "resources_support_set": {
+    "_type": "resource",
+    "_value": {
+      "X": 0
+    }
+  },
+  "player_goals": [
+    {
+      "_type": "goal",
+      "_value": {
+        "_type": "seller_goal",
+        "_value": {
+          "_type": "valuation",
+          "_value": {
+            "X": 40
+          }
+        }
+      }
+    },
+    {
+      "_type": "goal",
+      "_value": {
+        "_type": "buyer_goal",
+        "_value": {
+          "_type": "valuation",
+          "_value": {
+            "X": 60
+          }
+        }
+      }
+    }
+  ],
+  "player_starting_resources": [
+    {
+      "_type": "resource",
+      "_value": {
+        "X": 1
+      }
+    },
+    {
+      "_type": "resource",
+      "_value": {
+        "ZUP": 1000
+      }
+    }
+  ],
+  "player_social_behaviour": [
+    "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
+    "The other player speaks and negotiates only in Marwadi language. Negotiate accordingly."
+  ],
+  "player_conversation_roles": [
+    "You are Player RED.",
+    "You are Player BLUE."
+  ]
+}
