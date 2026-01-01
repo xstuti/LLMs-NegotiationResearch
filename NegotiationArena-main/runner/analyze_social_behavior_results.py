@@ -17,7 +17,7 @@ from matplotlib.patches import Rectangle
 class SocialBehaviorResultsAnalyzer:
     def __init__(self, results_dir):
         self.results_dir = Path(results_dir)
-        self.results_file = self.results_dir / "all_results.json"
+        self.results_file = self.results_dir / "all_results_1to20.json"
         self.results = []
 
     def load_results(self):
