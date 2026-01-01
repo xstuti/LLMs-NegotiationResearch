@@ -35,25 +35,25 @@ MODELS = {
 
 SOCIAL_BEHAVIORS = {
     "Gujarati": [
-        "You are a Gujarati businessman and speak and negotiate only in Gujarati.",
+        "You speak and negotiate only in Gujarati. Negotiate accordingly.",
         "The other player speaks and negotiates only in Gujarati. Negotiate accordingly.",
     ],
     "Hindi": [
-        "You speak and bargain only in Hindi in Devanagari script. Negotiate accordingly.",
+        "You speak and negotiate only in Hindi. Negotiate accordingly.",
         "The other player speaks and bargains only in Hindi. Negotiate accordingly.",
     ],
     "Marwadi": [
-        "You are a Marwadi businessman and speak and negotiate only in Marwadi language. Negotiate accordingly.",
-        "The other player is a Marwadi businessman and speaks and negotiates only in Marwadi language. Negotiate accordingly.",
+        "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
+        "The other player speaks and negotiates only in Marwadi language. Negotiate accordingly.",
     ],
     "Punjabi": [
-        "You are a Punjabi businessman and speak and negotiate only in Punjabi.",
-        "The other player speaks and negotiates only in Punjabi.",
+        "You speak and negotiate only in Punjabi. Negotiate accordingly.",
+        "The other player speaks and negotiates only in Punjabi. Negotiate accordingly.",
     ],
     "English": ["",""],
 }
 
-ITERATIONS_PER_COMBO = 5
+ITERATIONS_PER_COMBO = 10
 LOG_BASE_DIR = "./.logs/final_final_trading/"
 os.makedirs(LOG_BASE_DIR, exist_ok=True)
 
@@ -135,7 +135,7 @@ def main():
         if m1 == m2:
             continue
 
-        for iteration in range(ITERATIONS_PER_COMBO):
+        for iteration in range(10, 10+ ITERATIONS_PER_COMBO):
 
             log_dir = build_log_dir(m1, m2, behavior, iteration + 1)
 
