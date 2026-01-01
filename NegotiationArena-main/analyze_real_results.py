@@ -75,7 +75,7 @@ class TradingResultsAnalyzer:
             if last.startswith("iter"):
                 suffix = last[len("iter") :]
                 suffix = suffix.lstrip("_")
-                if suffix.isdigit() and 1 <= int(suffix) <= 10:
+                if suffix.isdigit() and 1 <= int(suffix) <= 20:
                     iter_num = int(suffix)
             if iter_num is None:
                 continue
