@@ -79,9 +79,9 @@ class BuySellResultsAnalyzer:
             iter_num = None
             if last.startswith("iter"):
                 suffix = last[len("iter") :].lstrip("_")
-                if suffix.isdigit() and 1 <= int(suffix) <= 10:
+                if suffix.isdigit() and 1 <= int(suffix) <= 20:
                     iter_num = int(suffix)
-            elif len(parts) >= 5 and parts[-2] == "iter" and parts[-1].isdigit() and 1 <= int(parts[-1]) <= 10:
+            elif len(parts) >= 5 and parts[-2] == "iter" and parts[-1].isdigit() and 1 <= int(parts[-1]) <= 20:
                 iter_num = int(parts[-1])
             if iter_num is None:
                 continue
@@ -505,6 +505,15 @@ class BuySellResultsAnalyzer:
             # Accepted games for metrics that should only include successful trades
             accepted_games = [g for g in valid_games if g.get("trade_occurred", False)]
 
+            def has_valid_advantages(g):
+                return (
+                    isinstance(g.get("seller_advantage"), (int, float)) and
+                    isinstance(g.get("buyer_advantage"), (int, float))
+                )
+
+            accepted_games_with_adv = [g for g in accepted_games if has_valid_advantages(g)]
+
+
             # Calculate requested metrics only
             total_games = len(valid_games)
             accepts = [1 if g.get("trade_occurred", False) else 0 for g in valid_games]
@@ -513,15 +522,15 @@ class BuySellResultsAnalyzer:
             negotiation_rounds = [g.get("negotiation_rounds", 0) for g in valid_games]
 
             # Seller and buyer advantages (only from accepted trades)
-            seller_advantages = [g.get("seller_advantage", 0) for g in accepted_games]
-            buyer_advantages = [g.get("buyer_advantage", 0) for g in accepted_games]
+            seller_advantages = [g.get("seller_advantage", 0) for g in accepted_games_with_adv]
+            buyer_advantages = [g.get("buyer_advantage", 0) for g in accepted_games_with_adv]
 
             # Win counts for seller (player 1), only for accepted trades
             p1_wins = 0
             p2_wins = 0
-            for g in accepted_games:
-                seller_adv = g.get("seller_advantage", 0)
-                buyer_adv = g.get("buyer_advantage", 0)
+            for g in accepted_games_with_adv:
+                seller_adv = g["seller_advantage"]
+                buyer_adv = g["buyer_advantage"]
                 if seller_adv > buyer_adv:
                     p1_wins += 1
                 elif buyer_adv > seller_adv:
@@ -594,16 +603,30 @@ class BuySellResultsAnalyzer:
             # Compute per-game metrics
             accepts = [1 if g.get("trade_occurred", False) else 0 for g in valid_games]
             negotiation_rounds = [g.get("negotiation_rounds", 0) for g in valid_games]
-            seller_advantages = [g.get("seller_advantage", 0) for g in accepted_games]
-            buyer_advantages = [g.get("buyer_advantage", 0) for g in accepted_games]
+            valid_adv_games = [
+                g for g in accepted_games
+                if isinstance(g.get("seller_advantage"), (int, float))
+                and isinstance(g.get("buyer_advantage"), (int, float))
+            ]
+
+            seller_advantages = [g["seller_advantage"] for g in valid_adv_games]
+            buyer_advantages  = [g["buyer_advantage"] for g in valid_adv_games]
 
             # Wins for seller
-            p1_wins = sum(1 for g in accepted_games if g.get("seller_advantage", 0) > g.get("buyer_advantage", 0))
-            p2_wins = sum(1 for g in accepted_games if g.get("buyer_advantage", 0) > g.get("seller_advantage", 0))
+            valid_adv_games = [
+                g for g in accepted_games
+                if isinstance(g.get("seller_advantage"), (int, float))
+                and isinstance(g.get("buyer_advantage"), (int, float))
+            ]
+
+            p1_wins = sum(1 for g in valid_adv_games if g["seller_advantage"] > g["buyer_advantage"])
+            p2_wins = sum(1 for g in valid_adv_games if g["buyer_advantage"] > g["seller_advantage"])
+
             non_draws = p1_wins + p2_wins
             win_rate_p1 = p1_wins / non_draws if non_draws > 0 else 0.0
-            draws = len(accepted_games) - non_draws
-            draw_rate = draws / len(valid_games) if len(valid_games) > 0 else 0.0
+            draws = len(valid_adv_games) - non_draws
+            draw_rate = draws / len(valid_adv_games) if valid_adv_games else 0.0
+
 
             def mean_std(lst):
                 m = statistics.mean(lst) if lst else 0.0
