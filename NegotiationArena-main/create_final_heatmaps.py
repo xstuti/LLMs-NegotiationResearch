@@ -39,7 +39,7 @@ class UltimatumHeatmapGenerator:
         "Hindi",
         "Gujarati",
         "Marwadi",
-        "Marwadi_Forced",
+        #"Marwadi_Forced",
         "Punjabi",
         "Baseline",
     ]
