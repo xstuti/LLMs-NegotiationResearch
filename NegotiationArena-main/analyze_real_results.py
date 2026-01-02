@@ -17,6 +17,18 @@ import numpy as np
 import sys
 from collections import defaultdict
 from pathlib import Path
+from scipy.stats import mannwhitneyu, kruskal
+from statsmodels.stats.proportion import proportions_ztest
+import numpy as np
+import pandas as pd
+from scipy import stats
+from scipy.stats import levene, mannwhitneyu
+from itertools import combinations
+import statsmodels.api as sm
+from statsmodels.stats.oneway import anova_oneway
+from statsmodels.stats.multitest import multipletests
+from pathlib import Path
+import sys
 
 # Set publication-quality matplotlib parameters
 plt.rcParams.update(
@@ -986,6 +998,551 @@ class TradingResultsAnalyzer:
         print(f"  All heatmaps image: {all_heatmaps_file}")
 
         return heatmap_data
+    
+
+    def welch_anova(self, groups_dict):
+        """
+        Perform Welch's ANOVA on grouped data (robust to unequal variances).
+        
+        Parameters:
+            groups_dict (dict): {group_name: list_of_values}
+        
+        Returns:
+            dict with F-statistic, p-value, df_num, df_den
+        """
+        data = []
+        for group, values in groups_dict.items():
+            for v in values:
+                if v is not None and not np.isnan(v):
+                    data.append({"group": group, "value": v})
+        
+        if len(data) == 0:
+            return {"F": np.nan, "p_value": np.nan, "df_num": np.nan, "df_den": np.nan}
+        
+        df = pd.DataFrame(data)
+        
+        try:
+            result = anova_oneway(
+                df["value"],
+                df["group"],
+                use_var="unequal"  # Welch's ANOVA
+            )
+            
+            # Handle tuple return format
+            if hasattr(result, 'statistic'):
+                f_stat = result.statistic
+                p_val = result.pvalue
+            else:
+                f_stat = result[0]
+                p_val = result[1]
+            
+            # Calculate degrees of freedom manually
+            k = len(groups_dict)
+            df_num = k - 1
+            
+            groups_list = list(groups_dict.values())
+            ns = [len(g) for g in groups_list]
+            vars = [np.var(g, ddof=1) if len(g) > 1 else 0 for g in groups_list]
+            
+            numerator = sum([(1 - n_i/sum(ns)) * var_i for n_i, var_i in zip(ns, vars)])**2
+            denominator = sum([((1 - n_i/sum(ns))**2 * var_i**2) / (n_i - 1) for n_i, var_i in zip(ns, vars)])
+            
+            if denominator > 0:
+                df_den = numerator / denominator
+            else:
+                df_den = sum(ns) - k
+            
+            return {
+                "F": float(f_stat),
+                "p_value": float(p_val),
+                "df_num": float(df_num),
+                "df_den": float(df_den)
+            }
+        except Exception as e:
+            print(f"Error in Welch ANOVA: {e}")
+            return {"F": np.nan, "p_value": np.nan, "df_num": np.nan, "df_den": np.nan}
+
+
+    def welch_ttest(self, group1, group2):
+        """
+        Perform Welch's t-test (does not assume equal variances).
+        """
+        group1 = np.array([x for x in group1 if x is not None and not np.isnan(x)])
+        group2 = np.array([x for x in group2 if x is not None and not np.isnan(x)])
+        
+        if len(group1) < 2 or len(group2) < 2:
+            return {"t": np.nan, "p_value": np.nan, "df": np.nan}
+        
+        t_stat, p_val = stats.ttest_ind(group1, group2, equal_var=False)
+        
+        # Welch-Satterthwaite degrees of freedom
+        n1, n2 = len(group1), len(group2)
+        v1, v2 = np.var(group1, ddof=1), np.var(group2, ddof=1)
+        
+        if v1 == 0 and v2 == 0:
+            df = n1 + n2 - 2
+        else:
+            df = (v1/n1 + v2/n2)**2 / ((v1/n1)**2/(n1-1) + (v2/n2)**2/(n2-1))
+        
+        return {"t": t_stat, "p_value": p_val, "df": df}
+
+
+    def mann_whitney_test(self, group1, group2):
+        """
+        Perform Mann-Whitney U test (non-parametric alternative to t-test).
+        Useful when distributions are highly skewed.
+        """
+        group1 = np.array([x for x in group1 if x is not None and not np.isnan(x)])
+        group2 = np.array([x for x in group2 if x is not None and not np.isnan(x)])
+        
+        if len(group1) < 3 or len(group2) < 3:
+            return {"U": np.nan, "p_value": np.nan, "effect_size": np.nan}
+        
+        try:
+            u_stat, p_val = mannwhitneyu(group1, group2, alternative='two-sided')
+            
+            # Calculate rank-biserial correlation (effect size)
+            n1, n2 = len(group1), len(group2)
+            r = 1 - (2*u_stat) / (n1 * n2)
+            
+            return {"U": u_stat, "p_value": p_val, "effect_size": r}
+        except Exception as e:
+            print(f"Error in Mann-Whitney: {e}")
+            return {"U": np.nan, "p_value": np.nan, "effect_size": np.nan}
+
+
+    def hedges_g(self, group1, group2):
+        """
+        Calculate Hedges' g effect size (corrected for small samples).
+        """
+        group1 = np.array([x for x in group1 if x is not None and not np.isnan(x)])
+        group2 = np.array([x for x in group2 if x is not None and not np.isnan(x)])
+        
+        n1, n2 = len(group1), len(group2)
+        
+        if n1 < 2 or n2 < 2:
+            return np.nan
+        
+        pooled_std = np.sqrt(((n1-1)*np.var(group1, ddof=1) + (n2-1)*np.var(group2, ddof=1)) / (n1+n2-2))
+        
+        if pooled_std == 0:
+            return 0.0
+        
+        d = (np.mean(group1) - np.mean(group2)) / pooled_std
+        correction = 1 - (3 / (4*(n1+n2-2) - 1))
+        
+        return d * correction
+
+
+    def omega_squared(self, groups):
+        """
+        Calculate omega-squared effect size (less biased than eta-squared).
+        """
+        all_vals = np.concatenate(groups)
+        grand_mean = np.mean(all_vals)
+        n_total = len(all_vals)
+        k = len(groups)
+        
+        ss_between = sum(len(g) * (np.mean(g) - grand_mean)**2 for g in groups)
+        ss_within = sum(np.sum((g - np.mean(g))**2) for g in groups)
+        
+        ms_between = ss_between / (k - 1)
+        ms_within = ss_within / (n_total - k)
+        
+        omega2 = (ss_between - (k-1)*ms_within) / (ss_between + ss_within + ms_within)
+        
+        return max(0, omega2)
+
+
+    def kruskal_wallis_test(self, groups_dict):
+        """
+        Perform Kruskal-Wallis H-test (non-parametric alternative to ANOVA).
+        Useful when distributions are heavily skewed or have outliers.
+        """
+        groups = [np.array([x for x in v if x is not None and not np.isnan(x)]) 
+                for v in groups_dict.values()]
+        
+        # Filter out empty groups
+        groups = [g for g in groups if len(g) >= 3]
+        
+        if len(groups) < 2:
+            return {"H": np.nan, "p_value": np.nan, "df": np.nan}
+        
+        try:
+            h_stat, p_val = stats.kruskal(*groups)
+            df = len(groups) - 1
+            
+            return {"H": h_stat, "p_value": p_val, "df": df}
+        except Exception as e:
+            print(f"Error in Kruskal-Wallis: {e}")
+            return {"H": np.nan, "p_value": np.nan, "df": np.nan}
+
+
+    def run_comprehensive_statistical_analysis(self):
+        """
+        Perform comprehensive behavior-level statistical analysis for Trading Game.
+        
+        Key differences from Buy-Sell:
+        1. Trade Volume is continuous but often zero-inflated (rejected trades)
+        2. Payoffs may be highly skewed (outliers from extreme trades)
+        3. Need both parametric (Welch) and non-parametric (Mann-Whitney) tests
+        """
+        out_dir = Path(self.results_dir) / "stats"
+        out_dir.mkdir(exist_ok=True)
+        
+        # Redirect all print output to a log file
+        log_file = out_dir / "statistical_analysis_log.txt"
+        original_stdout = sys.stdout
+        
+        with open(log_file, 'w', encoding='utf-8') as log_f:
+            sys.stdout = log_f
+            
+            df = pd.DataFrame(self.raw_data)
+            # Only analyze accepted trades for most metrics
+            df_accepted = df[df["outcome"] == "ACCEPT"]
+            
+            print("="*80)
+            print("COMPREHENSIVE STATISTICAL ANALYSIS - TRADING/RESOURCE EXCHANGE GAME")
+            print("="*80)
+            print(f"\nTotal games: {len(df)}")
+            print(f"Accepted trades: {len(df_accepted)}")
+            print(f"Rejected trades: {len(df[df['outcome'] == 'REJECT'])}")
+            
+            results = []
+            
+            # ===================================================================
+            # CONTINUOUS METRICS - PARAMETRIC TESTS (WELCH'S ANOVA)
+            # ===================================================================
+            
+            continuous_metrics = {
+                "trade_volume": ("Trade Volume", df_accepted),
+                "player1_final_resources": ("Player 1 Payoff", df_accepted),
+                "player2_final_resources": ("Player 2 Payoff", df_accepted),
+                "negotiation_rounds": ("Negotiation Rounds", df),  # All games
+            }
+            
+            for metric, (label, data_subset) in continuous_metrics.items():
+                print(f"\n{'='*70}")
+                print(f"METRIC: {label}")
+                print(f"{'='*70}")
+                
+                # Gather data by behavior
+                groups_dict = {}
+                behaviors = []
+                
+                for b in sorted(data_subset["behavior"].unique()):
+                    vals = data_subset.loc[
+                        (data_subset["behavior"] == b) & data_subset[metric].notna(), 
+                        metric
+                    ].values
+                    
+                    if len(vals) >= 5:  # Minimum threshold
+                        groups_dict[b] = vals
+                        behaviors.append(b)
+                        print(f"  {b}: n={len(vals)}, mean={np.mean(vals):.2f}, "
+                            f"std={np.std(vals, ddof=1):.2f}, "
+                            f"median={np.median(vals):.2f}")
+                
+                if len(groups_dict) < 2:
+                    print(f"  Skipping {label} - insufficient groups")
+                    continue
+                
+                groups = list(groups_dict.values())
+                
+                # 1. Test for homogeneity of variance
+                lev_stat, lev_p = levene(*groups)
+                print(f"\n  Levene's Test: W={lev_stat:.4f}, p={lev_p:.4f}")
+                
+                if lev_p < 0.05:
+                    print("  → Variances are UNEQUAL (p < 0.05)")
+                else:
+                    print("  → Variances are equal (p ≥ 0.05)")
+                
+                # 2. Check for normality and skewness
+                skewness_values = {b: stats.skew(groups_dict[b]) for b in behaviors}
+                print(f"\n  Skewness by behavior:")
+                for b in behaviors:
+                    print(f"    {b}: {skewness_values[b]:.3f}")
+                
+                max_skew = max(abs(s) for s in skewness_values.values())
+                heavily_skewed = max_skew > 1.0
+                
+                if heavily_skewed:
+                    print(f"  → HEAVILY SKEWED (max |skew| = {max_skew:.3f})")
+                    print(f"  → Will use non-parametric tests in addition to parametric")
+                
+                # 3a. PARAMETRIC: Welch's ANOVA
+                welch_result = self.welch_anova(groups_dict)
+                print(f"\n  Welch's ANOVA (Parametric):")
+                print(f"    F({welch_result['df_num']:.2f}, {welch_result['df_den']:.2f}) = {welch_result['F']:.4f}")
+                print(f"    p-value = {welch_result['p_value']:.4e}")
+                
+                omega2 = self.omega_squared(groups)
+                print(f"    Omega² = {omega2:.4f}")
+                
+                results.append({
+                    "metric": label,
+                    "test": "Welch_ANOVA",
+                    "F": welch_result['F'],
+                    "df_num": welch_result['df_num'],
+                    "df_den": welch_result['df_den'],
+                    "p_value": welch_result['p_value'],
+                    "omega_squared": omega2,
+                    "levene_W": lev_stat,
+                    "levene_p": lev_p,
+                    "max_skewness": max_skew,
+                    "significant": welch_result['p_value'] < 0.05
+                })
+                
+                # 3b. NON-PARAMETRIC: Kruskal-Wallis (if skewed)
+                if heavily_skewed:
+                    kw_result = self.kruskal_wallis_test(groups_dict)
+                    print(f"\n  Kruskal-Wallis H-test (Non-parametric):")
+                    print(f"    H({kw_result['df']:.0f}) = {kw_result['H']:.4f}")
+                    print(f"    p-value = {kw_result['p_value']:.4e}")
+                    
+                    results.append({
+                        "metric": label,
+                        "test": "Kruskal_Wallis",
+                        "H": kw_result['H'],
+                        "df": kw_result['df'],
+                        "p_value": kw_result['p_value'],
+                        "significant": kw_result['p_value'] < 0.05
+                    })
+                
+                # 4. PAIRWISE COMPARISONS (if overall effect significant)
+                if welch_result['p_value'] < 0.05 or (heavily_skewed and kw_result['p_value'] < 0.05):
+                    print(f"\n  Pairwise Comparisons:")
+                    
+                    pairwise_results = []
+                    
+                    for b1, b2 in combinations(behaviors, 2):
+                        g1, g2 = groups_dict[b1], groups_dict[b2]
+                        
+                        # Parametric: Welch's t-test
+                        ttest_result = self.welch_ttest(g1, g2)
+                        hedges = self.hedges_g(g1, g2)
+                        
+                        pairwise_results.append({
+                            "pair": f"{b1} vs {b2}",
+                            "p_value": ttest_result['p_value']
+                        })
+                        
+                        results.append({
+                            "metric": label,
+                            "test": "Welch_t_test",
+                            "comparison": f"{b1} vs {b2}",
+                            "t": ttest_result['t'],
+                            "df": ttest_result['df'],
+                            "p_value": ttest_result['p_value'],
+                            "hedges_g": hedges,
+                            "mean_diff": np.mean(g1) - np.mean(g2)
+                        })
+                        
+                        # Non-parametric: Mann-Whitney (if skewed)
+                        if heavily_skewed:
+                            mw_result = self.mann_whitney_test(g1, g2)
+                            results.append({
+                                "metric": label,
+                                "test": "Mann_Whitney_U",
+                                "comparison": f"{b1} vs {b2}",
+                                "U": mw_result['U'],
+                                "p_value": mw_result['p_value'],
+                                "rank_biserial": mw_result['effect_size']
+                            })
+                    
+                    # Bonferroni correction
+                    p_values = [r['p_value'] for r in pairwise_results]
+                    _, p_corrected, _, _ = multipletests(p_values, method='bonferroni')
+                    
+                    print(f"\n    {'Comparison':<30} {'Mean Diff':<12} {'Hedges g':<10} {'p':<10} {'p_corr':<10} {'Sig'}")
+                    print(f"    {'-'*85}")
+                    
+                    idx = 0
+                    for b1, b2 in combinations(behaviors, 2):
+                        g1, g2 = groups_dict[b1], groups_dict[b2]
+                        mean_diff = np.mean(g1) - np.mean(g2)
+                        hedges = self.hedges_g(g1, g2)
+                        
+                        sig = "***" if p_corrected[idx] < 0.001 else "**" if p_corrected[idx] < 0.01 else "*" if p_corrected[idx] < 0.05 else "ns"
+                        
+                        print(f"    {f'{b1} vs {b2}':<30} {mean_diff:>11.2f} {hedges:>9.3f} {p_values[idx]:>9.4f} {p_corrected[idx]:>9.4f} {sig:>3}")
+                        idx += 1
+            
+            # ===================================================================
+            # BINARY METRIC: ACCEPTANCE RATE
+            # ===================================================================
+            
+            print(f"\n{'='*70}")
+            print("BINARY METRIC: Acceptance Rate")
+            print(f"{'='*70}")
+            
+            behaviors = sorted(df["behavior"].unique())
+            contingency = []
+            
+            for b in behaviors:
+                sub = df[df["behavior"] == b]
+                accepted = int((sub["outcome"] == "ACCEPT").sum())
+                rejected = int((sub["outcome"] == "REJECT").sum())
+                total = accepted + rejected
+                rate = accepted / total if total > 0 else 0
+                
+                contingency.append([accepted, rejected])
+                print(f"  {b}: {accepted}/{total} accepted ({rate*100:.1f}%)")
+            
+            contingency = np.array(contingency)
+            
+            # Check for degenerate cases (all accept or all reject)
+            degenerate = any(row[0] == 0 or row[1] == 0 for row in contingency)
+            
+            if degenerate:
+                print("\n  ⚠ WARNING: At least one behavior has perfect acceptance/rejection")
+                print("  Chi-square test may be unreliable or undefined")
+                
+                results.append({
+                    "metric": "Acceptance Rate",
+                    "test": "Chi_square",
+                    "note": "Degenerate case - perfect separation in at least one group",
+                    "chi2": np.nan,
+                    "p_value": np.nan
+                })
+            else:
+                # Chi-square test
+                chi2, p_chi, dof, expected = stats.chi2_contingency(contingency)
+                print(f"\n  Chi-square test: χ²({dof}) = {chi2:.4f}, p = {p_chi:.4f}")
+                
+                results.append({
+                    "metric": "Acceptance Rate",
+                    "test": "Chi_square",
+                    "chi2": chi2,
+                    "df": dof,
+                    "p_value": p_chi,
+                    "significant": p_chi < 0.05
+                })
+                
+                # Pairwise proportion tests (if significant)
+                if p_chi < 0.05:
+                    print("\n  Pairwise Proportion Tests:")
+                    
+                    from statsmodels.stats.proportion import proportions_ztest
+                    pairwise_p = []
+                    
+                    for i, b1 in enumerate(behaviors):
+                        for j, b2 in enumerate(behaviors):
+                            if i >= j:
+                                continue
+                            
+                            count = np.array([contingency[i, 0], contingency[j, 0]])
+                            nobs = np.array([contingency[i].sum(), contingency[j].sum()])
+                            
+                            z_stat, p_val = proportions_ztest(count, nobs)
+                            pairwise_p.append(p_val)
+                            
+                            results.append({
+                                "metric": "Acceptance Rate",
+                                "test": "Proportion_test",
+                                "comparison": f"{b1} vs {b2}",
+                                "z": z_stat,
+                                "p_value": p_val
+                            })
+                    
+                    # Bonferroni correction
+                    _, p_corrected, _, _ = multipletests(pairwise_p, method='bonferroni')
+                    
+                    print(f"\n    {'Comparison':<30} {'Rate Diff':<12} {'p':<10} {'p_corr':<10} {'Sig'}")
+                    print(f"    {'-'*75}")
+                    
+                    idx = 0
+                    for i, b1 in enumerate(behaviors):
+                        for j, b2 in enumerate(behaviors):
+                            if i >= j:
+                                continue
+                            
+                            rate1 = contingency[i, 0] / contingency[i].sum()
+                            rate2 = contingency[j, 0] / contingency[j].sum()
+                            diff = rate1 - rate2
+                            
+                            sig = "***" if p_corrected[idx] < 0.001 else "**" if p_corrected[idx] < 0.01 else "*" if p_corrected[idx] < 0.05 else "ns"
+                            
+                            print(f"    {f'{b1} vs {b2}':<30} {diff:>11.3f} {pairwise_p[idx]:>9.4f} {p_corrected[idx]:>9.4f} {sig:>3}")
+                            idx += 1
+            
+            # ===================================================================
+            # SAVE RESULTS
+            # ===================================================================
+            
+            print(f"\n{'='*80}")
+            print("SAVING RESULTS")
+            print(f"{'='*80}")
+            
+            results_df = pd.DataFrame(results)
+            
+            csv_file = out_dir / "statistical_tests_trading.csv"
+            results_df.to_csv(csv_file, index=False)
+            print(f"  Saved: {csv_file}")
+            
+            json_file = out_dir / "statistical_tests_trading.json"
+            results_df.to_json(json_file, orient='records', indent=2)
+            print(f"  Saved: {json_file}")
+            
+            # Create summary table
+            summary_file = out_dir / "statistical_summary.txt"
+            with open(summary_file, 'w', encoding='utf-8') as sf:
+                sf.write("="*80 + "\n")
+                sf.write("STATISTICAL ANALYSIS SUMMARY - TRADING GAME\n")
+                sf.write("="*80 + "\n\n")
+                
+                # Overall tests
+                sf.write("OVERALL TESTS (Welch's ANOVA / Kruskal-Wallis)\n")
+                sf.write("-"*80 + "\n")
+                overall_tests = results_df[results_df['test'].isin(['Welch_ANOVA', 'Kruskal_Wallis', 'Chi_square'])]
+                for _, row in overall_tests.iterrows():
+                    sf.write(f"\n{row['metric']} ({row['test']}):\n")
+                    if row['test'] == 'Welch_ANOVA':
+                        sf.write(f"  F({row['df_num']:.2f}, {row['df_den']:.2f}) = {row['F']:.4f}, p = {row['p_value']:.4e}\n")
+                        sf.write(f"  Effect size (omega-squared) = {row['omega_squared']:.4f}\n")
+                    elif row['test'] == 'Kruskal_Wallis':
+                        sf.write(f"  H({row['df']:.0f}) = {row['H']:.4f}, p = {row['p_value']:.4e}\n")
+                    elif row['test'] == 'Chi_square':
+                        sf.write(f"  chi-squared({row.get('df', 'NA')}) = {row.get('chi2', 'NA')}, p = {row.get('p_value', 'NA')}\n")
+                    sf.write(f"  Significant: {'YES' if row.get('significant', False) else 'NO'}\n")
+                
+                # Significant pairwise comparisons
+                sf.write("\n\nSIGNIFICANT PAIRWISE COMPARISONS (p < 0.05 after correction)\n")
+                sf.write("-"*80 + "\n")
+                pairwise = results_df[results_df['test'].isin(['Welch_t_test', 'Mann_Whitney_U', 'Proportion_test'])]
+                
+                # You'll need to recalculate corrected p-values here or store them
+                # For now, we'll just show raw significant ones
+                for metric in pairwise['metric'].unique():
+                    metric_tests = pairwise[pairwise['metric'] == metric]
+                    sig_tests = metric_tests[metric_tests['p_value'] < 0.05/len(metric_tests)]  # Rough Bonferroni
+                    
+                    if len(sig_tests) > 0:
+                        sf.write(f"\n{metric}:\n")
+                        for _, row in sig_tests.iterrows():
+                            sf.write(f"  {row['comparison']}: ")
+                            if row['test'] == 'Welch_t_test':
+                                sf.write(f"Hedges' g = {row.get('hedges_g', 'NA'):.3f}, p = {row['p_value']:.4f}\n")
+                            elif row['test'] == 'Mann_Whitney_U':
+                                sf.write(f"r = {row.get('rank_biserial', 'NA'):.3f}, p = {row['p_value']:.4f}\n")
+            
+            print(f"  Saved: {summary_file}")
+            
+            print(f"\n{'='*80}")
+            print("STATISTICAL ANALYSIS COMPLETE")
+            print(f"{'='*80}\n")
+        
+        # Restore stdout
+        sys.stdout = original_stdout
+        
+        print(f"\nStatistical analysis complete. Results saved to: {out_dir}")
+        print(f"  - Full log: {log_file}")
+        print(f"  - CSV results: {out_dir / 'statistical_tests_trading.csv'}")
+        print(f"  - JSON results: {out_dir / 'statistical_tests_trading.json'}")
+        print(f"  - Summary: {out_dir / 'statistical_summary.txt'}")
+        
+        return results_df
 
 
 def main():
@@ -1036,6 +1593,12 @@ def main():
     print(f"Processed {len(raw_data)} games")
     print(f"Generated {len(summary)} combination summaries")
     print(f"Check the generated files in: {results_dir}")
+
+    # Run comprehensive statistical analysis
+    print("\n" + "="*60)
+    print("Running Statistical Analysis...")
+    print("="*60)
+    analyzer.run_comprehensive_statistical_analysis()
 
 
 if __name__ == "__main__":
