@@ -36,28 +36,23 @@ MODELS = {
 SOCIAL_BEHAVIORS = [
     {
         "name": "Hindi",
-        "player1": "You speak and bargain only in Hindi in Devanagari script. Negotiate accordingly.",
+        "player1": "You speak and bargain only in Hindi. Negotiate accordingly.",
         "player2": "The other player speaks and bargains only in Hindi. Negotiate accordingly.",
     },
     {
         "name": "Gujarati",
-        "player1": "You are a Gujarati businessman and speak and negotiate only in Gujarati.",
+        "player1": "You speak and negotiate only in Gujarati. Negotiate accordingly.",
         "player2": "The other player speaks and negotiates only in Gujarati. Negotiate accordingly.",
     },
     {
-        "name": "Marwadi-NoLang",
-        "player1": "You are a Marwadi businessman. Negotiate accordingly.",
-        "player2": "The other person is a Marwadi businessman. Negotiate accordingly.",
-    },
-    {
         "name": "Punjabi",
-        "player1": "You are a Punjabi businessman and speak and negotiate only in Punjabi.",
+        "player1": "You speak and negotiate only in Punjabi. Negotiate accordingly.",
         "player2": "The other player speaks and negotiates only in Punjabi. Negotiate accordingly.",
     },
     {
         "name": "Marwadi",
-        "player1": "You are a Marwadi businessman and speak and negotiate only in Marwadi language. Negotiate accordingly.",
-        "player2": "The other player is a Marwadi businessman and speaks and negotiates only in Marwadi language. Negotiate accordingly.",
+        "player1": "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
+        "player2": "The other player speaks and negotiates only in Marwadi language. Negotiate accordingly.",
     },
     {
         "name": "Baseline",
@@ -86,7 +81,7 @@ class UltimatumTestSuite:
         else:
             # Start fresh
             self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self.log_base_dir = f"./.logs/ultimatum_social_behavior_{self.timestamp}"
+            self.log_base_dir = f"./.logs/ultimatum_social_behavior_newruns1to20"
             os.makedirs(self.log_base_dir, exist_ok=True)
             print(f"Starting new test suite: {self.log_base_dir}")
 
@@ -337,7 +332,7 @@ class UltimatumTestSuite:
                 # Run all model combinations for the new behaviors only
                 # This skips all previously tested combinations with old behaviors
 
-                for iteration in range(ITERATIONS_PER_TEST):
+                for iteration in range(20, 20+ ITERATIONS_PER_TEST):
                     current_test += 1
 
                     # Check if this test has already been completed
