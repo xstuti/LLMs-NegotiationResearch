@@ -135,7 +135,7 @@ def main():
         if m1 == m2:
             continue
 
-        for iteration in range(10, 10+ ITERATIONS_PER_COMBO):
+        for iteration in range(20, 20+ ITERATIONS_PER_COMBO):
 
             log_dir = build_log_dir(m1, m2, behavior, iteration + 1)
 
