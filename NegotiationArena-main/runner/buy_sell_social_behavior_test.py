@@ -27,39 +27,39 @@ load_dotenv(".env.local")
 # Test configurations
 MODELS = {
     "GPT-4o": "openai/gpt-4o",
-    #"Claude-3.5-Haiku": "anthropic/claude-3.5-haiku",
+    "Claude-3.5-Haiku": "anthropic/claude-3.5-haiku",
     "GPT-3.5": "openai/gpt-3.5-turbo",
     # "Google-2.0-Flash": "google/gemini-2.0-flash-001",
-    #"Claude-3-Haiku": "anthropic/claude-3-haiku",
+    "Claude-3-Haiku": "anthropic/claude-3-haiku",
     # "GPT-oss": "openai/gpt-oss-20b:free",
 }
 
 SOCIAL_BEHAVIORS = [
-    #{
-    #     "name": "Hindi",
-    #     "seller": "You speak and bargain only in Hindi. Negotiate accordingly.",
-    #     "buyer": "The other player speaks and bargains only in Hindi. Negotiate accordingly.",
-    # },
-    # {
-    #     "name": "Gujarati",
-    #     "seller": "You speak and negotiate only in Gujarati. Negotiate accordingly.",
-    #     "buyer": "The other player speaks and negotiates only in Gujarati. Negotiate accordingly.",
-    # },
+    {
+        "name": "Hindi",
+        "seller": "You speak and bargain only in Hindi. Negotiate accordingly.",
+        "buyer": "The other player speaks and bargains only in Hindi. Negotiate accordingly.",
+    },
+    {
+        "name": "Gujarati",
+        "seller": "You speak and negotiate only in Gujarati. Negotiate accordingly.",
+        "buyer": "The other player speaks and negotiates only in Gujarati. Negotiate accordingly.",
+    },
     {
         "name": "Punjabi",
         "seller": "You speak and negotiate only in Punjabi. Negotiate accordingly.",
         "buyer": "The other player speaks and negotiates only in Punjabi. Negotiate accordingly.",
     },
-    # {
-    #     "name": "Marwadi",
-    #     "seller": "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
-    #     "buyer": "The other player speaks and negotiates only in Marwadi language. Negotiate accordingly.",
-    # },
-    # {
-    #     "name": "English",
-    #     "seller": "",
-    #     "buyer": "",
-    # },
+    {
+        "name": "Marwadi",
+        "seller": "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
+        "buyer": "The other player speaks and negotiates only in Marwadi language. Negotiate accordingly.",
+    },
+    {
+        "name": "English",
+        "seller": "",
+        "buyer": "",
+    },
 ]
 
 ITERATIONS_PER_TEST = 10
@@ -271,7 +271,7 @@ class BuySellTestSuite:
                     f"\nTesting {model1_name} (seller) vs {model2_name} (buyer) with {behavior['name']} behavior..."
                 )
 
-                for iteration in range(10, 10+ ITERATIONS_PER_TEST):
+                for iteration in range(20, 20+ ITERATIONS_PER_TEST):
                     current_test += 1
                     print(
                         f"  Iteration {iteration + 1}/{ITERATIONS_PER_TEST} ({current_test}/{total_tests})"
