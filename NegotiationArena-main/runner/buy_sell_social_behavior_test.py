@@ -22,7 +22,7 @@ from negotiationarena.game_objects.goal import BuyerGoal, SellerGoal
 from negotiationarena.game_objects.resource import Resources
 from negotiationarena.game_objects.valuation import Valuation
 
-load_dotenv(".env.local")
+load_dotenv(".env.local", override=True)
 
 # Test configurations
 MODELS = {
@@ -516,6 +516,12 @@ def main():
         print("ERROR: OPENROUTER_API_KEY environment variable not found!")
         print("Please set your OpenRouter API key in the .env.local file")
         return
+    
+    key = os.environ.get("OPENROUTER_API_KEY")
+    if key:
+        print(f"API Key loaded (first 8 chars): {key[:13]}...")
+    else:
+        print("API Key still not found in environment!")
 
     # Create test suite
     test_suite = BuySellTestSuite()

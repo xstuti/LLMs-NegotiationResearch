@@ -21,7 +21,7 @@ from negotiationarena.game_objects.goal import BuyerGoal, SellerGoal
 from negotiationarena.game_objects.resource import Resources
 from negotiationarena.game_objects.valuation import Valuation
 
-load_dotenv(".env.local")
+load_dotenv(".env.local", override=True)
 
 # Test configurations
 MODELS = {
