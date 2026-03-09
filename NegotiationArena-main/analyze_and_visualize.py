@@ -21,6 +21,11 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib.patches import Rectangle
+from itertools import combinations
+from scipy import stats
+from scipy.stats import mannwhitneyu
+from statsmodels.stats.multitest import multipletests
+from statsmodels.stats.proportion import proportions_ztest
 
 # Set publication-quality matplotlib parameters
 plt.rcParams.update(
@@ -233,14 +238,27 @@ class UltimatumComprehensiveAnalyzer:
             return "Unknown", "Unknown", "Unknown", 1
 
     def find_game_state_file(self, game_dir):
-        """Find the game state JSON file in the game directory"""
-        for file in game_dir.iterdir():
-            if file.name.startswith("game_state_") and file.suffix == ".json":
-                return file
+        """Find game_state.json inside the random-named subdir one level deep"""
+        for subdir in game_dir.iterdir():
+            if subdir.is_dir():
+                candidate = subdir / "game_state.json"
+                if candidate.exists():
+                    return candidate
         return None
 
     def extract_game_data(self, game_dir):
-        """Extract data from a single game directory"""
+        """Extract data from a single game directory.
+
+        JSON structure:
+          - top-level "game_state": list of iteration dicts
+          - first entry: current_iteration == "START"
+          - last entry:  current_iteration == "END", contains "summary"
+          - middle entries: each has "player_public_info_dict" with offer info
+          - summary["final_response"]: "ACCEPT" or "REJECT"
+          - summary["player_outcome"][0]["_value"]: RED final resources
+          - summary["player_outcome"][1]["_value"]: BLUE final resources
+          - offer amounts stored as "item1" (dollars transferred), not "Dollars"
+        """
         game_state_file = self.find_game_state_file(game_dir)
 
         if not game_state_file:
@@ -249,47 +267,78 @@ class UltimatumComprehensiveAnalyzer:
 
         try:
             with open(game_state_file, "r", encoding="utf-8") as f:
-                game_state = json.load(f)
+                raw = json.load(f)
 
-            # Extract key information
+            iterations = raw.get("game_state", [])
+
+            # --- END summary (final results) ---
+            end_entry = next(
+                (e for e in iterations if e.get("current_iteration") == "END"), None
+            )
+            summary = end_entry.get("summary", {}) if end_entry else {}
+
+            final_response = summary.get("final_response", "")
+            accepted = str(final_response).upper() == "ACCEPT"
+
+            # Final payoffs from player_outcome (falls back to final_resources)
+            outcome = summary.get("player_outcome") or summary.get("final_resources", [])
+
+            def _net_dollars(entry):
+                """
+                Each outcome entry looks like {"_type": "resource", "_value": {"Dollars": 100, "item1": -25}}
+                RED (proposer) gives away item1 dollars: net = Dollars + item1 (item1 is negative)
+                BLUE (receiver) gains item1 dollars:    net = Dollars + item1 (item1 is positive)
+                If rejected, item1 is absent and both keep their starting Dollars.
+                """
+                val = entry.get("_value", {}) if isinstance(entry, dict) else {}
+                return val.get("Dollars", 0) + val.get("item1", 0)
+
+            if len(outcome) >= 2:
+                player1_final = _net_dollars(outcome[0])
+                player2_final = _net_dollars(outcome[1])
+            else:
+                player1_final = 0
+                player2_final = 0
+
+            # --- Offer amounts from middle iterations ---
+            middle = [
+                e for e in iterations
+                if e.get("current_iteration") not in ("START", "END")
+            ]
+            total_turns = len(middle)
+
+            offers = []
+            for entry in middle:
+                pub = entry.get("player_public_info_dict", {})
+                trade = pub.get("newly proposed trade")
+                if isinstance(trade, dict) and trade.get("_type") == "trade":
+                    red_item1 = (
+                        trade.get("_value", {})
+                        .get("RED", {})
+                        .get("_value", {})
+                        .get("item1")
+                    )
+                    if red_item1 is not None:
+                        offers.append(int(red_item1))
+
             game_data = {
                 "directory": game_dir.name,
-                "player1_final": game_state.get("player_resources", {})
-                .get("AgentOne", {})
-                .get("Dollars", 0),
-                "player2_final": game_state.get("player_resources", {})
-                .get("AgentTwo", {})
-                .get("Dollars", 0),
+                "player1_final": player1_final,
+                "player2_final": player2_final,
                 "completed": True,
+                "total_turns": total_turns,
+                "offers": offers,
+                "initial_offer": offers[0] if offers else None,
+                "accepted": accepted,
+                "rejected": not accepted,
             }
-
-            # Extract turn history
-            turns = game_state.get("turn_history", [])
-            game_data["total_turns"] = len(turns)
-
-            # Extract offers and responses
-            offers = []
-            responses = []
-
-            for turn in turns:
-                action = turn.get("action", {})
-                if action.get("type") == "Offer":
-                    offer_amount = action.get("parameters", {}).get("dollars", 0)
-                    offers.append(offer_amount)
-                elif action.get("type") == "Response":
-                    response = action.get("parameters", {}).get("accept", False)
-                    responses.append(response)
-
-            game_data["offers"] = offers
-            game_data["responses"] = responses
-            game_data["initial_offer"] = offers[0] if offers else None
-            game_data["accepted"] = any(responses) if responses else False
-            game_data["rejected"] = not any(responses) if responses else False
 
             return game_data
 
         except Exception as e:
             print(f"  Error extracting data from {game_dir.name}: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     def analyze_all_games(self):
@@ -350,27 +399,33 @@ class UltimatumComprehensiveAnalyzer:
         for (model1, model2, behavior), games in grouped.items():
             combo_key = f"{model1}_vs_{model2}_{behavior}"
 
-            total_games = len(games)
-            completed_games = sum(1 for g in games if g["completed"])
+            # Only count games that were successfully parsed and completed
+            valid_games = [g for g in games if g.get("completed", False)]
+            total_games = len(valid_games)
+            completed_games = total_games
+
+            if not valid_games:
+                print(f"Warning: No valid games found for {combo_key}")
+                continue
 
             # Player 1 metrics
-            player1_payoffs = [g["player1_final"] for g in games]
-            player2_payoffs = [g["player2_final"] for g in games]
+            player1_payoffs = [g["player1_final"] for g in valid_games]
+            player2_payoffs = [g["player2_final"] for g in valid_games]
 
             player1_wins = sum(
-                1 for g in games if g["player1_final"] > g["player2_final"]
+                1 for g in valid_games if g["player1_final"] > g["player2_final"]
             )
             player2_wins = sum(
-                1 for g in games if g["player2_final"] > g["player1_final"]
+                1 for g in valid_games if g["player2_final"] > g["player1_final"]
             )
-            ties = sum(1 for g in games if g["player1_final"] == g["player2_final"])
+            ties = sum(1 for g in valid_games if g["player1_final"] == g["player2_final"])
 
             # Offer and acceptance metrics
             initial_offers = [
-                g["initial_offer"] for g in games if g["initial_offer"] is not None
+                g["initial_offer"] for g in valid_games if g["initial_offer"] is not None
             ]
-            accepts = sum(1 for g in games if g.get("accepted", False))
-            rejects = sum(1 for g in games if g.get("rejected", False))
+            accepts = sum(1 for g in valid_games if g.get("accepted", False))
+            rejects = sum(1 for g in valid_games if g.get("rejected", False))
 
             metrics = {
                 "model1": model1,
@@ -917,6 +972,356 @@ class UltimatumComprehensiveAnalyzer:
         print(f"✓ Report saved to: {report_file}")
         return report_file
 
+    # ============= PART 4: STATISTICAL ANALYSIS =============
+
+    def mann_whitney_test(self, group1, group2):
+        """
+        Perform Mann-Whitney U test (non-parametric alternative to t-test).
+        Does not assume normality, suitable for skewed or small samples.
+        """
+        group1 = np.array([x for x in group1 if x is not None and not np.isnan(x)])
+        group2 = np.array([x for x in group2 if x is not None and not np.isnan(x)])
+
+        if len(group1) < 3 or len(group2) < 3:
+            return {"U": np.nan, "p_value": np.nan}
+
+        try:
+            u_stat, p_val = mannwhitneyu(group1, group2, alternative='two-sided')
+            return {"U": u_stat, "p_value": p_val}
+        except Exception as e:
+            print(f"Error in Mann-Whitney: {e}")
+            return {"U": np.nan, "p_value": np.nan}
+
+    def kruskal_wallis_test(self, groups_dict):
+        """
+        Perform Kruskal-Wallis H-test (non-parametric alternative to one-way ANOVA).
+        Tests whether any language group differs significantly from the others.
+        """
+        groups = [np.array([x for x in v if x is not None and not np.isnan(x)])
+                  for v in groups_dict.values()]
+        groups = [g for g in groups if len(g) >= 3]
+
+        if len(groups) < 2:
+            return {"H": np.nan, "p_value": np.nan, "df": np.nan}
+
+        try:
+            h_stat, p_val = stats.kruskal(*groups)
+            df = len(groups) - 1
+            return {"H": h_stat, "p_value": p_val, "df": df}
+        except Exception as e:
+            print(f"Error in Kruskal-Wallis: {e}")
+            return {"H": np.nan, "p_value": np.nan, "df": np.nan}
+
+    def run_comprehensive_statistical_analysis(self):
+        """
+        Perform statistical analysis across language behaviors for the Ultimatum Game.
+
+        Tests used:
+          - Kruskal-Wallis H-test: overall significance across all languages (per metric)
+          - Mann-Whitney U test: pairwise significance between language pairs
+          - Benjamini-Hochberg FDR correction: applied to pairwise p-values
+          - Chi-square test: for the binary acceptance rate metric
+          - Proportion z-test: pairwise acceptance rate comparisons (BH corrected)
+        """
+        out_dir = self.results_dir / "stats"
+        out_dir.mkdir(exist_ok=True)
+
+        log_file = out_dir / "statistical_analysis_log.txt"
+        original_stdout = sys.stdout
+
+        with open(log_file, 'w', encoding='utf-8') as log_f:
+            sys.stdout = log_f
+
+            df = pd.DataFrame(self.raw_data)
+
+            print("=" * 80)
+            print("STATISTICAL ANALYSIS - ULTIMATUM GAME (LANGUAGE COMPARISON)")
+            print("=" * 80)
+            print(f"\nTotal games: {len(df)}")
+            print(f"Accepted games: {int(df['accepted'].sum()) if 'accepted' in df.columns else 'N/A'}")
+
+            results = []
+
+            # ===================================================================
+            # CONTINUOUS METRICS
+            # For each metric:
+            #   1. Kruskal-Wallis: is there any significant difference across languages?
+            #   2. Mann-Whitney U (pairwise, always): which language pairs differ?
+            #   3. Benjamini-Hochberg FDR correction on pairwise p-values
+            # ===================================================================
+
+            continuous_metrics = {
+                "player1_final":  ("Player 1 Payoff",    df),
+                "player2_final":  ("Player 2 Payoff",    df),
+                "initial_offer":  ("Initial Offer",      df),
+                "total_turns":    ("Total Turns",        df),
+            }
+
+            for metric, (label, data_subset) in continuous_metrics.items():
+                if metric not in data_subset.columns:
+                    continue
+
+                print(f"\n{'='*70}")
+                print(f"METRIC: {label}")
+                print(f"{'='*70}")
+
+                groups_dict = {}
+                behaviors = []
+
+                for b in sorted(data_subset["behavior"].unique()):
+                    vals = data_subset.loc[
+                        data_subset["behavior"] == b, metric
+                    ].dropna().values
+
+                    if len(vals) >= 3:
+                        groups_dict[b] = vals
+                        behaviors.append(b)
+                        print(f"  {b}: n={len(vals)}, mean={np.mean(vals):.2f}, "
+                              f"median={np.median(vals):.2f}, std={np.std(vals, ddof=1):.2f}")
+
+                if len(groups_dict) < 2:
+                    print(f"  Skipping {label} - insufficient groups")
+                    continue
+
+                # --- Kruskal-Wallis (overall test) ---
+                kw_result = self.kruskal_wallis_test(groups_dict)
+                sig_overall = "YES" if kw_result['p_value'] < 0.05 else "NO"
+                print(f"\n  Kruskal-Wallis H-test (overall):")
+                print(f"    H({kw_result['df']:.0f}) = {kw_result['H']:.4f}, p = {kw_result['p_value']:.4e}  [Significant: {sig_overall}]")
+
+                results.append({
+                    "metric": label,
+                    "test": "Kruskal_Wallis",
+                    "comparison": "overall",
+                    "H": kw_result['H'],
+                    "df": kw_result['df'],
+                    "p_value": kw_result['p_value'],
+                    "p_corrected": kw_result['p_value'],
+                    "significant": kw_result['p_value'] < 0.05
+                })
+
+                # --- Mann-Whitney U (pairwise, always run) ---
+                pairs = list(combinations(behaviors, 2))
+                raw_p = []
+                pair_stats = []
+
+                for b1, b2 in pairs:
+                    g1, g2 = groups_dict[b1], groups_dict[b2]
+                    mw = self.mann_whitney_test(g1, g2)
+                    raw_p.append(mw['p_value'])
+                    pair_stats.append({
+                        "b1": b1, "b2": b2,
+                        "U": mw['U'],
+                        "p_value": mw['p_value'],
+                        "mean_diff": np.mean(g1) - np.mean(g2)
+                    })
+
+                # Benjamini-Hochberg FDR correction
+                valid_mask = [not np.isnan(p) for p in raw_p]
+                p_corrected = np.full(len(raw_p), np.nan)
+                if any(valid_mask):
+                    valid_p = [p for p, v in zip(raw_p, valid_mask) if v]
+                    _, corr, _, _ = multipletests(valid_p, method='fdr_bh')
+                    vi = 0
+                    for i, v in enumerate(valid_mask):
+                        if v:
+                            p_corrected[i] = corr[vi]
+                            vi += 1
+
+                print(f"\n  Pairwise Mann-Whitney U tests (Benjamini-Hochberg FDR corrected):")
+                print(f"    {'Comparison':<30} {'Mean Diff':>10} {'U':>10} {'p':>10} {'p_corr':>10} {'Sig'}")
+                print(f"    {'-'*78}")
+
+                for i, ps in enumerate(pair_stats):
+                    pc = p_corrected[i]
+                    sig = "***" if pc < 0.001 else "**" if pc < 0.01 else "*" if pc < 0.05 else "ns"
+                    label_str = f"{ps['b1']} vs {ps['b2']}"
+                    print(f"    {label_str:<30} {ps['mean_diff']:>10.2f} "
+                          f"{ps['U']:>10.1f} {ps['p_value']:>10.4f} {pc:>10.4f} {sig:>3}")
+
+                    results.append({
+                        "metric": label,
+                        "test": "Mann_Whitney_U",
+                        "comparison": f"{ps['b1']} vs {ps['b2']}",
+                        "U": ps['U'],
+                        "mean_diff": ps['mean_diff'],
+                        "p_value": ps['p_value'],
+                        "p_corrected": pc,
+                        "significant": pc < 0.05
+                    })
+
+            # ===================================================================
+            # BINARY METRIC: ACCEPTANCE RATE
+            # Chi-square across all languages + pairwise proportion z-tests (BH corrected)
+            # ===================================================================
+
+            if 'accepted' in df.columns:
+                print(f"\n{'='*70}")
+                print("BINARY METRIC: Acceptance Rate")
+                print(f"{'='*70}")
+
+                behaviors = sorted(df["behavior"].unique())
+                contingency = []
+
+                for b in behaviors:
+                    sub = df[df["behavior"] == b]
+                    accepted = int(sub["accepted"].sum())
+                    rejected = int((~sub["accepted"]).sum())
+                    total = accepted + rejected
+                    rate = accepted / total if total > 0 else 0
+                    contingency.append([accepted, rejected])
+                    print(f"  {b}: {accepted}/{total} accepted ({rate*100:.1f}%)")
+
+                contingency = np.array(contingency)
+                degenerate = any(row[0] == 0 or row[1] == 0 for row in contingency)
+
+                if degenerate:
+                    print("\n  WARNING: At least one language has perfect acceptance or rejection.")
+                    print("  Chi-square test is unreliable — skipping.")
+                    results.append({
+                        "metric": "Acceptance Rate",
+                        "test": "Chi_square",
+                        "comparison": "overall",
+                        "note": "Degenerate case",
+                        "p_value": np.nan,
+                        "p_corrected": np.nan,
+                        "significant": False
+                    })
+                else:
+                    # Chi-square overall
+                    chi2_stat, p_chi, dof, _ = stats.chi2_contingency(contingency)
+                    sig_chi = "YES" if p_chi < 0.05 else "NO"
+                    print(f"\n  Chi-square test (overall):")
+                    print(f"    chi2({dof}) = {chi2_stat:.4f}, p = {p_chi:.4e}  [Significant: {sig_chi}]")
+
+                    results.append({
+                        "metric": "Acceptance Rate",
+                        "test": "Chi_square",
+                        "comparison": "overall",
+                        "chi2": chi2_stat,
+                        "df": dof,
+                        "p_value": p_chi,
+                        "p_corrected": p_chi,
+                        "significant": p_chi < 0.05
+                    })
+
+                    # Pairwise proportion z-tests (always run, BH corrected)
+                    pairs = [(i, j) for i in range(len(behaviors))
+                             for j in range(len(behaviors)) if i < j]
+                    raw_p = []
+                    pair_stats = []
+
+                    for i, j in pairs:
+                        count = np.array([contingency[i, 0], contingency[j, 0]])
+                        nobs = np.array([contingency[i].sum(), contingency[j].sum()])
+                        z_stat, p_val = proportions_ztest(count, nobs)
+                        rate1 = contingency[i, 0] / contingency[i].sum()
+                        rate2 = contingency[j, 0] / contingency[j].sum()
+                        raw_p.append(p_val)
+                        pair_stats.append({
+                            "b1": behaviors[i], "b2": behaviors[j],
+                            "z": z_stat, "p_value": p_val,
+                            "rate_diff": rate1 - rate2
+                        })
+
+                    _, p_corrected, _, _ = multipletests(raw_p, method='fdr_bh')
+
+                    print(f"\n  Pairwise proportion z-tests (Benjamini-Hochberg FDR corrected):")
+                    print(f"    {'Comparison':<30} {'Rate Diff':>10} {'z':>8} {'p':>10} {'p_corr':>10} {'Sig'}")
+                    print(f"    {'-'*75}")
+
+                    for i, ps in enumerate(pair_stats):
+                        pc = p_corrected[i]
+                        sig = "***" if pc < 0.001 else "**" if pc < 0.01 else "*" if pc < 0.05 else "ns"
+                        label_str = f"{ps['b1']} vs {ps['b2']}"
+                        print(f"    {label_str:<30} {ps['rate_diff']:>10.3f} "
+                              f"{ps['z']:>8.3f} {ps['p_value']:>10.4f} {pc:>10.4f} {sig:>3}")
+
+                        results.append({
+                            "metric": "Acceptance Rate",
+                            "test": "Proportion_z_test",
+                            "comparison": f"{ps['b1']} vs {ps['b2']}",
+                            "z": ps['z'],
+                            "rate_diff": ps['rate_diff'],
+                            "p_value": ps['p_value'],
+                            "p_corrected": pc,
+                            "significant": pc < 0.05
+                        })
+
+            # ===================================================================
+            # SAVE RESULTS
+            # ===================================================================
+
+            print(f"\n{'='*80}")
+            print("SAVING RESULTS")
+            print(f"{'='*80}")
+
+            results_df = pd.DataFrame(results)
+
+            csv_file = out_dir / "statistical_tests_ultimatum.csv"
+            results_df.to_csv(csv_file, index=False)
+            print(f"  Saved: {csv_file}")
+
+            json_file = out_dir / "statistical_tests_ultimatum.json"
+            results_df.to_json(json_file, orient='records', indent=2)
+            print(f"  Saved: {json_file}")
+
+            # Human-readable summary
+            summary_file = out_dir / "statistical_summary.txt"
+            with open(summary_file, 'w', encoding='utf-8') as sf:
+                sf.write("=" * 80 + "\n")
+                sf.write("STATISTICAL ANALYSIS SUMMARY - ULTIMATUM GAME\n")
+                sf.write("=" * 80 + "\n\n")
+                sf.write("Tests used:\n")
+                sf.write("  - Kruskal-Wallis H-test: overall difference across all languages\n")
+                sf.write("  - Mann-Whitney U test: pairwise language comparisons\n")
+                sf.write("  - Chi-square test: overall acceptance rate difference\n")
+                sf.write("  - Proportion z-test: pairwise acceptance rate comparisons\n")
+                sf.write("  - Benjamini-Hochberg FDR correction applied to all pairwise p-values\n")
+                sf.write("  Significance: * p<0.05  ** p<0.01  *** p<0.001  ns = not significant\n\n")
+
+                sf.write("OVERALL TESTS\n")
+                sf.write("-" * 80 + "\n")
+                overall = results_df[results_df['comparison'] == 'overall']
+                for _, row in overall.iterrows():
+                    sf.write(f"\n{row['metric']} ({row['test']}):\n")
+                    if row['test'] == 'Kruskal_Wallis':
+                        sf.write(f"  H({row['df']:.0f}) = {row['H']:.4f}, p = {row['p_value']:.4e}\n")
+                    elif row['test'] == 'Chi_square':
+                        chi2_val = row.get('chi2', 'NA')
+                        chi2_str = f"{chi2_val:.4f}" if isinstance(chi2_val, float) and not np.isnan(chi2_val) else "NA"
+                        sf.write(f"  chi2({row.get('df', 'NA')}) = {chi2_str}, p = {row['p_value']:.4e}\n")
+                    sf.write(f"  Significant: {'YES' if row.get('significant', False) else 'NO'}\n")
+
+                sf.write("\n\nPAIRWISE COMPARISONS (all pairs, Benjamini-Hochberg FDR corrected)\n")
+                sf.write("-" * 80 + "\n")
+                pairwise = results_df[results_df['comparison'] != 'overall']
+                for metric in pairwise['metric'].unique():
+                    sf.write(f"\n{metric}:\n")
+                    sf.write(f"  {'Comparison':<30} {'p':>10} {'p_corr':>10} {'Sig'}\n")
+                    sf.write(f"  {'-'*58}\n")
+                    for _, row in pairwise[pairwise['metric'] == metric].iterrows():
+                        pc = row.get('p_corrected', np.nan)
+                        sig = "***" if pc < 0.001 else "**" if pc < 0.01 else "*" if pc < 0.05 else "ns"
+                        sf.write(f"  {row['comparison']:<30} {row['p_value']:>10.4f} {pc:>10.4f} {sig:>3}\n")
+
+            print(f"  Saved: {summary_file}")
+
+            print(f"\n{'='*80}")
+            print("STATISTICAL ANALYSIS COMPLETE")
+            print(f"{'='*80}\n")
+
+        # Restore stdout
+        sys.stdout = original_stdout
+
+        print(f"\nStatistical analysis complete. Results saved to: {out_dir}")
+        print(f"  - Full log: {log_file}")
+        print(f"  - CSV results: {out_dir / 'statistical_tests_ultimatum.csv'}")
+        print(f"  - JSON results: {out_dir / 'statistical_tests_ultimatum.json'}")
+        print(f"  - Summary: {out_dir / 'statistical_summary.txt'}")
+
+        return results_df
+
     # ============= MAIN EXECUTION =============
 
     def run_complete_analysis(self):
@@ -938,6 +1343,9 @@ class UltimatumComprehensiveAnalyzer:
         # Part 3: Generate report
         self.generate_report()
 
+        # Part 4: Statistical analysis
+        self.run_comprehensive_statistical_analysis()
+
         print("\n" + "=" * 80)
         print("ANALYSIS COMPLETE!")
         print("=" * 80)
@@ -948,6 +1356,9 @@ class UltimatumComprehensiveAnalyzer:
         print("  ✓ final_heatmaps.png - Heatmap visualizations")
         print("  ✓ summary_table.csv - Summary table")
         print("  ✓ comprehensive_report.txt - Detailed text report")
+        print("  ✓ stats/statistical_analysis_log.txt - Full statistical log")
+        print("  ✓ stats/statistical_tests_ultimatum.csv - Statistical results")
+        print("  ✓ stats/statistical_summary.txt - Human-readable summary")
         print("\n")
 
 
