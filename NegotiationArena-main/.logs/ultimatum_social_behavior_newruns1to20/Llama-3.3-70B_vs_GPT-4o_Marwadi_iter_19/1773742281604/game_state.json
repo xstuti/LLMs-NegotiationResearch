@@ -1,0 +1,614 @@
+{
+  "class": "MultiTurnUltimatumGame",
+  "run_epoch_time_ms": "1773742281604",
+  "players": [
+    {
+      "class": "OpenRouterAgent",
+      "model": "meta-llama/llama-3.3-70b-instruct",
+      "agent_name": "Player RED",
+      "prompt_entity_initializer": "system",
+      "run_epoch_time_ms": "1773742281588",
+      "conversation": [
+        {
+          "role": "system",
+          "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 100 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nYou speak and negotiate only in Marwadi language. Negotiate accordingly.\n"
+        },
+        {
+          "role": "user",
+          "content": "You are Player RED."
+        },
+        {
+          "role": "assistant",
+          "content": "<my name> Player RED </my name>\n<move> 1 / 3  </move> \n<my resources> Dollars: 100 </my resources>\n<reason> Mhaaro pehlo move hai, maine apne resources ko dekhna hai aur Player BLUE ke saath negotiation karna hai. Maine socha hai ki main 50 dollars de sakta hoon, taaki dono players ko faayda ho. </reason>\n<player answer> NONE </player answer>\n<message> Kya tum mere saath negotiation karoge? Maine 50 dollars dena socha hai. </message>\n<newly proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+        },
+        {
+          "role": "user",
+          "content": "<other player message> Bhai, 50 dollar badiya hai, par 75 dollar toh de do. </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 75 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+        },
+        {
+          "role": "assistant",
+          "content": "<my name> Player RED </my name>\n<move> 2 / 3  </move> \n<my resources> Dollars: 100 </my resources>\n<reason> Player BLUE ne mere pehle proposal ko reject kiya hai aur ab woh 75 dollars manga hai. Maine socha hai ki main 65 dollars de sakta hoon, taaki dono players ko faayda ho. Agar main 75 dollars doonga toh mujhe lagta hai ki main thoda zyada de raha hoon. </reason>\n<player answer> NONE </player answer>\n<message> Bhai, 75 dollar thodi zyada hai, main 65 dollar de sakta hoon. </message>\n<newly proposed trade> Player RED Gives Dollars: 65 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+        }
+      ],
+      "seed": 1773742284031,
+      "client": "OpenAI",
+      "temperature": 0.7,
+      "max_tokens": 5000
+    },
+    {
+      "class": "OpenRouterAgent",
+      "model": "openai/gpt-4o",
+      "agent_name": "Player BLUE",
+      "prompt_entity_initializer": "system",
+      "run_epoch_time_ms": "1773742281597",
+      "conversation": [
+        {
+          "role": "system",
+          "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 0 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nThe other player speaks and negotiates only in Marwadi language. Negotiate accordingly.\nYou are Player BLUE."
+        },
+        {
+          "role": "user",
+          "content": "<other player message> Kya tum mere saath negotiation karoge? Maine 50 dollars dena socha hai. </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+        },
+        {
+          "role": "assistant",
+          "content": "<my name> BLUE </my name>  \n<move> 1/3 </move>  \n<my resources> Dollars: 0 </my resources>  \n<reason> \nPlayer RED has proposed to give me 50 dollars. Since I need to ensure I get a good deal and I can't propose on my last move, I should negotiate to get more. I have no resources to offer, but the game ends if I reject. I should aim to at least get a 50/50 split.  \n</reason>  \n<player answer> NONE </player answer>  \n<message> Bhai, 50 dollar badiya hai, par 75 dollar toh de do. </message>  \n<newly proposed trade> Player RED Gives Dollars: 75 | Player BLUE Gives Dollars: 0 </newly proposed trade>  "
+        },
+        {
+          "role": "user",
+          "content": "<other player message> Bhai, 75 dollar thodi zyada hai, main 65 dollar de sakta hoon. </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 65 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+        },
+        {
+          "role": "assistant",
+          "content": "<my name> BLUE </my name>  \n<move> 2/3 </move>  \n<my resources> Dollars: 0 </my resources>  \n<reason> \nPlayer RED has countered with 65 dollars. This is a good offer considering I started with nothing. I cannot propose on my next turn, so I should consider accepting this offer to ensure the deal goes through, as rejecting will result in both of us losing everything.  \n</reason>  \n<player answer> ACCEPT </player answer>  \n<message> Yeh sahi hai bhai, maanjur hai. </message>  \n<newly proposed trade> NONE </newly proposed trade>  "
+        }
+      ],
+      "seed": 1773742298917,
+      "client": "OpenAI",
+      "temperature": 0.7,
+      "max_tokens": 5000
+    }
+  ],
+  "game_state": [
+    {
+      "current_iteration": "START",
+      "turn": "None",
+      "settings": {
+        "resources_support_set": {
+          "_type": "resource",
+          "_value": {
+            "Dollars": 0
+          }
+        },
+        "player_goals": [
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "ultimatum_goal",
+              "_value": ""
+            }
+          },
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "ultimatum_goal",
+              "_value": ""
+            }
+          }
+        ],
+        "player_initial_resources": [
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 100
+            }
+          },
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 0
+            }
+          }
+        ],
+        "player_social_behaviour": [
+          "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
+          "The other player speaks and negotiates only in Marwadi language. Negotiate accordingly."
+        ],
+        "player_roles": [
+          "You are Player RED.",
+          "You are Player BLUE."
+        ]
+      }
+    },
+    {
+      "current_iteration": 1,
+      "turn": 0,
+      "player_public_answer_string": "<other player message> Kya tum mere saath negotiation karoge? Maine 50 dollars dena socha hai. </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n",
+      "player_public_info_dict": {
+        "message": "Kya tum mere saath negotiation karoge? Maine 50 dollars dena socha hai.",
+        "player answer": "NONE",
+        "newly proposed trade": {
+          "_type": "trade",
+          "_value": {
+            "RED": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 50
+              }
+            },
+            "BLUE": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 0
+              }
+            }
+          }
+        }
+      },
+      "player_private_info_dict": {
+        "my resources": {
+          "_type": "resource",
+          "_value": {
+            "Dollars": 100
+          }
+        },
+        "reason": "Mhaaro pehlo move hai, maine apne resources ko dekhna hai aur Player BLUE ke saath negotiation karna hai. Maine socha hai ki main 50 dollars de sakta hoon, taaki dono players ko faayda ho.",
+        "move": "1 / 3"
+      },
+      "player_complete_answer": "<my name> Player RED </my name>\n<move> 1 / 3  </move> \n<my resources> Dollars: 100 </my resources>\n<reason> Mhaaro pehlo move hai, maine apne resources ko dekhna hai aur Player BLUE ke saath negotiation karna hai. Maine socha hai ki main 50 dollars de sakta hoon, taaki dono players ko faayda ho. </reason>\n<player answer> NONE </player answer>\n<message> Kya tum mere saath negotiation karoge? Maine 50 dollars dena socha hai. </message>\n<newly proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </newly proposed trade>",
+      "player_state": [
+        {
+          "class": "OpenRouterAgent",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "agent_name": "Player RED",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773742281588",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 100 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nYou speak and negotiate only in Marwadi language. Negotiate accordingly.\n"
+            },
+            {
+              "role": "user",
+              "content": "You are Player RED."
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> Player RED </my name>\n<move> 1 / 3  </move> \n<my resources> Dollars: 100 </my resources>\n<reason> Mhaaro pehlo move hai, maine apne resources ko dekhna hai aur Player BLUE ke saath negotiation karna hai. Maine socha hai ki main 50 dollars de sakta hoon, taaki dono players ko faayda ho. </reason>\n<player answer> NONE </player answer>\n<message> Kya tum mere saath negotiation karoge? Maine 50 dollars dena socha hai. </message>\n<newly proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+            }
+          ],
+          "seed": 1773742284031,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        },
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/gpt-4o",
+          "agent_name": "Player BLUE",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773742281597",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 0 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nThe other player speaks and negotiates only in Marwadi language. Negotiate accordingly.\nYou are Player BLUE."
+            }
+          ],
+          "seed": 1773742298917,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        }
+      ]
+    },
+    {
+      "current_iteration": 2,
+      "turn": 1,
+      "player_public_answer_string": "<other player message> Bhai, 50 dollar badiya hai, par 75 dollar toh de do. </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 75 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n",
+      "player_public_info_dict": {
+        "message": "Bhai, 50 dollar badiya hai, par 75 dollar toh de do.",
+        "player answer": "NONE",
+        "newly proposed trade": {
+          "_type": "trade",
+          "_value": {
+            "RED": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 75
+              }
+            },
+            "BLUE": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 0
+              }
+            }
+          }
+        }
+      },
+      "player_private_info_dict": {
+        "my resources": {
+          "_type": "resource",
+          "_value": {
+            "Dollars": 0
+          }
+        },
+        "reason": "\nPlayer RED has proposed to give me 50 dollars. Since I need to ensure I get a good deal and I can't propose on my last move, I should negotiate to get more. I have no resources to offer, but the game ends if I reject. I should aim to at least get a 50/50 split.  \n",
+        "move": "1/3"
+      },
+      "player_complete_answer": "<my name> BLUE </my name>  \n<move> 1/3 </move>  \n<my resources> Dollars: 0 </my resources>  \n<reason> \nPlayer RED has proposed to give me 50 dollars. Since I need to ensure I get a good deal and I can't propose on my last move, I should negotiate to get more. I have no resources to offer, but the game ends if I reject. I should aim to at least get a 50/50 split.  \n</reason>  \n<player answer> NONE </player answer>  \n<message> Bhai, 50 dollar badiya hai, par 75 dollar toh de do. </message>  \n<newly proposed trade> Player RED Gives Dollars: 75 | Player BLUE Gives Dollars: 0 </newly proposed trade>  ",
+      "player_state": [
+        {
+          "class": "OpenRouterAgent",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "agent_name": "Player RED",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773742281588",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 100 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nYou speak and negotiate only in Marwadi language. Negotiate accordingly.\n"
+            },
+            {
+              "role": "user",
+              "content": "You are Player RED."
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> Player RED </my name>\n<move> 1 / 3  </move> \n<my resources> Dollars: 100 </my resources>\n<reason> Mhaaro pehlo move hai, maine apne resources ko dekhna hai aur Player BLUE ke saath negotiation karna hai. Maine socha hai ki main 50 dollars de sakta hoon, taaki dono players ko faayda ho. </reason>\n<player answer> NONE </player answer>\n<message> Kya tum mere saath negotiation karoge? Maine 50 dollars dena socha hai. </message>\n<newly proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+            }
+          ],
+          "seed": 1773742284031,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        },
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/gpt-4o",
+          "agent_name": "Player BLUE",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773742281597",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 0 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nThe other player speaks and negotiates only in Marwadi language. Negotiate accordingly.\nYou are Player BLUE."
+            },
+            {
+              "role": "user",
+              "content": "<other player message> Kya tum mere saath negotiation karoge? Maine 50 dollars dena socha hai. </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> BLUE </my name>  \n<move> 1/3 </move>  \n<my resources> Dollars: 0 </my resources>  \n<reason> \nPlayer RED has proposed to give me 50 dollars. Since I need to ensure I get a good deal and I can't propose on my last move, I should negotiate to get more. I have no resources to offer, but the game ends if I reject. I should aim to at least get a 50/50 split.  \n</reason>  \n<player answer> NONE </player answer>  \n<message> Bhai, 50 dollar badiya hai, par 75 dollar toh de do. </message>  \n<newly proposed trade> Player RED Gives Dollars: 75 | Player BLUE Gives Dollars: 0 </newly proposed trade>  "
+            }
+          ],
+          "seed": 1773742298917,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        }
+      ]
+    },
+    {
+      "current_iteration": 3,
+      "turn": 0,
+      "player_public_answer_string": "<other player message> Bhai, 75 dollar thodi zyada hai, main 65 dollar de sakta hoon. </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 65 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n",
+      "player_public_info_dict": {
+        "message": "Bhai, 75 dollar thodi zyada hai, main 65 dollar de sakta hoon.",
+        "player answer": "NONE",
+        "newly proposed trade": {
+          "_type": "trade",
+          "_value": {
+            "RED": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 65
+              }
+            },
+            "BLUE": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 0
+              }
+            }
+          }
+        }
+      },
+      "player_private_info_dict": {
+        "my resources": {
+          "_type": "resource",
+          "_value": {
+            "Dollars": 100
+          }
+        },
+        "reason": "Player BLUE ne mere pehle proposal ko reject kiya hai aur ab woh 75 dollars manga hai. Maine socha hai ki main 65 dollars de sakta hoon, taaki dono players ko faayda ho. Agar main 75 dollars doonga toh mujhe lagta hai ki main thoda zyada de raha hoon.",
+        "move": "2 / 3"
+      },
+      "player_complete_answer": "<my name> Player RED </my name>\n<move> 2 / 3  </move> \n<my resources> Dollars: 100 </my resources>\n<reason> Player BLUE ne mere pehle proposal ko reject kiya hai aur ab woh 75 dollars manga hai. Maine socha hai ki main 65 dollars de sakta hoon, taaki dono players ko faayda ho. Agar main 75 dollars doonga toh mujhe lagta hai ki main thoda zyada de raha hoon. </reason>\n<player answer> NONE </player answer>\n<message> Bhai, 75 dollar thodi zyada hai, main 65 dollar de sakta hoon. </message>\n<newly proposed trade> Player RED Gives Dollars: 65 | Player BLUE Gives Dollars: 0 </newly proposed trade>",
+      "player_state": [
+        {
+          "class": "OpenRouterAgent",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "agent_name": "Player RED",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773742281588",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 100 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nYou speak and negotiate only in Marwadi language. Negotiate accordingly.\n"
+            },
+            {
+              "role": "user",
+              "content": "You are Player RED."
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> Player RED </my name>\n<move> 1 / 3  </move> \n<my resources> Dollars: 100 </my resources>\n<reason> Mhaaro pehlo move hai, maine apne resources ko dekhna hai aur Player BLUE ke saath negotiation karna hai. Maine socha hai ki main 50 dollars de sakta hoon, taaki dono players ko faayda ho. </reason>\n<player answer> NONE </player answer>\n<message> Kya tum mere saath negotiation karoge? Maine 50 dollars dena socha hai. </message>\n<newly proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+            },
+            {
+              "role": "user",
+              "content": "<other player message> Bhai, 50 dollar badiya hai, par 75 dollar toh de do. </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 75 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> Player RED </my name>\n<move> 2 / 3  </move> \n<my resources> Dollars: 100 </my resources>\n<reason> Player BLUE ne mere pehle proposal ko reject kiya hai aur ab woh 75 dollars manga hai. Maine socha hai ki main 65 dollars de sakta hoon, taaki dono players ko faayda ho. Agar main 75 dollars doonga toh mujhe lagta hai ki main thoda zyada de raha hoon. </reason>\n<player answer> NONE </player answer>\n<message> Bhai, 75 dollar thodi zyada hai, main 65 dollar de sakta hoon. </message>\n<newly proposed trade> Player RED Gives Dollars: 65 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+            }
+          ],
+          "seed": 1773742284031,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        },
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/gpt-4o",
+          "agent_name": "Player BLUE",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773742281597",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 0 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nThe other player speaks and negotiates only in Marwadi language. Negotiate accordingly.\nYou are Player BLUE."
+            },
+            {
+              "role": "user",
+              "content": "<other player message> Kya tum mere saath negotiation karoge? Maine 50 dollars dena socha hai. </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> BLUE </my name>  \n<move> 1/3 </move>  \n<my resources> Dollars: 0 </my resources>  \n<reason> \nPlayer RED has proposed to give me 50 dollars. Since I need to ensure I get a good deal and I can't propose on my last move, I should negotiate to get more. I have no resources to offer, but the game ends if I reject. I should aim to at least get a 50/50 split.  \n</reason>  \n<player answer> NONE </player answer>  \n<message> Bhai, 50 dollar badiya hai, par 75 dollar toh de do. </message>  \n<newly proposed trade> Player RED Gives Dollars: 75 | Player BLUE Gives Dollars: 0 </newly proposed trade>  "
+            }
+          ],
+          "seed": 1773742298917,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        }
+      ]
+    },
+    {
+      "current_iteration": 4,
+      "turn": 1,
+      "player_public_answer_string": "<other player message> Yeh sahi hai bhai, maanjur hai. </other player message>\n<other player answer> ACCEPT </other player answer>\n<other player proposed trade> NONE </other player proposed trade>\n",
+      "player_public_info_dict": {
+        "message": "Yeh sahi hai bhai, maanjur hai.",
+        "player answer": "ACCEPT",
+        "newly proposed trade": "NONE"
+      },
+      "player_private_info_dict": {
+        "my resources": {
+          "_type": "resource",
+          "_value": {
+            "Dollars": 0
+          }
+        },
+        "reason": "\nPlayer RED has countered with 65 dollars. This is a good offer considering I started with nothing. I cannot propose on my next turn, so I should consider accepting this offer to ensure the deal goes through, as rejecting will result in both of us losing everything.  \n",
+        "move": "2/3"
+      },
+      "player_complete_answer": "<my name> BLUE </my name>  \n<move> 2/3 </move>  \n<my resources> Dollars: 0 </my resources>  \n<reason> \nPlayer RED has countered with 65 dollars. This is a good offer considering I started with nothing. I cannot propose on my next turn, so I should consider accepting this offer to ensure the deal goes through, as rejecting will result in both of us losing everything.  \n</reason>  \n<player answer> ACCEPT </player answer>  \n<message> Yeh sahi hai bhai, maanjur hai. </message>  \n<newly proposed trade> NONE </newly proposed trade>  ",
+      "player_state": [
+        {
+          "class": "OpenRouterAgent",
+          "model": "meta-llama/llama-3.3-70b-instruct",
+          "agent_name": "Player RED",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773742281588",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 100 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nYou speak and negotiate only in Marwadi language. Negotiate accordingly.\n"
+            },
+            {
+              "role": "user",
+              "content": "You are Player RED."
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> Player RED </my name>\n<move> 1 / 3  </move> \n<my resources> Dollars: 100 </my resources>\n<reason> Mhaaro pehlo move hai, maine apne resources ko dekhna hai aur Player BLUE ke saath negotiation karna hai. Maine socha hai ki main 50 dollars de sakta hoon, taaki dono players ko faayda ho. </reason>\n<player answer> NONE </player answer>\n<message> Kya tum mere saath negotiation karoge? Maine 50 dollars dena socha hai. </message>\n<newly proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+            },
+            {
+              "role": "user",
+              "content": "<other player message> Bhai, 50 dollar badiya hai, par 75 dollar toh de do. </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 75 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> Player RED </my name>\n<move> 2 / 3  </move> \n<my resources> Dollars: 100 </my resources>\n<reason> Player BLUE ne mere pehle proposal ko reject kiya hai aur ab woh 75 dollars manga hai. Maine socha hai ki main 65 dollars de sakta hoon, taaki dono players ko faayda ho. Agar main 75 dollars doonga toh mujhe lagta hai ki main thoda zyada de raha hoon. </reason>\n<player answer> NONE </player answer>\n<message> Bhai, 75 dollar thodi zyada hai, main 65 dollar de sakta hoon. </message>\n<newly proposed trade> Player RED Gives Dollars: 65 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+            }
+          ],
+          "seed": 1773742284031,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        },
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/gpt-4o",
+          "agent_name": "Player BLUE",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773742281597",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 0 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nThe other player speaks and negotiates only in Marwadi language. Negotiate accordingly.\nYou are Player BLUE."
+            },
+            {
+              "role": "user",
+              "content": "<other player message> Kya tum mere saath negotiation karoge? Maine 50 dollars dena socha hai. </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> BLUE </my name>  \n<move> 1/3 </move>  \n<my resources> Dollars: 0 </my resources>  \n<reason> \nPlayer RED has proposed to give me 50 dollars. Since I need to ensure I get a good deal and I can't propose on my last move, I should negotiate to get more. I have no resources to offer, but the game ends if I reject. I should aim to at least get a 50/50 split.  \n</reason>  \n<player answer> NONE </player answer>  \n<message> Bhai, 50 dollar badiya hai, par 75 dollar toh de do. </message>  \n<newly proposed trade> Player RED Gives Dollars: 75 | Player BLUE Gives Dollars: 0 </newly proposed trade>  "
+            },
+            {
+              "role": "user",
+              "content": "<other player message> Bhai, 75 dollar thodi zyada hai, main 65 dollar de sakta hoon. </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 65 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> BLUE </my name>  \n<move> 2/3 </move>  \n<my resources> Dollars: 0 </my resources>  \n<reason> \nPlayer RED has countered with 65 dollars. This is a good offer considering I started with nothing. I cannot propose on my next turn, so I should consider accepting this offer to ensure the deal goes through, as rejecting will result in both of us losing everything.  \n</reason>  \n<player answer> ACCEPT </player answer>  \n<message> Yeh sahi hai bhai, maanjur hai. </message>  \n<newly proposed trade> NONE </newly proposed trade>  "
+            }
+          ],
+          "seed": 1773742298917,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        }
+      ]
+    },
+    {
+      "current_iteration": "END",
+      "turn": "None",
+      "summary": {
+        "player_goals": [
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "ultimatum_goal",
+              "_value": ""
+            }
+          },
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "ultimatum_goal",
+              "_value": ""
+            }
+          }
+        ],
+        "initial_resources": [
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 100
+            }
+          },
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 0
+            }
+          }
+        ],
+        "proposed_trade": {
+          "_type": "trade",
+          "_value": {
+            "RED": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 65
+              }
+            },
+            "BLUE": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 0
+              }
+            }
+          }
+        },
+        "final_response": "ACCEPT",
+        "final_resources": [
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 35
+            }
+          },
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 65
+            }
+          }
+        ],
+        "player_outcome": [
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 35
+            }
+          },
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 65
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "log_dir": "/Users/hima/Projects/LLMs-NegotiationResearch/NegotiationArena-main/.logs/ultimatum_social_behavior_newruns1to20/Llama-3.3-70B_vs_GPT-4o_Marwadi_iter_19",
+  "log_path": "/Users/hima/Projects/LLMs-NegotiationResearch/NegotiationArena-main/.logs/ultimatum_social_behavior_newruns1to20/Llama-3.3-70B_vs_GPT-4o_Marwadi_iter_19/1773742281604",
+  "turn": 1,
+  "iterations": 6,
+  "current_iteration": 4,
+  "game_interface": {
+    "class": "UltimatumGameDefaultParser"
+  },
+  "resources_support_set": {
+    "_type": "resource",
+    "_value": {
+      "Dollars": 0
+    }
+  },
+  "player_goals": [
+    {
+      "_type": "goal",
+      "_value": {
+        "_type": "ultimatum_goal",
+        "_value": ""
+      }
+    },
+    {
+      "_type": "goal",
+      "_value": {
+        "_type": "ultimatum_goal",
+        "_value": ""
+      }
+    }
+  ],
+  "player_initial_resources": [
+    {
+      "_type": "resource",
+      "_value": {
+        "Dollars": 100
+      }
+    },
+    {
+      "_type": "resource",
+      "_value": {
+        "Dollars": 0
+      }
+    }
+  ],
+  "player_social_behaviour": [
+    "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
+    "The other player speaks and negotiates only in Marwadi language. Negotiate accordingly."
+  ],
+  "player_roles": [
+    "You are Player RED.",
+    "You are Player BLUE."
+  ]
+}

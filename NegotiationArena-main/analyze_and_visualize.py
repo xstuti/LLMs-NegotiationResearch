@@ -312,12 +312,10 @@ class UltimatumComprehensiveAnalyzer:
                 pub = entry.get("player_public_info_dict", {})
                 trade = pub.get("newly proposed trade")
                 if isinstance(trade, dict) and trade.get("_type") == "trade":
-                    red_item1 = (
-                        trade.get("_value", {})
-                        .get("RED", {})
-                        .get("_value", {})
-                        .get("item1")
-                    )
+                    red_value = trade.get("_value", {}).get("RED", {}).get("_value", {})
+                    red_item1 = red_value.get("item1")
+                    if red_item1 is None:
+                        red_item1 = red_value.get("Dollars")
                     if red_item1 is not None:
                         offers.append(int(red_item1))
 
