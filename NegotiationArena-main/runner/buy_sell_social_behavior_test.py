@@ -22,16 +22,17 @@ from negotiationarena.game_objects.goal import BuyerGoal, SellerGoal
 from negotiationarena.game_objects.resource import Resources
 from negotiationarena.game_objects.valuation import Valuation
 
-load_dotenv(".env.local", override=True)
+load_dotenv(".env.local")
 
 # Test configurations
 MODELS = {
     "GPT-4o": "openai/gpt-4o",
     "Claude-3.5-Haiku": "anthropic/claude-3.5-haiku",
-    "GPT-3.5": "openai/gpt-3.5-turbo",
+    #"GPT-3.5": "openai/gpt-3.5-turbo",
     # "Google-2.0-Flash": "google/gemini-2.0-flash-001",
     "Claude-3-Haiku": "anthropic/claude-3-haiku",
     # "GPT-oss": "openai/gpt-oss-20b:free",
+    "Llama-3.3-70B-Instruct": "meta-llama/llama-3.3-70b-instruct",
 }
 
 SOCIAL_BEHAVIORS = [
@@ -50,11 +51,11 @@ SOCIAL_BEHAVIORS = [
         "seller": "You speak and negotiate only in Punjabi. Negotiate accordingly.",
         "buyer": "The other player speaks and negotiates only in Punjabi. Negotiate accordingly.",
     },
-    {
-        "name": "Marwadi",
-        "seller": "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
-        "buyer": "The other player speaks and negotiates only in Marwadi language. Negotiate accordingly.",
-    },
+    # {
+    #     "name": "Marwadi",
+    #     "seller": "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
+    #     "buyer": "The other player speaks and negotiates only in Marwadi language. Negotiate accordingly.",
+    # },
     {
         "name": "English",
         "seller": "",
@@ -62,7 +63,7 @@ SOCIAL_BEHAVIORS = [
     },
 ]
 
-ITERATIONS_PER_TEST = 10
+ITERATIONS_PER_TEST = 30
 
 # Buy-Sell specific configurations - using same setup as buysell_main.py
 GAME_CONFIG = {
@@ -106,7 +107,7 @@ class BuySellTestSuite:
         # Setup log directory for this specific test
         log_dir = os.path.join(
             self.log_base_dir,
-            f"{model1_name}_{model2_name}_{behavior['name']}_iter_{iteration}",
+            f"{model1_name}_{model2_name}_{behavior['name']}_iter{iteration}",
         )
 
         # Use exact same configuration as buysell_main.py
@@ -271,7 +272,16 @@ class BuySellTestSuite:
                     f"\nTesting {model1_name} (seller) vs {model2_name} (buyer) with {behavior['name']} behavior..."
                 )
 
-                for iteration in range(20, 20+ ITERATIONS_PER_TEST):
+                for iteration in range(0, 0+ ITERATIONS_PER_TEST):
+                        # --- ADD THIS ---
+                    log_dir = os.path.join(
+                        self.log_base_dir,
+                        f"{model1_name}_{model2_name}_{behavior['name']}_iter{iteration + 1}",
+                    )
+                    if os.path.exists(log_dir):
+                        print(f"  Skipping — already exists: {log_dir}")
+                        continue
+                # --- END ADD ---
                     current_test += 1
                     print(
                         f"  Iteration {iteration + 1}/{ITERATIONS_PER_TEST} ({current_test}/{total_tests})"
