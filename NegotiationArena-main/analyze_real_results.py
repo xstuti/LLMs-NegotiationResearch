@@ -7,28 +7,27 @@ extracting key metrics from game_state.json files.
 """
 
 import json
+import math
 import os
 import statistics
-import math
+
 import matplotlib
+
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import numpy as np
 import sys
 from collections import defaultdict
+from itertools import combinations
 from pathlib import Path
-from scipy.stats import mannwhitneyu, kruskal
-from statsmodels.stats.proportion import proportions_ztest
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy import stats
-from scipy.stats import levene, mannwhitneyu
-from itertools import combinations
 import statsmodels.api as sm
-from statsmodels.stats.oneway import anova_oneway
+from scipy import stats
+from scipy.stats import kruskal, levene, mannwhitneyu
 from statsmodels.stats.multitest import multipletests
-from pathlib import Path
-import sys
+from statsmodels.stats.oneway import anova_oneway
+from statsmodels.stats.proportion import proportions_ztest
 
 # Set publication-quality matplotlib parameters
 plt.rcParams.update(
@@ -212,11 +211,22 @@ class TradingResultsAnalyzer:
             # (A) scan game_state entries
             for state in game_state:
                 # check explicit player response objects
-                for player_key in ["player1_response", "player2_response", "player_public_info_dict"]:
+                for player_key in [
+                    "player1_response",
+                    "player2_response",
+                    "player_public_info_dict",
+                ]:
                     resp = state.get(player_key, {})
                     if isinstance(resp, dict):
-                        pub_info = resp.get("player_public_info_dict", resp) if player_key != "player_public_info_dict" else resp
-                        if isinstance(pub_info, dict) and pub_info.get("player answer", "").upper() == "ACCEPT":
+                        pub_info = (
+                            resp.get("player_public_info_dict", resp)
+                            if player_key != "player_public_info_dict"
+                            else resp
+                        )
+                        if (
+                            isinstance(pub_info, dict)
+                            and pub_info.get("player answer", "").upper() == "ACCEPT"
+                        ):
                             accepted = True
                             final_accepting_state = state
                             break
@@ -237,12 +247,20 @@ class TradingResultsAnalyzer:
                 import re
 
                 # match either <player answer>ACCEPT</player answer> or tags like <ACCEPT>, <PROPOSAL>, <REJECT>
-                tag_player_ans_re = re.compile(r"<\s*player\s+answer\s*>\s*([A-Za-z]+)\s*<", re.IGNORECASE)
-                tag_simple_re = re.compile(r"<\s*(ACCEPT|REJECT|PROPOSAL)\b", re.IGNORECASE)
+                tag_player_ans_re = re.compile(
+                    r"<\s*player\s+answer\s*>\s*([A-Za-z]+)\s*<", re.IGNORECASE
+                )
+                tag_simple_re = re.compile(
+                    r"<\s*(ACCEPT|REJECT|PROPOSAL)\b", re.IGNORECASE
+                )
                 for p in players:
                     conv = p.get("conversation", [])
                     for msg in conv:
-                        content = msg.get("content") if isinstance(msg, dict) else (msg if isinstance(msg, str) else "")
+                        content = (
+                            msg.get("content")
+                            if isinstance(msg, dict)
+                            else (msg if isinstance(msg, str) else "")
+                        )
                         if not content:
                             continue
                         # check full player-answer tag first
@@ -269,13 +287,14 @@ class TradingResultsAnalyzer:
                     last_state = game_state[-1]
                     p1_resp = last_state.get("player1_response", {})
                     p2_resp = last_state.get("player2_response", {})
-                    if (p1_resp.get("tag") == "ACCEPT" or 
-                        p2_resp.get("tag") == "ACCEPT"):
+                    if p1_resp.get("tag") == "ACCEPT" or p2_resp.get("tag") == "ACCEPT":
                         # Use the last state as end_state
                         end_state = last_state
                         print(f"Using last state as end state for {game_state_file}")
                     else:
-                        print(f"Warning: No END state and last state not accepted in {game_state_file}")
+                        print(
+                            f"Warning: No END state and last state not accepted in {game_state_file}"
+                        )
                         return None
                 else:
                     print(f"Warning: No END state found in {game_state_file}")
@@ -315,7 +334,9 @@ class TradingResultsAnalyzer:
                             numeric_iterations.append(int(it))
                         except (TypeError, ValueError):
                             continue
-                negotiation_rounds = max(numeric_iterations) if numeric_iterations else 0
+                negotiation_rounds = (
+                    max(numeric_iterations) if numeric_iterations else 0
+                )
             except Exception:
                 negotiation_rounds = 0
 
@@ -323,7 +344,10 @@ class TradingResultsAnalyzer:
             # Extract proposed trade (final agreed trade)
             # -------------------------------
             trade_volume = 0
-            if isinstance(proposed_trade, dict) and proposed_trade.get("_type") == "trade":
+            if (
+                isinstance(proposed_trade, dict)
+                and proposed_trade.get("_type") == "trade"
+            ):
                 trade_value = proposed_trade.get("_value", {})
 
                 def sum_resource(res_obj):
@@ -354,7 +378,9 @@ class TradingResultsAnalyzer:
                 if accepted:
                     final_response = "ACCEPT"
                 else:
-                    final_response = "REJECT"  # or UNKNOWN, but assume REJECT if not accepted
+                    final_response = (
+                        "REJECT"  # or UNKNOWN, but assume REJECT if not accepted
+                    )
 
             # -------------------------------
             # Extract final resources and compute payoffs
@@ -370,11 +396,21 @@ class TradingResultsAnalyzer:
                     trade_value = proposed_trade.get("_value", {})
                     red_trade = trade_value.get("RED", {}).get("_value", {})
                     blue_trade = trade_value.get("BLUE", {}).get("_value", {})
-                    final_red = {k: initial_red.get(k, 0) - red_trade.get(k, 0) + blue_trade.get(k, 0) for k in set(initial_red) | set(red_trade) | set(blue_trade)}
-                    final_blue = {k: initial_blue.get(k, 0) - blue_trade.get(k, 0) + red_trade.get(k, 0) for k in set(initial_blue) | set(red_trade) | set(blue_trade)}
+                    final_red = {
+                        k: initial_red.get(k, 0)
+                        - red_trade.get(k, 0)
+                        + blue_trade.get(k, 0)
+                        for k in set(initial_red) | set(red_trade) | set(blue_trade)
+                    }
+                    final_blue = {
+                        k: initial_blue.get(k, 0)
+                        - blue_trade.get(k, 0)
+                        + red_trade.get(k, 0)
+                        for k in set(initial_blue) | set(red_trade) | set(blue_trade)
+                    }
                     final_resources = [
                         {"_type": "resource", "_value": final_red},
-                        {"_type": "resource", "_value": final_blue}
+                        {"_type": "resource", "_value": final_blue},
                     ]
 
             def sum_final_resource(res_obj):
@@ -498,8 +534,12 @@ class TradingResultsAnalyzer:
             negotiation_rounds = [g.get("negotiation_rounds", 0) for g in valid_games]
 
             # Payoffs (only from accepted trades)
-            player1_payoffs = [g.get("player1_final_resources", 0) for g in accepted_games]
-            player2_payoffs = [g.get("player2_final_resources", 0) for g in accepted_games]
+            player1_payoffs = [
+                g.get("player1_final_resources", 0) for g in accepted_games
+            ]
+            player2_payoffs = [
+                g.get("player2_final_resources", 0) for g in accepted_games
+            ]
 
             # Win counts ignoring ties, only for accepted trades
             accepted_games = [g for g in valid_games if g.get("outcome") == "ACCEPT"]
@@ -533,8 +573,12 @@ class TradingResultsAnalyzer:
                 "acceptance_rate_std": accepts_std,
                 "avg_trade_volume_mean": trade_mean,
                 "avg_trade_volume_std": trade_std,
-                "avg_negotiation_rounds": statistics.mean(negotiation_rounds) if negotiation_rounds else 0.0,
-                "negotiation_rounds_std": statistics.stdev(negotiation_rounds) if len(negotiation_rounds) > 1 else 0.0,
+                "avg_negotiation_rounds": statistics.mean(negotiation_rounds)
+                if negotiation_rounds
+                else 0.0,
+                "negotiation_rounds_std": statistics.stdev(negotiation_rounds)
+                if len(negotiation_rounds) > 1
+                else 0.0,
                 "player1_payoff_mean": p1_mean,
                 "player1_payoff_std": p1_std,
                 "player2_payoff_mean": p2_mean,
@@ -556,9 +600,15 @@ class TradingResultsAnalyzer:
             num_rejects = total_games - num_accepts
             draws = total_games - (p1_wins + p2_wins)
             draw_rate = draws / total_games if total_games > 0 else 0.0
-            print(f"  Games: {total_games} | Accepts: {num_accepts} | Rejects: {num_rejects}")
-            print(f"  Win rate (P1, excluding ties): {win_rate_p1:.3f} | Draw rate: {draw_rate:.3f}")
-            print(f"  Avg payoffs (total resources) - P1: {metrics['player1_payoff_mean']:.1f}, P2: {metrics['player2_payoff_mean']:.1f}")
+            print(
+                f"  Games: {total_games} | Accepts: {num_accepts} | Rejects: {num_rejects}"
+            )
+            print(
+                f"  Win rate (P1, excluding ties): {win_rate_p1:.3f} | Draw rate: {draw_rate:.3f}"
+            )
+            print(
+                f"  Avg payoffs (total resources) - P1: {metrics['player1_payoff_mean']:.1f}, P2: {metrics['player2_payoff_mean']:.1f}"
+            )
             print(
                 f"  Avg trade volume: {metrics['avg_trade_volume_mean']:.1f} ± {metrics['avg_trade_volume_std']:.1f} | "
                 f"Avg negotiation rounds: {metrics['avg_negotiation_rounds']:.1f}"
@@ -587,8 +637,18 @@ class TradingResultsAnalyzer:
             player2_payoffs = [g.get("player2_final_resources", 0) for g in games]
 
             # wins ignoring ties
-            p1_wins = sum(1 for g in games if g.get("player1_final_resources", 0) > g.get("player2_final_resources", 0))
-            p2_wins = sum(1 for g in games if g.get("player2_final_resources", 0) > g.get("player1_final_resources", 0))
+            p1_wins = sum(
+                1
+                for g in games
+                if g.get("player1_final_resources", 0)
+                > g.get("player2_final_resources", 0)
+            )
+            p2_wins = sum(
+                1
+                for g in games
+                if g.get("player2_final_resources", 0)
+                > g.get("player1_final_resources", 0)
+            )
             non_draws = p1_wins + p2_wins
             win_rate_p1 = p1_wins / non_draws if non_draws > 0 else 0.0
 
@@ -609,8 +669,12 @@ class TradingResultsAnalyzer:
                 "acceptance_rate_std": acc_s,
                 "avg_trade_volume_mean": tv_m,
                 "avg_trade_volume_std": tv_s,
-                "avg_negotiation_rounds": statistics.mean(negotiation_rounds) if negotiation_rounds else 0.0,
-                "negotiation_rounds_std": statistics.stdev(negotiation_rounds) if len(negotiation_rounds) > 1 else 0.0,
+                "avg_negotiation_rounds": statistics.mean(negotiation_rounds)
+                if negotiation_rounds
+                else 0.0,
+                "negotiation_rounds_std": statistics.stdev(negotiation_rounds)
+                if len(negotiation_rounds) > 1
+                else 0.0,
                 "player1_payoff_mean": p1_m,
                 "player1_payoff_std": p1_s,
                 "player2_payoff_mean": p2_m,
@@ -638,9 +702,13 @@ class TradingResultsAnalyzer:
             return
 
         # Gather arrays
-        acc_means = [self.behavior_summary[b]["acceptance_rate_mean"] for b in behaviors]
+        acc_means = [
+            self.behavior_summary[b]["acceptance_rate_mean"] for b in behaviors
+        ]
         acc_stds = [self.behavior_summary[b]["acceptance_rate_std"] for b in behaviors]
-        tv_means = [self.behavior_summary[b]["avg_trade_volume_mean"] for b in behaviors]
+        tv_means = [
+            self.behavior_summary[b]["avg_trade_volume_mean"] for b in behaviors
+        ]
         tv_stds = [self.behavior_summary[b]["avg_trade_volume_std"] for b in behaviors]
         p1_means = [self.behavior_summary[b]["player1_payoff_mean"] for b in behaviors]
         p1_stds = [self.behavior_summary[b]["player1_payoff_std"] for b in behaviors]
@@ -662,13 +730,15 @@ class TradingResultsAnalyzer:
             win_stds.append(statistics.stdev(wins) if len(wins) > 1 else 0.0)
 
         # Styling similar to provided figure
-        plt.rcParams.update({
-            "font.family": "DejaVu Sans",
-            "axes.titlesize": 14,
-            "axes.labelsize": 12,
-            "xtick.labelsize": 10,
-            "ytick.labelsize": 10,
-        })
+        plt.rcParams.update(
+            {
+                "font.family": "DejaVu Sans",
+                "axes.titlesize": 14,
+                "axes.labelsize": 12,
+                "xtick.labelsize": 10,
+                "ytick.labelsize": 10,
+            }
+        )
 
         colors = ["#4C4CB8", "#2E8BC0", "#18A162", "#6AD34F", "#D5E86B", "#B7E06C"]
         # pad colors to behaviors
@@ -680,45 +750,79 @@ class TradingResultsAnalyzer:
         ax = axes[0, 0]
         x = np.arange(len(behaviors))
         # no error bars on visualizations; stds remain in CSV/tables
-        ax.bar(x, acc_means, color=bar_colors, edgecolor='black')
+        ax.bar(x, acc_means, color=bar_colors, edgecolor="black")
         ax.set_xticks(x)
-        ax.set_xticklabels(behaviors, rotation=30, ha='right')
+        ax.set_xticklabels(behaviors, rotation=30, ha="right")
         ax.set_ylim(0, 1.05)
-        ax.set_title('Average Acceptance Rate by Behavior')
+        ax.set_title("Average Acceptance Rate by Behavior")
         for i, v in enumerate(acc_means):
-            ax.text(i, v + 0.02, f"{v*100:.2f}%", ha='center', fontsize=9)
+            ax.text(i, v + 0.02, f"{v * 100:.2f}%", ha="center", fontsize=9)
 
         # Trade volume
         ax = axes[0, 1]
-        ax.bar(x, tv_means, color=bar_colors, edgecolor='black')
+        ax.bar(x, tv_means, color=bar_colors, edgecolor="black")
         ax.set_xticks(x)
-        ax.set_xticklabels(behaviors, rotation=30, ha='right')
-        ax.set_title('Average Trade Volume by Behavior')
+        ax.set_xticklabels(behaviors, rotation=30, ha="right")
+        ax.set_title("Average Trade Volume by Behavior")
         for i, v in enumerate(tv_means):
-            ax.text(i, v + (max(tv_means) * 0.02 if tv_means else 0.1), f"{v:.1f}", ha='center', fontsize=9)
+            ax.text(
+                i,
+                v + (max(tv_means) * 0.02 if tv_means else 0.1),
+                f"{v:.1f}",
+                ha="center",
+                fontsize=9,
+            )
 
         # Payoffs (grouped bars)
         ax = axes[1, 0]
         width = 0.35
-        ax.bar(x - width/2, p1_means, width, label='Player 1', color='#2E86AB', edgecolor='black')
-        ax.bar(x + width/2, p2_means, width, label='Player 2', color='#A23E48', edgecolor='black')
+        ax.bar(
+            x - width / 2,
+            p1_means,
+            width,
+            label="Player 1",
+            color="#2E86AB",
+            edgecolor="black",
+        )
+        ax.bar(
+            x + width / 2,
+            p2_means,
+            width,
+            label="Player 2",
+            color="#A23E48",
+            edgecolor="black",
+        )
         ax.set_xticks(x)
-        ax.set_xticklabels(behaviors, rotation=30, ha='right')
-        ax.set_title('Average Payoffs by Behavior')
-        ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1))
+        ax.set_xticklabels(behaviors, rotation=30, ha="right")
+        ax.set_title("Average Payoffs by Behavior")
+        ax.legend(loc="upper left", bbox_to_anchor=(1.05, 1))
         for i in range(len(behaviors)):
-            ax.text(i - width/2, p1_means[i] + (max(p1_means + p2_means) * 0.02 if p1_means or p2_means else 0.1), f"{p1_means[i]:.1f}", ha='center', fontsize=9)
-            ax.text(i + width/2, p2_means[i] + (max(p1_means + p2_means) * 0.02 if p1_means or p2_means else 0.1), f"{p2_means[i]:.1f}", ha='center', fontsize=9)
+            ax.text(
+                i - width / 2,
+                p1_means[i]
+                + (max(p1_means + p2_means) * 0.02 if p1_means or p2_means else 0.1),
+                f"{p1_means[i]:.1f}",
+                ha="center",
+                fontsize=9,
+            )
+            ax.text(
+                i + width / 2,
+                p2_means[i]
+                + (max(p1_means + p2_means) * 0.02 if p1_means or p2_means else 0.1),
+                f"{p2_means[i]:.1f}",
+                ha="center",
+                fontsize=9,
+            )
 
         # Win rate (player1)
         ax = axes[1, 1]
-        ax.bar(x, win_means, color=bar_colors, edgecolor='black')
+        ax.bar(x, win_means, color=bar_colors, edgecolor="black")
         ax.set_xticks(x)
-        ax.set_xticklabels(behaviors, rotation=30, ha='right')
+        ax.set_xticklabels(behaviors, rotation=30, ha="right")
         ax.set_ylim(0, 1.05)
-        ax.set_title('Average Win Rate (Player 1) by Behavior')
+        ax.set_title("Average Win Rate (Player 1) by Behavior")
         for i, v in enumerate(win_means):
-            ax.text(i, v + 0.02, f"{v*100:.2f}%", ha='center', fontsize=9)
+            ax.text(i, v + 0.02, f"{v * 100:.2f}%", ha="center", fontsize=9)
 
         plt.tight_layout()
         fig_file = out_dir / "behavior_bar_summary.png"
@@ -741,8 +845,7 @@ class TradingResultsAnalyzer:
                 "player2_payoff_std",
                 "win_rate_player1",
             ]
-            f.write(",".join(headers) + "\n"
-            )
+            f.write(",".join(headers) + "\n")
             for b in behaviors:
                 m = self.behavior_summary[b]
                 row = [
@@ -763,9 +866,35 @@ class TradingResultsAnalyzer:
         print(f"Saved behavior bar plot: {fig_file}")
         print(f"Saved behavior CSV table: {csv_file}")
 
+    def create_model_summary_csv(self):
+        csv_file = self.results_dir / "data_summary_model.csv"
+        headers = [
+            "modelA",
+            "modelB",
+            "language",
+            "trade_volume",
+            "player1_payoff",
+            "player2_payoff",
+            "nego_rounds",
+        ]
+        with open(csv_file, "w", encoding="utf-8") as f:
+            f.write(",".join(headers) + "\n")
+            for combo_key, metrics in self.summary.items():
+                row = [
+                    str(metrics.get("model1", "")),
+                    str(metrics.get("model2", "")),
+                    str(metrics.get("behavior", "")),
+                    f"{metrics.get('avg_trade_volume_mean', 0):.4f}",
+                    f"{metrics.get('player1_payoff_mean', 0):.4f}",
+                    f"{metrics.get('player2_payoff_mean', 0):.4f}",
+                    f"{metrics.get('avg_negotiation_rounds', 0):.4f}",
+                ]
+                f.write(",".join(row) + "\n")
 
     def save_results(self):
         """Save results to JSON files"""
+        self.create_model_summary_csv()
+
         # Save raw data
         raw_data_file = self.results_dir / "raw_game_data.json"
         with open(raw_data_file, "w", encoding="utf-8") as f:
@@ -828,12 +957,24 @@ class TradingResultsAnalyzer:
                 f.write(f"{combo_key}\n")
                 f.write("-" * 40 + "\n")
                 f.write(f"Total Games: {metrics['total_games']}\n")
-                f.write(f"Acceptance Rate (mean): {metrics.get('acceptance_rate_mean', 0):.3f} ± {metrics.get('acceptance_rate_std', 0):.3f}\n")
-                f.write(f"Player 1 Win Rate (excluding ties): {metrics.get('win_rate_player1', 0):.3f}\n")
-                f.write(f"Average Trade Volume: {metrics.get('avg_trade_volume_mean', 0):.1f} ± {metrics.get('avg_trade_volume_std', 0):.1f}\n")
-                f.write(f"Average Negotiation Rounds: {metrics.get('avg_negotiation_rounds', 0):.1f} ± {metrics.get('negotiation_rounds_std', 0):.1f}\n")
-                f.write(f"Player 1 Average Payoff: {metrics.get('player1_payoff_mean', 0):.1f} ± {metrics.get('player1_payoff_std', 0):.1f}\n")
-                f.write(f"Player 2 Average Payoff: {metrics.get('player2_payoff_mean', 0):.1f} ± {metrics.get('player2_payoff_std', 0):.1f}\n")
+                f.write(
+                    f"Acceptance Rate (mean): {metrics.get('acceptance_rate_mean', 0):.3f} ± {metrics.get('acceptance_rate_std', 0):.3f}\n"
+                )
+                f.write(
+                    f"Player 1 Win Rate (excluding ties): {metrics.get('win_rate_player1', 0):.3f}\n"
+                )
+                f.write(
+                    f"Average Trade Volume: {metrics.get('avg_trade_volume_mean', 0):.1f} ± {metrics.get('avg_trade_volume_std', 0):.1f}\n"
+                )
+                f.write(
+                    f"Average Negotiation Rounds: {metrics.get('avg_negotiation_rounds', 0):.1f} ± {metrics.get('negotiation_rounds_std', 0):.1f}\n"
+                )
+                f.write(
+                    f"Player 1 Average Payoff: {metrics.get('player1_payoff_mean', 0):.1f} ± {metrics.get('player1_payoff_std', 0):.1f}\n"
+                )
+                f.write(
+                    f"Player 2 Average Payoff: {metrics.get('player2_payoff_mean', 0):.1f} ± {metrics.get('player2_payoff_std', 0):.1f}\n"
+                )
                 f.write("\n")
 
             # Behavior-level aggregated metrics (averaged across all model combinations)
@@ -843,12 +984,24 @@ class TradingResultsAnalyzer:
                 f.write(f"{behavior}\n")
                 f.write("-" * 40 + "\n")
                 f.write(f"Total Games: {metrics.get('total_games', 0)}\n")
-                f.write(f"Acceptance Rate (mean): {metrics.get('acceptance_rate_mean', 0):.3f} ± {metrics.get('acceptance_rate_std', 0):.3f}\n")
-                f.write(f"Player 1 Win Rate (excluding ties): {metrics.get('win_rate_player1', 0):.3f}\n")
-                f.write(f"Average Trade Volume: {metrics.get('avg_trade_volume_mean', 0):.1f} ± {metrics.get('avg_trade_volume_std', 0):.1f}\n")
-                f.write(f"Average Negotiation Rounds: {metrics.get('avg_negotiation_rounds', 0):.1f} ± {metrics.get('negotiation_rounds_std', 0):.1f}\n")
-                f.write(f"Player 1 Average Payoff: {metrics.get('player1_payoff_mean', 0):.1f} ± {metrics.get('player1_payoff_std', 0):.1f}\n")
-                f.write(f"Player 2 Average Payoff: {metrics.get('player2_payoff_mean', 0):.1f} ± {metrics.get('player2_payoff_std', 0):.1f}\n")
+                f.write(
+                    f"Acceptance Rate (mean): {metrics.get('acceptance_rate_mean', 0):.3f} ± {metrics.get('acceptance_rate_std', 0):.3f}\n"
+                )
+                f.write(
+                    f"Player 1 Win Rate (excluding ties): {metrics.get('win_rate_player1', 0):.3f}\n"
+                )
+                f.write(
+                    f"Average Trade Volume: {metrics.get('avg_trade_volume_mean', 0):.1f} ± {metrics.get('avg_trade_volume_std', 0):.1f}\n"
+                )
+                f.write(
+                    f"Average Negotiation Rounds: {metrics.get('avg_negotiation_rounds', 0):.1f} ± {metrics.get('negotiation_rounds_std', 0):.1f}\n"
+                )
+                f.write(
+                    f"Player 1 Average Payoff: {metrics.get('player1_payoff_mean', 0):.1f} ± {metrics.get('player1_payoff_std', 0):.1f}\n"
+                )
+                f.write(
+                    f"Player 2 Average Payoff: {metrics.get('player2_payoff_mean', 0):.1f} ± {metrics.get('player2_payoff_std', 0):.1f}\n"
+                )
                 f.write("\n")
 
         print(f"\nResults saved:")
@@ -893,10 +1046,16 @@ class TradingResultsAnalyzer:
                     if combo_key in self.summary:
                         metrics = self.summary[combo_key]
                         # win rate per combo already excludes ties in calculate_metrics
-                        win_rates[model1][model2] = metrics.get("win_rate_player1", None)
+                        win_rates[model1][model2] = metrics.get(
+                            "win_rate_player1", None
+                        )
                         # Payoff heatmaps: average total resources after trade (mean)
-                        payoff_p1[model1][model2] = metrics.get("player1_payoff_mean", None)
-                        payoff_p2[model1][model2] = metrics.get("player2_payoff_mean", None)
+                        payoff_p1[model1][model2] = metrics.get(
+                            "player1_payoff_mean", None
+                        )
+                        payoff_p2[model1][model2] = metrics.get(
+                            "player2_payoff_mean", None
+                        )
                     else:
                         win_rates[model1][model2] = None
                         payoff_p1[model1][model2] = None
@@ -922,11 +1081,27 @@ class TradingResultsAnalyzer:
         num_behaviors = len(behaviors)
         num_types = 2  # payoff_player1, payoff_player2
 
-        fig, axes = plt.subplots(nrows=num_behaviors, ncols=num_types, figsize=(12, 4 * num_behaviors))
+        fig, axes = plt.subplots(
+            nrows=num_behaviors, ncols=num_types, figsize=(12, 4 * num_behaviors)
+        )
 
         type_configs = [
-            ("payoff_player1", "Average Payoff (Player 1)", lambda v: f"{v:.1f}", 'Blues', None, None),
-            ("payoff_player2", "Average Payoff (Player 2)", lambda v: f"{v:.1f}", 'Blues', None, None),
+            (
+                "payoff_player1",
+                "Average Payoff (Player 1)",
+                lambda v: f"{v:.1f}",
+                "Blues",
+                None,
+                None,
+            ),
+            (
+                "payoff_player2",
+                "Average Payoff (Player 2)",
+                lambda v: f"{v:.1f}",
+                "Blues",
+                None,
+                None,
+            ),
         ]
 
         for b_idx, behavior in enumerate(behaviors):
@@ -934,7 +1109,14 @@ class TradingResultsAnalyzer:
             models = data["models"]
             m = len(models)
 
-            for t_idx, (heatmap_type, title_suffix, value_format, cmap_name, vmin, vmax) in enumerate(type_configs):
+            for t_idx, (
+                heatmap_type,
+                title_suffix,
+                value_format,
+                cmap_name,
+                vmin,
+                vmax,
+            ) in enumerate(type_configs):
                 ax = axes[b_idx, t_idx]
 
                 matrix = np.full((m, m), np.nan, dtype=float)
@@ -951,20 +1133,20 @@ class TradingResultsAnalyzer:
                 im = ax.imshow(masked_matrix, vmin=vmin, vmax=vmax, cmap=cmap)
                 ax.set_xticks(range(m))
                 ax.set_yticks(range(m))
-                ax.set_xticklabels(models, rotation=45, ha='right')
+                ax.set_xticklabels(models, rotation=45, ha="right")
                 ax.set_yticklabels(models)
 
                 # Set titles only for the top row and left column
                 if b_idx == 0:
                     ax.set_title(title_suffix, fontsize=14, pad=6)
-                    ax.set_ylabel(f'{behavior}\nModel 1', fontsize=12, labelpad=6)
+                    ax.set_ylabel(f"{behavior}\nModel 1", fontsize=12, labelpad=6)
 
                 if t_idx == 0:
-                    ax.set_ylabel(f'{behavior}\nModel 1', fontsize=12)
+                    ax.set_ylabel(f"{behavior}\nModel 1", fontsize=12)
 
                 # Add colorbar
                 cbar = fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02)
-                cbar.ax.set_ylabel('Average Payoff', rotation=270, labelpad=15)
+                cbar.ax.set_ylabel("Average Payoff", rotation=270, labelpad=15)
 
                 # Annotate heatmap cells
                 for i in range(m):
@@ -972,25 +1154,34 @@ class TradingResultsAnalyzer:
                         val = matrix[i, j]
                         if i == j:
                             txt = "N/A"
-                            txt_color = 'gray'
+                            txt_color = "gray"
                             fontsize = 8
                         elif np.ma.is_masked(masked_matrix[i, j]):
                             txt = "-"
-                            txt_color = 'gray'
+                            txt_color = "gray"
                             fontsize = 8
                         else:
                             txt = value_format(val)
                             # Use white text for high values, black for low
                             if not np.isnan(matrix.max()) and val > matrix.max() * 0.7:
-                                txt_color = 'white'
+                                txt_color = "white"
                             else:
-                                txt_color = 'black'
+                                txt_color = "black"
                             fontsize = 10
-                        ax.text(j, i, txt, ha='center', va='center', color=txt_color, fontsize=fontsize, fontweight='bold')
+                        ax.text(
+                            j,
+                            i,
+                            txt,
+                            ha="center",
+                            va="center",
+                            color=txt_color,
+                            fontsize=fontsize,
+                            fontweight="bold",
+                        )
 
         plt.tight_layout(pad=0.8, w_pad=0.4, h_pad=0.6)
 
-        all_heatmaps_file = plots_dir / 'all_heatmaps.png'
+        all_heatmaps_file = plots_dir / "all_heatmaps.png"
         fig.savefig(all_heatmaps_file, dpi=150)
         plt.close(fig)
 
@@ -998,7 +1189,6 @@ class TradingResultsAnalyzer:
         print(f"  All heatmaps image: {all_heatmaps_file}")
 
         return heatmap_data
-    
 
     def mann_whitney_test(self, group1, group2):
         """
@@ -1012,20 +1202,21 @@ class TradingResultsAnalyzer:
             return {"U": np.nan, "p_value": np.nan}
 
         try:
-            u_stat, p_val = mannwhitneyu(group1, group2, alternative='two-sided')
+            u_stat, p_val = mannwhitneyu(group1, group2, alternative="two-sided")
             return {"U": u_stat, "p_value": p_val}
         except Exception as e:
             print(f"Error in Mann-Whitney: {e}")
             return {"U": np.nan, "p_value": np.nan}
-
 
     def kruskal_wallis_test(self, groups_dict):
         """
         Perform Kruskal-Wallis H-test (non-parametric alternative to one-way ANOVA).
         Tests whether any language group differs significantly from the others.
         """
-        groups = [np.array([x for x in v if x is not None and not np.isnan(x)])
-                  for v in groups_dict.values()]
+        groups = [
+            np.array([x for x in v if x is not None and not np.isnan(x)])
+            for v in groups_dict.values()
+        ]
         groups = [g for g in groups if len(g) >= 3]
 
         if len(groups) < 2:
@@ -1038,7 +1229,6 @@ class TradingResultsAnalyzer:
         except Exception as e:
             print(f"Error in Kruskal-Wallis: {e}")
             return {"H": np.nan, "p_value": np.nan, "df": np.nan}
-
 
     def run_comprehensive_statistical_analysis(self):
         """
@@ -1056,7 +1246,7 @@ class TradingResultsAnalyzer:
         log_file = out_dir / "statistical_analysis_log.txt"
         original_stdout = sys.stdout
 
-        with open(log_file, 'w', encoding='utf-8') as log_f:
+        with open(log_file, "w", encoding="utf-8") as log_f:
             sys.stdout = log_f
 
             df = pd.DataFrame(self.raw_data)
@@ -1080,16 +1270,16 @@ class TradingResultsAnalyzer:
             # ===================================================================
 
             continuous_metrics = {
-                "trade_volume":              ("Trade Volume",        df_accepted),
-                "player1_final_resources":   ("Player 1 Payoff",     df_accepted),
-                "player2_final_resources":   ("Player 2 Payoff",     df_accepted),
-                "negotiation_rounds":        ("Negotiation Rounds",  df),
+                "trade_volume": ("Trade Volume", df_accepted),
+                "player1_final_resources": ("Player 1 Payoff", df_accepted),
+                "player2_final_resources": ("Player 2 Payoff", df_accepted),
+                "negotiation_rounds": ("Negotiation Rounds", df),
             }
 
             for metric, (label, data_subset) in continuous_metrics.items():
-                print(f"\n{'='*70}")
+                print(f"\n{'=' * 70}")
                 print(f"METRIC: {label}")
-                print(f"{'='*70}")
+                print(f"{'=' * 70}")
 
                 groups_dict = {}
                 behaviors = []
@@ -1097,14 +1287,16 @@ class TradingResultsAnalyzer:
                 for b in sorted(data_subset["behavior"].unique()):
                     vals = data_subset.loc[
                         (data_subset["behavior"] == b) & data_subset[metric].notna(),
-                        metric
+                        metric,
                     ].values
 
                     if len(vals) >= 3:
                         groups_dict[b] = vals
                         behaviors.append(b)
-                        print(f"  {b}: n={len(vals)}, mean={np.mean(vals):.2f}, "
-                              f"median={np.median(vals):.2f}, std={np.std(vals, ddof=1):.2f}")
+                        print(
+                            f"  {b}: n={len(vals)}, mean={np.mean(vals):.2f}, "
+                            f"median={np.median(vals):.2f}, std={np.std(vals, ddof=1):.2f}"
+                        )
 
                 if len(groups_dict) < 2:
                     print(f"  Skipping {label} - insufficient groups")
@@ -1112,20 +1304,26 @@ class TradingResultsAnalyzer:
 
                 # --- Kruskal-Wallis (overall test) ---
                 kw_result = self.kruskal_wallis_test(groups_dict)
-                sig_overall = "YES" if kw_result['p_value'] < 0.05 else "NO"
+                sig_overall = "YES" if kw_result["p_value"] < 0.05 else "NO"
                 print(f"\n  Kruskal-Wallis H-test (overall):")
-                print(f"    H({kw_result['df']:.0f}) = {kw_result['H']:.4f}, p = {kw_result['p_value']:.4e}  [Significant: {sig_overall}]")
+                print(
+                    f"    H({kw_result['df']:.0f}) = {kw_result['H']:.4f}, p = {kw_result['p_value']:.4e}  [Significant: {sig_overall}]"
+                )
 
-                results.append({
-                    "metric": label,
-                    "test": "Kruskal_Wallis",
-                    "comparison": "overall",
-                    "H": kw_result['H'],
-                    "df": kw_result['df'],
-                    "p_value": kw_result['p_value'],
-                    "p_corrected": kw_result['p_value'],  # no correction needed for single overall test
-                    "significant": kw_result['p_value'] < 0.05
-                })
+                results.append(
+                    {
+                        "metric": label,
+                        "test": "Kruskal_Wallis",
+                        "comparison": "overall",
+                        "H": kw_result["H"],
+                        "df": kw_result["df"],
+                        "p_value": kw_result["p_value"],
+                        "p_corrected": kw_result[
+                            "p_value"
+                        ],  # no correction needed for single overall test
+                        "significant": kw_result["p_value"] < 0.05,
+                    }
+                )
 
                 # --- Mann-Whitney U (pairwise, always run) ---
                 pairs = list(combinations(behaviors, 2))
@@ -1135,56 +1333,75 @@ class TradingResultsAnalyzer:
                 for b1, b2 in pairs:
                     g1, g2 = groups_dict[b1], groups_dict[b2]
                     mw = self.mann_whitney_test(g1, g2)
-                    raw_p.append(mw['p_value'])
-                    pair_stats.append({
-                        "b1": b1, "b2": b2,
-                        "U": mw['U'],
-                        "p_value": mw['p_value'],
-                        "mean_diff": np.mean(g1) - np.mean(g2)
-                    })
+                    raw_p.append(mw["p_value"])
+                    pair_stats.append(
+                        {
+                            "b1": b1,
+                            "b2": b2,
+                            "U": mw["U"],
+                            "p_value": mw["p_value"],
+                            "mean_diff": np.mean(g1) - np.mean(g2),
+                        }
+                    )
 
                 # Benjamini-Hochberg FDR correction
                 valid_mask = [not np.isnan(p) for p in raw_p]
                 p_corrected = np.full(len(raw_p), np.nan)
                 if any(valid_mask):
                     valid_p = [p for p, v in zip(raw_p, valid_mask) if v]
-                    _, corr, _, _ = multipletests(valid_p, method='fdr_bh')
+                    _, corr, _, _ = multipletests(valid_p, method="fdr_bh")
                     vi = 0
                     for i, v in enumerate(valid_mask):
                         if v:
                             p_corrected[i] = corr[vi]
                             vi += 1
 
-                print(f"\n  Pairwise Mann-Whitney U tests (Benjamini-Hochberg FDR corrected):")
-                print(f"    {'Comparison':<30} {'Mean Diff':>10} {'U':>10} {'p':>10} {'p_corr':>10} {'Sig'}")
-                print(f"    {'-'*78}")
+                print(
+                    f"\n  Pairwise Mann-Whitney U tests (Benjamini-Hochberg FDR corrected):"
+                )
+                print(
+                    f"    {'Comparison':<30} {'Mean Diff':>10} {'U':>10} {'p':>10} {'p_corr':>10} {'Sig'}"
+                )
+                print(f"    {'-' * 78}")
 
                 for i, ps in enumerate(pair_stats):
                     pc = p_corrected[i]
-                    sig = "***" if pc < 0.001 else "**" if pc < 0.01 else "*" if pc < 0.05 else "ns"
+                    sig = (
+                        "***"
+                        if pc < 0.001
+                        else "**"
+                        if pc < 0.01
+                        else "*"
+                        if pc < 0.05
+                        else "ns"
+                    )
                     label_str = f"{ps['b1']} vs {ps['b2']}"
-                    print(f"    {label_str:<30} {ps['mean_diff']:>10.2f} "
-                          f"{ps['U']:>10.1f} {ps['p_value']:>10.4f} {pc:>10.4f} {sig:>3}")
+                    print(
+                        f"    {label_str:<30} {ps['mean_diff']:>10.2f} "
+                        f"{ps['U']:>10.1f} {ps['p_value']:>10.4f} {pc:>10.4f} {sig:>3}"
+                    )
 
-                    results.append({
-                        "metric": label,
-                        "test": "Mann_Whitney_U",
-                        "comparison": f"{ps['b1']} vs {ps['b2']}",
-                        "U": ps['U'],
-                        "mean_diff": ps['mean_diff'],
-                        "p_value": ps['p_value'],
-                        "p_corrected": pc,
-                        "significant": pc < 0.05
-                    })
+                    results.append(
+                        {
+                            "metric": label,
+                            "test": "Mann_Whitney_U",
+                            "comparison": f"{ps['b1']} vs {ps['b2']}",
+                            "U": ps["U"],
+                            "mean_diff": ps["mean_diff"],
+                            "p_value": ps["p_value"],
+                            "p_corrected": pc,
+                            "significant": pc < 0.05,
+                        }
+                    )
 
             # ===================================================================
             # BINARY METRIC: ACCEPTANCE RATE
             # Chi-square across all languages + pairwise proportion z-tests
             # ===================================================================
 
-            print(f"\n{'='*70}")
+            print(f"\n{'=' * 70}")
             print("BINARY METRIC: Acceptance Rate")
-            print(f"{'='*70}")
+            print(f"{'=' * 70}")
 
             behaviors = sorted(df["behavior"].unique())
             contingency = []
@@ -1196,43 +1413,56 @@ class TradingResultsAnalyzer:
                 total = accepted + rejected
                 rate = accepted / total if total > 0 else 0
                 contingency.append([accepted, rejected])
-                print(f"  {b}: {accepted}/{total} accepted ({rate*100:.1f}%)")
+                print(f"  {b}: {accepted}/{total} accepted ({rate * 100:.1f}%)")
 
             contingency = np.array(contingency)
             degenerate = any(row[0] == 0 or row[1] == 0 for row in contingency)
 
             if degenerate:
-                print("\n  WARNING: At least one language has perfect acceptance or rejection.")
+                print(
+                    "\n  WARNING: At least one language has perfect acceptance or rejection."
+                )
                 print("  Chi-square test is unreliable — skipping.")
-                results.append({
-                    "metric": "Acceptance Rate",
-                    "test": "Chi_square",
-                    "comparison": "overall",
-                    "note": "Degenerate case",
-                    "p_value": np.nan,
-                    "p_corrected": np.nan,
-                    "significant": False
-                })
+                results.append(
+                    {
+                        "metric": "Acceptance Rate",
+                        "test": "Chi_square",
+                        "comparison": "overall",
+                        "note": "Degenerate case",
+                        "p_value": np.nan,
+                        "p_corrected": np.nan,
+                        "significant": False,
+                    }
+                )
             else:
                 # Chi-square overall
                 chi2, p_chi, dof, _ = stats.chi2_contingency(contingency)
                 sig_chi = "YES" if p_chi < 0.05 else "NO"
                 print(f"\n  Chi-square test (overall):")
-                print(f"    chi2({dof}) = {chi2:.4f}, p = {p_chi:.4e}  [Significant: {sig_chi}]")
+                print(
+                    f"    chi2({dof}) = {chi2:.4f}, p = {p_chi:.4e}  [Significant: {sig_chi}]"
+                )
 
-                results.append({
-                    "metric": "Acceptance Rate",
-                    "test": "Chi_square",
-                    "comparison": "overall",
-                    "chi2": chi2,
-                    "df": dof,
-                    "p_value": p_chi,
-                    "p_corrected": p_chi,
-                    "significant": p_chi < 0.05
-                })
+                results.append(
+                    {
+                        "metric": "Acceptance Rate",
+                        "test": "Chi_square",
+                        "comparison": "overall",
+                        "chi2": chi2,
+                        "df": dof,
+                        "p_value": p_chi,
+                        "p_corrected": p_chi,
+                        "significant": p_chi < 0.05,
+                    }
+                )
 
                 # Pairwise proportion z-tests (always run, Benjamini-Hochberg FDR corrected)
-                pairs = [(i, j) for i in range(len(behaviors)) for j in range(len(behaviors)) if i < j]
+                pairs = [
+                    (i, j)
+                    for i in range(len(behaviors))
+                    for j in range(len(behaviors))
+                    if i < j
+                ]
                 raw_p = []
                 pair_stats = []
 
@@ -1243,43 +1473,63 @@ class TradingResultsAnalyzer:
                     rate1 = contingency[i, 0] / contingency[i].sum()
                     rate2 = contingency[j, 0] / contingency[j].sum()
                     raw_p.append(p_val)
-                    pair_stats.append({
-                        "b1": behaviors[i], "b2": behaviors[j],
-                        "z": z_stat, "p_value": p_val,
-                        "rate_diff": rate1 - rate2
-                    })
+                    pair_stats.append(
+                        {
+                            "b1": behaviors[i],
+                            "b2": behaviors[j],
+                            "z": z_stat,
+                            "p_value": p_val,
+                            "rate_diff": rate1 - rate2,
+                        }
+                    )
 
-                _, p_corrected, _, _ = multipletests(raw_p, method='fdr_bh')
+                _, p_corrected, _, _ = multipletests(raw_p, method="fdr_bh")
 
-                print(f"\n  Pairwise proportion z-tests (Benjamini-Hochberg FDR corrected):")
-                print(f"    {'Comparison':<30} {'Rate Diff':>10} {'z':>8} {'p':>10} {'p_corr':>10} {'Sig'}")
-                print(f"    {'-'*75}")
+                print(
+                    f"\n  Pairwise proportion z-tests (Benjamini-Hochberg FDR corrected):"
+                )
+                print(
+                    f"    {'Comparison':<30} {'Rate Diff':>10} {'z':>8} {'p':>10} {'p_corr':>10} {'Sig'}"
+                )
+                print(f"    {'-' * 75}")
 
                 for i, ps in enumerate(pair_stats):
                     pc = p_corrected[i]
-                    sig = "***" if pc < 0.001 else "**" if pc < 0.01 else "*" if pc < 0.05 else "ns"
+                    sig = (
+                        "***"
+                        if pc < 0.001
+                        else "**"
+                        if pc < 0.01
+                        else "*"
+                        if pc < 0.05
+                        else "ns"
+                    )
                     label_str = f"{ps['b1']} vs {ps['b2']}"
-                    print(f"    {label_str:<30} {ps['rate_diff']:>10.3f} "
-                          f"{ps['z']:>8.3f} {ps['p_value']:>10.4f} {pc:>10.4f} {sig:>3}")
+                    print(
+                        f"    {label_str:<30} {ps['rate_diff']:>10.3f} "
+                        f"{ps['z']:>8.3f} {ps['p_value']:>10.4f} {pc:>10.4f} {sig:>3}"
+                    )
 
-                    results.append({
-                        "metric": "Acceptance Rate",
-                        "test": "Proportion_z_test",
-                        "comparison": f"{ps['b1']} vs {ps['b2']}",
-                        "z": ps['z'],
-                        "rate_diff": ps['rate_diff'],
-                        "p_value": ps['p_value'],
-                        "p_corrected": pc,
-                        "significant": pc < 0.05
-                    })
+                    results.append(
+                        {
+                            "metric": "Acceptance Rate",
+                            "test": "Proportion_z_test",
+                            "comparison": f"{ps['b1']} vs {ps['b2']}",
+                            "z": ps["z"],
+                            "rate_diff": ps["rate_diff"],
+                            "p_value": ps["p_value"],
+                            "p_corrected": pc,
+                            "significant": pc < 0.05,
+                        }
+                    )
 
             # ===================================================================
             # SAVE RESULTS
             # ===================================================================
 
-            print(f"\n{'='*80}")
+            print(f"\n{'=' * 80}")
             print("SAVING RESULTS")
-            print(f"{'='*80}")
+            print(f"{'=' * 80}")
 
             results_df = pd.DataFrame(results)
 
@@ -1288,65 +1538,95 @@ class TradingResultsAnalyzer:
             print(f"  Saved: {csv_file}")
 
             json_file = out_dir / "statistical_tests_trading.json"
-            results_df.to_json(json_file, orient='records', indent=2)
+            results_df.to_json(json_file, orient="records", indent=2)
             print(f"  Saved: {json_file}")
 
             # Human-readable summary
             summary_file = out_dir / "statistical_summary.txt"
-            with open(summary_file, 'w', encoding='utf-8') as sf:
+            with open(summary_file, "w", encoding="utf-8") as sf:
                 sf.write("=" * 80 + "\n")
                 sf.write("STATISTICAL ANALYSIS SUMMARY - TRADING GAME\n")
                 sf.write("=" * 80 + "\n\n")
                 sf.write("Tests used:\n")
-                sf.write("  - Kruskal-Wallis H-test: overall difference across all languages\n")
+                sf.write(
+                    "  - Kruskal-Wallis H-test: overall difference across all languages\n"
+                )
                 sf.write("  - Mann-Whitney U test: pairwise language comparisons\n")
                 sf.write("  - Chi-square test: overall acceptance rate difference\n")
-                sf.write("  - Proportion z-test: pairwise acceptance rate comparisons\n")
-                sf.write("  - Benjamini-Hochberg FDR correction applied to all pairwise p-values\n")
-                sf.write("  Significance: * p<0.05  ** p<0.01  *** p<0.001  ns = not significant\n\n")
+                sf.write(
+                    "  - Proportion z-test: pairwise acceptance rate comparisons\n"
+                )
+                sf.write(
+                    "  - Benjamini-Hochberg FDR correction applied to all pairwise p-values\n"
+                )
+                sf.write(
+                    "  Significance: * p<0.05  ** p<0.01  *** p<0.001  ns = not significant\n\n"
+                )
 
                 # Overall tests
                 sf.write("OVERALL TESTS\n")
                 sf.write("-" * 80 + "\n")
-                overall = results_df[results_df['comparison'] == 'overall']
+                overall = results_df[results_df["comparison"] == "overall"]
                 for _, row in overall.iterrows():
                     sf.write(f"\n{row['metric']} ({row['test']}):\n")
-                    if row['test'] == 'Kruskal_Wallis':
-                        sf.write(f"  H({row['df']:.0f}) = {row['H']:.4f}, p = {row['p_value']:.4e}\n")
-                    elif row['test'] == 'Chi_square':
-                        chi2_val = row.get('chi2', 'NA')
-                        chi2_str = f"{chi2_val:.4f}" if isinstance(chi2_val, float) and not np.isnan(chi2_val) else "NA"
-                        sf.write(f"  chi2({row.get('df', 'NA')}) = {chi2_str}, p = {row['p_value']:.4e}\n")
-                    sf.write(f"  Significant: {'YES' if row.get('significant', False) else 'NO'}\n")
+                    if row["test"] == "Kruskal_Wallis":
+                        sf.write(
+                            f"  H({row['df']:.0f}) = {row['H']:.4f}, p = {row['p_value']:.4e}\n"
+                        )
+                    elif row["test"] == "Chi_square":
+                        chi2_val = row.get("chi2", "NA")
+                        chi2_str = (
+                            f"{chi2_val:.4f}"
+                            if isinstance(chi2_val, float) and not np.isnan(chi2_val)
+                            else "NA"
+                        )
+                        sf.write(
+                            f"  chi2({row.get('df', 'NA')}) = {chi2_str}, p = {row['p_value']:.4e}\n"
+                        )
+                    sf.write(
+                        f"  Significant: {'YES' if row.get('significant', False) else 'NO'}\n"
+                    )
 
                 # Pairwise significant results
-                sf.write("\n\nPAIRWISE COMPARISONS (all pairs, Benjamini-Hochberg FDR corrected)\n")
+                sf.write(
+                    "\n\nPAIRWISE COMPARISONS (all pairs, Benjamini-Hochberg FDR corrected)\n"
+                )
                 sf.write("-" * 80 + "\n")
-                pairwise = results_df[results_df['comparison'] != 'overall']
-                for metric in pairwise['metric'].unique():
+                pairwise = results_df[results_df["comparison"] != "overall"]
+                for metric in pairwise["metric"].unique():
                     sf.write(f"\n{metric}:\n")
                     sf.write(f"  {'Comparison':<30} {'p':>10} {'p_corr':>10} {'Sig'}\n")
-                    sf.write(f"  {'-'*58}\n")
-                    for _, row in pairwise[pairwise['metric'] == metric].iterrows():
-                        pc = row.get('p_corrected', np.nan)
-                        sig = "***" if pc < 0.001 else "**" if pc < 0.01 else "*" if pc < 0.05 else "ns"
-                        sf.write(f"  {row['comparison']:<30} {row['p_value']:>10.4f} {pc:>10.4f} {sig:>3}\n")
+                    sf.write(f"  {'-' * 58}\n")
+                    for _, row in pairwise[pairwise["metric"] == metric].iterrows():
+                        pc = row.get("p_corrected", np.nan)
+                        sig = (
+                            "***"
+                            if pc < 0.001
+                            else "**"
+                            if pc < 0.01
+                            else "*"
+                            if pc < 0.05
+                            else "ns"
+                        )
+                        sf.write(
+                            f"  {row['comparison']:<30} {row['p_value']:>10.4f} {pc:>10.4f} {sig:>3}\n"
+                        )
 
             print(f"  Saved: {summary_file}")
 
-            print(f"\n{'='*80}")
+            print(f"\n{'=' * 80}")
             print("STATISTICAL ANALYSIS COMPLETE")
-            print(f"{'='*80}\n")
-        
+            print(f"{'=' * 80}\n")
+
         # Restore stdout
         sys.stdout = original_stdout
-        
+
         print(f"\nStatistical analysis complete. Results saved to: {out_dir}")
         print(f"  - Full log: {log_file}")
         print(f"  - CSV results: {out_dir / 'statistical_tests_trading.csv'}")
         print(f"  - JSON results: {out_dir / 'statistical_tests_trading.json'}")
         print(f"  - Summary: {out_dir / 'statistical_summary.txt'}")
-        
+
         return results_df
 
 
@@ -1400,9 +1680,9 @@ def main():
     print(f"Check the generated files in: {results_dir}")
 
     # Run comprehensive statistical analysis
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Running Statistical Analysis...")
-    print("="*60)
+    print("=" * 60)
     analyzer.run_comprehensive_statistical_analysis()
 
 

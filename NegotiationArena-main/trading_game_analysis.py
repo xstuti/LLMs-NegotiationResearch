@@ -12,22 +12,25 @@ from typing import Any, Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 
 plt.style.use("default")
 
-plt.rcParams.update({
-    "font.family": "serif",
-    "font.size": 12,
-    "axes.titlesize": 18,
-    "axes.titleweight": "bold",
-    "axes.labelsize": 14,
-    "axes.labelweight": "bold",
-    "xtick.labelsize": 12,
-    "ytick.labelsize": 12,
-    "figure.titlesize": 20,
-    "axes.spines.top": False,
-    "axes.spines.right": False,
-})
+plt.rcParams.update(
+    {
+        "font.family": "serif",
+        "font.size": 12,
+        "axes.titlesize": 18,
+        "axes.titleweight": "bold",
+        "axes.labelsize": 14,
+        "axes.labelweight": "bold",
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
+        "figure.titlesize": 20,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+    }
+)
 
 BAR_COLORS = [
     "#3b4cc0",  # deep blue
