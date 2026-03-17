@@ -33,8 +33,8 @@ plt.rcParams.update({
 
 
 class BuySellResultsAnalyzer:
-    KNOWN_BEHAVIORS = ["Hindi", "Gujarati", "Marwadi", "Punjabi", "English"]
-    KNOWN_MODELS = ["GPT-4o", "GPT-3.5", "Claude-3-Haiku", "Claude-3.5-Haiku"]
+    KNOWN_BEHAVIORS = ["Hindi", "Gujarati", "Punjabi", "English"]
+    KNOWN_MODELS = ["GPT-4o", "Claude-3-Haiku", "Claude-3.5-Haiku", "Llama-3.3-70B-Instruct"]
 
     def __init__(self, results_dir):
         self.results_dir = Path(results_dir)
