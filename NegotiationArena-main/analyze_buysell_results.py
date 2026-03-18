@@ -29,16 +29,16 @@ from statsmodels.stats.proportion import proportions_ztest
 
 plt.rcParams.update(
     {
-        "font.size": 12,
+        "font.size": 16,           # was 12
         "font.family": "serif",
         "axes.linewidth": 1.2,
-        "axes.labelsize": 12,
-        "axes.titlesize": 14,
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
-        "legend.fontsize": 11,
-        "figure.titlesize": 16,
-        "figure.dpi": 300,
+        "axes.labelsize": 16,      # was 12
+        "axes.titlesize": 18,      # was 14
+        "xtick.labelsize": 14,     # was 10
+        "ytick.labelsize": 14,     # was 10
+        "legend.fontsize": 14,     # was 11
+        "figure.titlesize": 20,    # was 16
+        "figure.dpi": 600,
     }
 )
 
@@ -572,6 +572,15 @@ class BuySellResultsAnalyzer:
         bc = [colors[i % len(colors)] for i in range(len(behaviors))]
         x = np.arange(len(behaviors))
 
+        plt.rcParams.update({
+            "font.family":     "DejaVu Sans",
+            "axes.titlesize":  18,
+            "axes.labelsize":  16,
+            "xtick.labelsize": 14,
+            "ytick.labelsize": 14,
+            "legend.fontsize": 13,
+        })
+
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
         def bar_plot(ax, vals, title, pct=False, ylabel=None):
@@ -582,11 +591,13 @@ class BuySellResultsAnalyzer:
             if ylabel:
                 ax.set_ylabel(ylabel)
             if pct:
-                ax.set_ylim(0, 1.05)
-            off = (max(abs(v) for v in vals) * 0.03) if vals else 0.1
+                ax.set_ylim(0, 1.15)
+            else:
+                ax.set_ylim(0, max(abs(v) for v in vals) * 1.20)   # add this
+            off = (max(abs(v) for v in vals) * 0.01) if vals else 0.1
             for i, v in enumerate(vals):
                 lbl = f"{v * 100:.2f}%" if pct else f"{v:.2f}"
-                ax.text(i, v + off, lbl, ha="center", fontsize=9)
+                ax.text(i, v + off, lbl, ha="center", fontsize=12)
 
         bar_plot(axes[0, 0], acc_m, "Acceptance Rate by Behavior", pct=True)
         bar_plot(axes[0, 1], s_m, "Seller Advantage by Behavior", ylabel="ZUP surplus")
@@ -595,7 +606,7 @@ class BuySellResultsAnalyzer:
 
         plt.tight_layout()
         ff = out_dir / "behavior_bar_summary.png"
-        fig.savefig(ff, dpi=150)
+        fig.savefig(ff, dpi=600)
         plt.close(fig)
 
         csv_file = Path(self.results_dir) / "behavior_metrics_summary.csv"
@@ -782,7 +793,7 @@ class BuySellResultsAnalyzer:
         plots_dir = Path(self.results_dir) / "plots"
         plots_dir.mkdir(parents=True, exist_ok=True)
         nb = max(len(behaviors), 1)
-        fig, axes = plt.subplots(nrows=nb, ncols=2, figsize=(12, 4 * nb), squeeze=False)
+        fig, axes = plt.subplots(nrows=nb, ncols=2, figsize=(20, 7 * nb), squeeze=False)
         type_cfgs = [
             ("seller_advantage", "Seller Advantage", "Oranges"),
             ("buyer_advantage", "Buyer Advantage", "Blues"),
@@ -807,9 +818,9 @@ class BuySellResultsAnalyzer:
                 ax.set_xticklabels(mdls, rotation=45, ha="right")
                 ax.set_yticklabels(mdls)
                 if bi == 0:
-                    ax.set_title(title, fontsize=13, pad=6)
+                    ax.set_title(title, fontsize=18, pad=6)
                 if ti == 0:
-                    ax.set_ylabel(f"{behavior}\nSeller Model", fontsize=11)
+                    ax.set_ylabel(f"{behavior}\nSeller Model", fontsize=16)
                 fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02).ax.set_ylabel(
                     "ZUP Surplus", rotation=270, labelpad=15
                 )
@@ -823,7 +834,7 @@ class BuySellResultsAnalyzer:
                                 ha="center",
                                 va="center",
                                 color="gray",
-                                fontsize=8,
+                                fontsize=20,
                             )
                         elif np.ma.is_masked(mm[i, j]):
                             ax.text(
@@ -833,7 +844,7 @@ class BuySellResultsAnalyzer:
                                 ha="center",
                                 va="center",
                                 color="gray",
-                                fontsize=8,
+                                fontsize=20,
                             )
                         else:
                             v = mat[i, j]
@@ -849,13 +860,13 @@ class BuySellResultsAnalyzer:
                                 ha="center",
                                 va="center",
                                 color=tc,
-                                fontsize=10,
+                                fontsize=20,
                                 fontweight="bold",
                             )
 
         plt.tight_layout(pad=0.8, w_pad=0.4, h_pad=0.6)
         hf = plots_dir / "all_heatmaps.png"
-        fig.savefig(hf, dpi=150)
+        fig.savefig(hf, dpi=600)
         plt.close(fig)
         print(f"  Heatmap JSON: {jpath}")
         print(f"  Heatmap image: {hf}")
