@@ -27,19 +27,19 @@ from scipy.stats import mannwhitneyu
 from statsmodels.stats.multitest import multipletests
 from statsmodels.stats.proportion import proportions_ztest
 
-# Set publication-quality matplotlib parameters
+
 plt.rcParams.update(
     {
-        "font.size": 12,
+        "font.size": 16,           # was 12
         "font.family": "serif",
         "axes.linewidth": 1.2,
-        "axes.labelsize": 12,
-        "axes.titlesize": 14,
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
-        "legend.fontsize": 11,
-        "figure.titlesize": 16,
-        "figure.dpi": 300,
+        "axes.labelsize": 16,      # was 12
+        "axes.titlesize": 18,      # was 14
+        "xtick.labelsize": 14,     # was 10
+        "ytick.labelsize": 14,     # was 10
+        "legend.fontsize": 14,     # was 11
+        "figure.titlesize": 20,    # was 16
+        "figure.dpi": 600,
     }
 )
 
@@ -557,7 +557,7 @@ class UltimatumComprehensiveAnalyzer:
         n_behaviors = len(behaviors)
 
         # Create figure with 2 columns (win rates and payoffs)
-        fig, axes = plt.subplots(n_behaviors, 2, figsize=(12, 4 * n_behaviors))
+        fig, axes = plt.subplots(n_behaviors, 2, figsize=(20, 7 * n_behaviors))
 
         if n_behaviors == 1:
             axes = axes.reshape(1, -1)
@@ -601,7 +601,7 @@ class UltimatumComprehensiveAnalyzer:
                             va="center",
                             color="gray",
                             fontweight="bold",
-                            fontsize=10,
+                            fontsize=20,
                         )
                     else:
                         # Choose text color based on value
@@ -614,7 +614,7 @@ class UltimatumComprehensiveAnalyzer:
                             va="center",
                             color=text_color,
                             fontweight="bold",
-                            fontsize=11,
+                            fontsize=20,
                         )
 
             ax1.set_title(
@@ -676,7 +676,7 @@ class UltimatumComprehensiveAnalyzer:
                             va="center",
                             color="gray",
                             fontweight="bold",
-                            fontsize=10,
+                            fontsize=20,
                         )
                     else:
                         # Normalize for text color
@@ -692,7 +692,7 @@ class UltimatumComprehensiveAnalyzer:
                             va="center",
                             color=text_color,
                             fontweight="bold",
-                            fontsize=11,
+                            fontsize=20,
                         )
 
             ax2.set_title(
@@ -715,10 +715,124 @@ class UltimatumComprehensiveAnalyzer:
 
         # Save the plot
         output_file = self.results_dir / "final_heatmaps.png"
-        plt.savefig(output_file, dpi=300, bbox_inches="tight", facecolor="white")
+        plt.savefig(output_file, dpi=600, bbox_inches="tight", facecolor="white")
         print(f"✓ Heatmaps saved to: {output_file}")
         plt.close()
 
+        return output_file
+
+    def create_bar_plots(self, behaviors):
+        """Create 2x2 bar plot summary matching the reference figure style exactly.
+
+        Four panels:
+          top-left  : Average Acceptance Rate by Behavior   (y 0-1, % labels)
+          top-right : Average Initial Offer by Behavior     (raw value labels)
+          bottom-left : Average Payoffs by Behavior         (grouped P1/P2)
+          bottom-right: Average Win Rate (Player 1)         (y 0-1, % labels)
+
+        Colours, fonts, edge style and label placement match the reference figure.
+        """
+        if not self.summary_data:
+            print("No summary data available for bar plots")
+            return
+
+        # ── Aggregate per-behavior across all model combinations ─────────────
+        # Use weighted means so combos with more games contribute proportionally.
+        behavior_stats = {}
+        for behavior in behaviors:
+            combos = [v for v in self.summary_data.values() if v["behavior"] == behavior]
+            if not combos:
+                continue
+            total = sum(c["total_games"] for c in combos)
+            behavior_stats[behavior] = {
+                "acceptance_rate": sum(c["acceptance_rate"] * c["total_games"] for c in combos) / total,
+                "initial_offer":   sum(c["initial_offer_avg"] * c["total_games"] for c in combos) / total,
+                "p1_payoff":       sum(c["player1_payoff_avg"] * c["total_games"] for c in combos) / total,
+                "p2_payoff":       sum(c["player2_payoff_avg"] * c["total_games"] for c in combos) / total,
+                "win_rate_p1":     sum(c["win_rate_player1"] * c["total_games"] for c in combos) / total,
+            }
+
+        sorted_behaviors = sorted(behavior_stats.keys())
+        n = len(sorted_behaviors)
+        x = np.arange(n)
+
+        # ── Exact colour palette from reference figure ────────────────────────
+        palette = ["#4C4CB8", "#2E8BC0", "#18A162", "#6AD34F", "#D5E86B", "#B7E06C"]
+        bar_colors = [palette[i % len(palette)] for i in range(n)]
+
+        # ── Font settings matching reference figure ───────────────────────────
+        plt.rcParams.update({
+            "font.family":      "DejaVu Sans",
+            "axes.titlesize":   18,    # was 14
+            "axes.labelsize":   16,    # was 12
+            "xtick.labelsize":  14,    # was 10
+            "ytick.labelsize":  14,    # was 10
+            "legend.fontsize":  13,    # was 10
+        })
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+        # ── Helper: annotate bar values ───────────────────────────────────────
+        def label_bars(ax, values, fmt, y_offset_frac=0.02, y_max=None):
+            """Place a text label just above each bar."""
+            top = max(values) if values else 1
+            offset = (y_max if y_max else top) * y_offset_frac
+            for i, v in enumerate(values):
+                ax.text(i, v + offset, fmt(v), ha="center", fontsize=12)
+
+        # ── TOP-LEFT: Acceptance Rate ─────────────────────────────────────────
+        ax = axes[0, 0]
+        acc = [behavior_stats[b]["acceptance_rate"] for b in sorted_behaviors]
+        ax.bar(x, acc, color=bar_colors, edgecolor="black")
+        ax.set_xticks(x)
+        ax.set_xticklabels(sorted_behaviors, rotation=30, ha="right")
+        ax.set_ylim(0, 1.05)
+        ax.set_title("Average Acceptance Rate by Behavior")
+        label_bars(ax, acc, lambda v: f"{v*100:.2f}%", y_max=1.0)
+
+        # ── TOP-RIGHT: Initial Offer (trade-volume equivalent) ────────────────
+        ax = axes[0, 1]
+        offers = [behavior_stats[b]["initial_offer"] for b in sorted_behaviors]
+        ax.bar(x, offers, color=bar_colors, edgecolor="black")
+        ax.set_xticks(x)
+        ax.set_xticklabels(sorted_behaviors, rotation=30, ha="right")
+        ax.set_title("Average Initial Offer by Behavior")
+        label_bars(ax, offers, lambda v: f"{v:.1f}")
+
+        # ── BOTTOM-LEFT: Payoffs grouped (P1 blue, P2 dark red) ───────────────
+        ax = axes[1, 0]
+        width = 0.35
+        p1 = [behavior_stats[b]["p1_payoff"] for b in sorted_behaviors]
+        p2 = [behavior_stats[b]["p2_payoff"] for b in sorted_behaviors]
+        ax.bar(x - width / 2, p1, width, label="Player 1", color="#2E86AB", edgecolor="black")
+        ax.bar(x + width / 2, p2, width, label="Player 2", color="#A23E48", edgecolor="black")
+        ax.set_xticks(x)
+        ax.set_xticklabels(sorted_behaviors, rotation=30, ha="right")
+        ax.set_title("Average Payoffs by Behavior")
+        ax.legend(loc="upper left", bbox_to_anchor=(1.05, 1))
+        all_pay = p1 + p2
+        top_pay = max(all_pay) if all_pay else 1
+        offset_pay = top_pay * 0.02
+        for i in range(n):
+            ax.text(i - width / 2, p1[i] + offset_pay, f"{p1[i]:.1f}", ha="center", fontsize=12)
+            ax.text(i + width / 2, p2[i] + offset_pay, f"{p2[i]:.1f}", ha="center", fontsize=12)
+
+        # ── BOTTOM-RIGHT: Win Rate Player 1 ───────────────────────────────────
+        ax = axes[1, 1]
+        wr = [behavior_stats[b]["win_rate_p1"] for b in sorted_behaviors]
+        ax.bar(x, wr, color=bar_colors, edgecolor="black")
+        ax.set_xticks(x)
+        ax.set_xticklabels(sorted_behaviors, rotation=30, ha="right")
+        ax.set_ylim(0, 1.05)
+        ax.set_title("Average Win Rate (Player 1) by Behavior")
+        label_bars(ax, wr, lambda v: f"{v*100:.2f}%", y_max=1.0)
+
+        plt.tight_layout()
+
+        output_file = self.results_dir / "behavior_bar_summary.png"
+        fig.savefig(output_file, dpi=600, bbox_inches="tight", facecolor="white")
+        plt.close(fig)
+
+        print(f"✓ Behavior bar summary saved to: {output_file}")
         return output_file
 
     def create_summary_table(self, matrices, models, behaviors):
@@ -1085,7 +1199,7 @@ class UltimatumComprehensiveAnalyzer:
                 kw_result = self.kruskal_wallis_test(groups_dict)
                 sig_overall = "YES" if kw_result['p_value'] < 0.05 else "NO"
                 print(f"\n  Kruskal-Wallis H-test (overall):")
-                print(f"    H({kw_result['df']:.0f}) = {kw_result['H']:.4f}, p = {kw_result['p_value']:.4e}  [Significant: {sig_overall}]")
+                print(f"    H({kw_result['df']:.0f}) = {kw_result['H']:.6f}, p = {kw_result['p_value']:.4e}  [Significant: {sig_overall}]")
 
                 results.append({
                     "metric": label,
@@ -1135,7 +1249,7 @@ class UltimatumComprehensiveAnalyzer:
                     sig = "***" if pc < 0.001 else "**" if pc < 0.01 else "*" if pc < 0.05 else "ns"
                     label_str = f"{ps['b1']} vs {ps['b2']}"
                     print(f"    {label_str:<30} {ps['mean_diff']:>10.2f} "
-                          f"{ps['U']:>10.1f} {ps['p_value']:>10.4f} {pc:>10.4f} {sig:>3}")
+                          f"{ps['U']:>10.1f} {ps['p_value']:>10.6f} {pc:>10.6f} {sig:>3}")
 
                     results.append({
                         "metric": label,
@@ -1190,7 +1304,7 @@ class UltimatumComprehensiveAnalyzer:
                     chi2_stat, p_chi, dof, _ = stats.chi2_contingency(contingency)
                     sig_chi = "YES" if p_chi < 0.05 else "NO"
                     print(f"\n  Chi-square test (overall):")
-                    print(f"    chi2({dof}) = {chi2_stat:.4f}, p = {p_chi:.4e}  [Significant: {sig_chi}]")
+                    print(f"    chi2({dof}) = {chi2_stat:.6f}, p = {p_chi:.4e}  [Significant: {sig_chi}]")
 
                     results.append({
                         "metric": "Acceptance Rate",
@@ -1233,7 +1347,7 @@ class UltimatumComprehensiveAnalyzer:
                         sig = "***" if pc < 0.001 else "**" if pc < 0.01 else "*" if pc < 0.05 else "ns"
                         label_str = f"{ps['b1']} vs {ps['b2']}"
                         print(f"    {label_str:<30} {ps['rate_diff']:>10.3f} "
-                              f"{ps['z']:>8.3f} {ps['p_value']:>10.4f} {pc:>10.4f} {sig:>3}")
+                              f"{ps['z']:>8.3f} {ps['p_value']:>10.6f} {pc:>10.6f} {sig:>3}")
 
                         results.append({
                             "metric": "Acceptance Rate",
@@ -1284,10 +1398,10 @@ class UltimatumComprehensiveAnalyzer:
                 for _, row in overall.iterrows():
                     sf.write(f"\n{row['metric']} ({row['test']}):\n")
                     if row['test'] == 'Kruskal_Wallis':
-                        sf.write(f"  H({row['df']:.0f}) = {row['H']:.4f}, p = {row['p_value']:.4e}\n")
+                        sf.write(f"  H({row['df']:.0f}) = {row['H']:.6f}, p = {row['p_value']:.4e}\n")
                     elif row['test'] == 'Chi_square':
                         chi2_val = row.get('chi2', 'NA')
-                        chi2_str = f"{chi2_val:.4f}" if isinstance(chi2_val, float) and not np.isnan(chi2_val) else "NA"
+                        chi2_str = f"{chi2_val:.6f}" if isinstance(chi2_val, float) and not np.isnan(chi2_val) else "NA"
                         sf.write(f"  chi2({row.get('df', 'NA')}) = {chi2_str}, p = {row['p_value']:.4e}\n")
                     sf.write(f"  Significant: {'YES' if row.get('significant', False) else 'NO'}\n")
 
@@ -1301,7 +1415,7 @@ class UltimatumComprehensiveAnalyzer:
                     for _, row in pairwise[pairwise['metric'] == metric].iterrows():
                         pc = row.get('p_corrected', np.nan)
                         sig = "***" if pc < 0.001 else "**" if pc < 0.01 else "*" if pc < 0.05 else "ns"
-                        sf.write(f"  {row['comparison']:<30} {row['p_value']:>10.4f} {pc:>10.4f} {sig:>3}\n")
+                        sf.write(f"  {row['comparison']:<30} {row['p_value']:>10.6f} {pc:>10.6f} {sig:>3}\n")
 
             print(f"  Saved: {summary_file}")
 
@@ -1337,6 +1451,7 @@ class UltimatumComprehensiveAnalyzer:
         matrices, models, behaviors = self.extract_matrices()
         self.create_heatmaps(matrices, models, behaviors)
         self.create_summary_table(matrices, models, behaviors)
+        self.create_bar_plots(behaviors)
 
         # Part 3: Generate report
         self.generate_report()
@@ -1353,6 +1468,7 @@ class UltimatumComprehensiveAnalyzer:
         print("  ✓ summary.json - Summary metrics")
         print("  ✓ final_heatmaps.png - Heatmap visualizations")
         print("  ✓ summary_table.csv - Summary table")
+        print("  ✓ behavior_bar_summary.png - Bar plot summary by behavior")
         print("  ✓ comprehensive_report.txt - Detailed text report")
         print("  ✓ stats/statistical_analysis_log.txt - Full statistical log")
         print("  ✓ stats/statistical_tests_ultimatum.csv - Statistical results")
