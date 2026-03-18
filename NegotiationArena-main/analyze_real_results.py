@@ -29,29 +29,26 @@ from statsmodels.stats.multitest import multipletests
 from statsmodels.stats.oneway import anova_oneway
 from statsmodels.stats.proportion import proportions_ztest
 
-# Set publication-quality matplotlib parameters
 plt.rcParams.update(
     {
-        "font.size": 12,
+        "font.size": 16,           # was 12
         "font.family": "serif",
         "axes.linewidth": 1.2,
-        "axes.labelsize": 12,
-        "axes.titlesize": 14,
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
-        "legend.fontsize": 11,
-        "figure.titlesize": 16,
-        "figure.dpi": 300,
+        "axes.labelsize": 16,      # was 12
+        "axes.titlesize": 18,      # was 14
+        "xtick.labelsize": 14,     # was 10
+        "ytick.labelsize": 14,     # was 10
+        "legend.fontsize": 14,     # was 11
+        "figure.titlesize": 20,    # was 16
+        "figure.dpi": 600,
     }
 )
-
 
 class TradingResultsAnalyzer:
     # Known behaviors to help with parsing
     KNOWN_BEHAVIORS = [
         "Hindi",
         "Gujarati",
-        "Marwadi",
         "Punjabi",
         "Baseline",
     ]
@@ -733,10 +730,11 @@ class TradingResultsAnalyzer:
         plt.rcParams.update(
             {
                 "font.family": "DejaVu Sans",
-                "axes.titlesize": 14,
-                "axes.labelsize": 12,
-                "xtick.labelsize": 10,
-                "ytick.labelsize": 10,
+                "axes.titlesize": 18,      # was 14
+                "axes.labelsize": 16,      # was 12
+                "xtick.labelsize": 14,     # was 10
+                "ytick.labelsize": 14,     # was 10
+                "legend.fontsize": 13,     # add this
             }
         )
 
@@ -753,10 +751,11 @@ class TradingResultsAnalyzer:
         ax.bar(x, acc_means, color=bar_colors, edgecolor="black")
         ax.set_xticks(x)
         ax.set_xticklabels(behaviors, rotation=30, ha="right")
-        ax.set_ylim(0, 1.05)
+        ax.set_ylim(0, 1.12)
+        ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0]) 
         ax.set_title("Average Acceptance Rate by Behavior")
         for i, v in enumerate(acc_means):
-            ax.text(i, v + 0.02, f"{v * 100:.2f}%", ha="center", fontsize=9)
+            ax.text(i, v + 0.02, f"{v * 100:.2f}%", ha="center", fontsize=12)
 
         # Trade volume
         ax = axes[0, 1]
@@ -764,13 +763,14 @@ class TradingResultsAnalyzer:
         ax.set_xticks(x)
         ax.set_xticklabels(behaviors, rotation=30, ha="right")
         ax.set_title("Average Trade Volume by Behavior")
+        ax.set_ylim(0, max(tv_means) * 1.20)   # add this line
         for i, v in enumerate(tv_means):
             ax.text(
                 i,
                 v + (max(tv_means) * 0.02 if tv_means else 0.1),
                 f"{v:.1f}",
                 ha="center",
-                fontsize=9,
+                fontsize=12,
             )
 
         # Payoffs (grouped bars)
@@ -795,6 +795,7 @@ class TradingResultsAnalyzer:
         ax.set_xticks(x)
         ax.set_xticklabels(behaviors, rotation=30, ha="right")
         ax.set_title("Average Payoffs by Behavior")
+        ax.set_ylim(0, max(p1_means + p2_means) * 1.20)   # add this line
         ax.legend(loc="upper left", bbox_to_anchor=(1.05, 1))
         for i in range(len(behaviors)):
             ax.text(
@@ -803,7 +804,7 @@ class TradingResultsAnalyzer:
                 + (max(p1_means + p2_means) * 0.02 if p1_means or p2_means else 0.1),
                 f"{p1_means[i]:.1f}",
                 ha="center",
-                fontsize=9,
+                fontsize=12,
             )
             ax.text(
                 i + width / 2,
@@ -811,7 +812,7 @@ class TradingResultsAnalyzer:
                 + (max(p1_means + p2_means) * 0.02 if p1_means or p2_means else 0.1),
                 f"{p2_means[i]:.1f}",
                 ha="center",
-                fontsize=9,
+                fontsize=12,
             )
 
         # Win rate (player1)
@@ -819,14 +820,15 @@ class TradingResultsAnalyzer:
         ax.bar(x, win_means, color=bar_colors, edgecolor="black")
         ax.set_xticks(x)
         ax.set_xticklabels(behaviors, rotation=30, ha="right")
-        ax.set_ylim(0, 1.05)
+        ax.set_ylim(0, 1.12)
+        ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0]) 
         ax.set_title("Average Win Rate (Player 1) by Behavior")
         for i, v in enumerate(win_means):
-            ax.text(i, v + 0.02, f"{v * 100:.2f}%", ha="center", fontsize=9)
+            ax.text(i, v + 0.02, f"{v * 100:.2f}%", ha="center", fontsize=12)
 
         plt.tight_layout()
         fig_file = out_dir / "behavior_bar_summary.png"
-        fig.savefig(fig_file, dpi=150)
+        fig.savefig(fig_file, dpi=600)
         plt.close(fig)
 
         # Save CSV table
@@ -1082,7 +1084,7 @@ class TradingResultsAnalyzer:
         num_types = 2  # payoff_player1, payoff_player2
 
         fig, axes = plt.subplots(
-            nrows=num_behaviors, ncols=num_types, figsize=(12, 4 * num_behaviors)
+            nrows=num_behaviors, ncols=num_types, figsize=(20, 7 * num_behaviors)
         )
 
         type_configs = [
@@ -1138,11 +1140,11 @@ class TradingResultsAnalyzer:
 
                 # Set titles only for the top row and left column
                 if b_idx == 0:
-                    ax.set_title(title_suffix, fontsize=14, pad=6)
-                    ax.set_ylabel(f"{behavior}\nModel 1", fontsize=12, labelpad=6)
+                    ax.set_title(title_suffix, fontsize=18, pad=6)
+                    ax.set_ylabel(f"{behavior}\nModel 1", fontsize=16, labelpad=6)
 
                 if t_idx == 0:
-                    ax.set_ylabel(f"{behavior}\nModel 1", fontsize=12)
+                    ax.set_ylabel(f"{behavior}\nModel 1", fontsize=16)
 
                 # Add colorbar
                 cbar = fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02)
@@ -1155,11 +1157,11 @@ class TradingResultsAnalyzer:
                         if i == j:
                             txt = "N/A"
                             txt_color = "gray"
-                            fontsize = 8
+                            fontsize = 20
                         elif np.ma.is_masked(masked_matrix[i, j]):
                             txt = "-"
                             txt_color = "gray"
-                            fontsize = 8
+                            fontsize = 20
                         else:
                             txt = value_format(val)
                             # Use white text for high values, black for low
@@ -1167,7 +1169,7 @@ class TradingResultsAnalyzer:
                                 txt_color = "white"
                             else:
                                 txt_color = "black"
-                            fontsize = 10
+                            fontsize = 20
                         ax.text(
                             j,
                             i,
@@ -1182,7 +1184,7 @@ class TradingResultsAnalyzer:
         plt.tight_layout(pad=0.8, w_pad=0.4, h_pad=0.6)
 
         all_heatmaps_file = plots_dir / "all_heatmaps.png"
-        fig.savefig(all_heatmaps_file, dpi=150)
+        fig.savefig(all_heatmaps_file, dpi=600)
         plt.close(fig)
 
         print(f"  Heatmap data JSON: {heatmap_file}")
@@ -1522,6 +1524,139 @@ class TradingResultsAnalyzer:
                             "significant": pc < 0.05,
                         }
                     )
+
+            # ===================================================================
+            # BINARY METRIC: WIN RATE (PLAYER 1)
+            # Win rate is binary per non-tie accepted game (P1 wins or P2 wins).
+            # Uses chi-square + pairwise proportion z-tests + BH correction,
+            # the same approach as acceptance rate.
+            # ===================================================================
+
+            print(f"\n{'=' * 70}")
+            print("BINARY METRIC: Win Rate (Player 1, excluding ties)")
+            print(f"{'=' * 70}")
+
+            behaviors_wr = sorted(df["behavior"].unique())
+            wr_contingency = []
+            wr_valid_behaviors = []
+
+            for b in behaviors_wr:
+                sub = df[df["behavior"] == b]
+                p1_wins_b = int(
+                    ((sub["outcome"] == "ACCEPT") &
+                     (sub["player1_final_resources"] > sub["player2_final_resources"])).sum()
+                )
+                p2_wins_b = int(
+                    ((sub["outcome"] == "ACCEPT") &
+                     (sub["player2_final_resources"] > sub["player1_final_resources"])).sum()
+                )
+                non_ties_b = p1_wins_b + p2_wins_b
+                if non_ties_b == 0:
+                    print(f"  {b}: skipped (no non-tie accepted games)")
+                    continue
+                rate_b = p1_wins_b / non_ties_b
+                wr_contingency.append([p1_wins_b, p2_wins_b])
+                wr_valid_behaviors.append(b)
+                print(f"  {b}: {p1_wins_b}/{non_ties_b} P1 wins ({rate_b * 100:.1f}%)")
+
+            if len(wr_valid_behaviors) < 2:
+                print("\n  Skipping win rate tests - fewer than 2 valid language groups.")
+                results.append({
+                    "metric": "Win Rate (Player 1)",
+                    "test": "Chi_square",
+                    "comparison": "overall",
+                    "note": "Insufficient groups",
+                    "p_value": float("nan"),
+                    "p_corrected": float("nan"),
+                    "significant": False,
+                })
+            else:
+                wr_contingency = np.array(wr_contingency)
+                wr_degenerate = any(row[0] == 0 or row[1] == 0 for row in wr_contingency)
+
+                if wr_degenerate:
+                    print("\n  WARNING: At least one language has P1 winning or losing every non-tie game.")
+                    print("  Chi-square test is unreliable - skipping.")
+                    results.append({
+                        "metric": "Win Rate (Player 1)",
+                        "test": "Chi_square",
+                        "comparison": "overall",
+                        "note": "Degenerate case",
+                        "p_value": float("nan"),
+                        "p_corrected": float("nan"),
+                        "significant": False,
+                    })
+                else:
+                    chi2_wr, p_chi_wr, dof_wr, _ = stats.chi2_contingency(wr_contingency)
+                    sig_wr = "YES" if p_chi_wr < 0.05 else "NO"
+                    print(f"\n  Chi-square test (overall):")
+                    print(f"    chi2({dof_wr}) = {chi2_wr:.4f}, p = {p_chi_wr:.4e}  [Significant: {sig_wr}]")
+
+                    results.append({
+                        "metric": "Win Rate (Player 1)",
+                        "test": "Chi_square",
+                        "comparison": "overall",
+                        "chi2": chi2_wr,
+                        "df": dof_wr,
+                        "p_value": p_chi_wr,
+                        "p_corrected": p_chi_wr,
+                        "significant": p_chi_wr < 0.05,
+                    })
+
+                    wr_pairs = [
+                        (i, j)
+                        for i in range(len(wr_valid_behaviors))
+                        for j in range(len(wr_valid_behaviors))
+                        if i < j
+                    ]
+                    wr_raw_p = []
+                    wr_pair_stats = []
+
+                    for i, j in wr_pairs:
+                        wr_count = np.array([wr_contingency[i, 0], wr_contingency[j, 0]])
+                        wr_nobs  = np.array([wr_contingency[i].sum(), wr_contingency[j].sum()])
+                        wr_z, wr_p = proportions_ztest(wr_count, wr_nobs)
+                        wr_rate1 = wr_contingency[i, 0] / wr_contingency[i].sum()
+                        wr_rate2 = wr_contingency[j, 0] / wr_contingency[j].sum()
+                        wr_raw_p.append(wr_p)
+                        wr_pair_stats.append({
+                            "b1": wr_valid_behaviors[i],
+                            "b2": wr_valid_behaviors[j],
+                            "z": wr_z,
+                            "p_value": wr_p,
+                            "rate_diff": wr_rate1 - wr_rate2,
+                        })
+
+                    _, wr_p_corrected, _, _ = multipletests(wr_raw_p, method="fdr_bh")
+
+                    print(f"\n  Pairwise proportion z-tests (Benjamini-Hochberg FDR corrected):")
+                    print(
+                        f"    {'Comparison':<30} {'Rate Diff':>10} {'z':>8} {'p':>10} {'p_corr':>10} {'Sig'}"
+                    )
+                    print(f"    {'-' * 75}")
+
+                    for i, ps in enumerate(wr_pair_stats):
+                        pc = wr_p_corrected[i]
+                        sig = (
+                            "***" if pc < 0.001 else
+                            "**"  if pc < 0.01  else
+                            "*"   if pc < 0.05  else "ns"
+                        )
+                        label_str = f"{ps['b1']} vs {ps['b2']}"
+                        print(
+                            f"    {label_str:<30} {ps['rate_diff']:>10.3f} "
+                            f"{ps['z']:>8.3f} {ps['p_value']:>10.4f} {pc:>10.4f} {sig:>3}"
+                        )
+                        results.append({
+                            "metric": "Win Rate (Player 1)",
+                            "test": "Proportion_z_test",
+                            "comparison": f"{ps['b1']} vs {ps['b2']}",
+                            "z": ps["z"],
+                            "rate_diff": ps["rate_diff"],
+                            "p_value": ps["p_value"],
+                            "p_corrected": pc,
+                            "significant": pc < 0.05,
+                        })
 
             # ===================================================================
             # SAVE RESULTS
