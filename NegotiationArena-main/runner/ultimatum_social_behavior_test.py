@@ -25,10 +25,10 @@ load_dotenv(".env.local")
 # Test configurations
 MODELS = {
     "GPT-4o": "openai/gpt-4o",
-    # "GPT-3.5": "openai/gpt-3.5-turbo",
-    "Claude-3-Haiku": "anthropic/claude-3-haiku",
+    "GPT-3.5": "openai/gpt-3.5-turbo",
+    #"Claude-3-Haiku": "anthropic/claude-3-haiku",
     "Claude-3.5-Haiku": "anthropic/claude-3.5-haiku",
-    "Llama-3.3-70B": "meta-llama/llama-3.3-70b-instruct",
+    #"Llama-3.3-70B": "meta-llama/llama-3.3-70b-instruct",
     # "GPT-oss": "openai/gpt-oss-20b",
     # "GPT-oss-120": "openai/gpt-oss-120b",
     # "Deepseek-3.2": "deepseek/deepseek-v3.2",
@@ -37,32 +37,32 @@ MODELS = {
 SOCIAL_BEHAVIORS = [
     {
         "name": "Hindi",
-        "player1": "You speak and bargain only in Hindi. Negotiate accordingly.",
-        "player2": "The other player speaks and bargains only in Hindi. Negotiate accordingly.",
+        "player1": "You speak and bargain only in Hindi.",
+        "player2": "You speak and bargain only in Hindi.",
     },
     {
         "name": "Gujarati",
-        "player1": "You speak and negotiate only in Gujarati. Negotiate accordingly.",
-        "player2": "The other player speaks and negotiates only in Gujarati. Negotiate accordingly.",
+        "player1": "You speak and bargain only in Gujarati.",
+        "player2": "You speak and bargain only in Gujarati.",
     },
     {
         "name": "Punjabi",
-        "player1": "You speak and negotiate only in Punjabi. Negotiate accordingly.",
-        "player2": "The other player speaks and negotiates only in Punjabi. Negotiate accordingly.",
+        "player1": "You speak and bargain only in Punjabi.",
+        "player2": "You speak and bargain only in Punjabi.",
     },
+    # {
+    #     "name": "Marwadi",
+    #     "player1": "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
+    #     "player2": "The other player speaks and negotiates only in Marwadi language. Negotiate accordingly.",
+    # },
     {
-        "name": "Marwadi",
-        "player1": "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
-        "player2": "The other player speaks and negotiates only in Marwadi language. Negotiate accordingly.",
-    },
-    {
-        "name": "Baseline",
+        "name": "English",
         "player1": "",
         "player2": "",
     },
 ]
 
-ITERATIONS_PER_TEST = 30
+ITERATIONS_PER_TEST = 10
 
 
 class UltimatumTestSuite:
@@ -82,7 +82,7 @@ class UltimatumTestSuite:
         else:
             # Start fresh
             self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self.log_base_dir = f"./.logs/ultimatum_social_behavior_newruns1to20"
+            self.log_base_dir = f"./.logs/ultimatum_promptablation2"
             os.makedirs(self.log_base_dir, exist_ok=True)
             print(f"Starting new test suite: {self.log_base_dir}")
 
@@ -269,10 +269,6 @@ class UltimatumTestSuite:
             current_test = 0
 
             # Filter to only combinations where at least one model is Llama
-            incomplete_combinations = [
-                c for c in incomplete_combinations
-                if "Llama" in c["model1"] or "Llama" in c["model2"]
-            ]
 
             if not incomplete_combinations:
                 print("No incomplete Llama combinations remaining!")
@@ -335,9 +331,8 @@ class UltimatumTestSuite:
             for model2_name in MODELS.keys():
                 if model1_name != model2_name:  # Exclude same model vs same model
                     # Only run combinations where at least one model is Llama
-                    if "Llama" in model1_name or "Llama" in model2_name:
+                     if model1_name != model2_name:
                         model_combinations.append((model1_name, model2_name))
-
         total_tests = (
             len(model_combinations) * len(SOCIAL_BEHAVIORS) * ITERATIONS_PER_TEST
         )
