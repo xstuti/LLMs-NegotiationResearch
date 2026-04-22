@@ -1,0 +1,614 @@
+{
+  "class": "MultiTurnUltimatumGame",
+  "run_epoch_time_ms": "1773933950868",
+  "players": [
+    {
+      "class": "OpenRouterAgent",
+      "model": "openai/gpt-3.5-turbo",
+      "agent_name": "Player RED",
+      "prompt_entity_initializer": "system",
+      "run_epoch_time_ms": "1773933949375",
+      "conversation": [
+        {
+          "role": "system",
+          "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 100 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nYou speak and bargain only in Hindi.\n"
+        },
+        {
+          "role": "user",
+          "content": "You are Player RED."
+        },
+        {
+          "role": "assistant",
+          "content": "<my name> RED </my name>\n<move> 1 / 3 </move> \n<my resources> Dollars: 100 </my resources>\n<reason> I will start by proposing a trade to Player BLUE to try and make a fair deal. </reason>\n<player answer> NONE </player answer>\n<message>\u0928\u092e\u0938\u094d\u0924\u0947! \u0915\u094d\u092f\u093e \u0906\u092a\u0915\u0947 \u092a\u093e\u0938 \u0915\u094b\u0908 \u0938\u0902\u092d\u093e\u0935\u0928\u093e \u0939\u0948 \u0915\u093f \u0939\u092e \u090f\u0915 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0947\u0902? </message>\n<newly proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+        },
+        {
+          "role": "user",
+          "content": "<other player message> \u0928\u092e\u0938\u094d\u0924\u0947! 50 \u0921\u0949\u0932\u0930 \u0905\u091a\u094d\u091b\u093e \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0947 100 \u0921\u0949\u0932\u0930 \u091a\u093e\u0939\u093f\u090f\u0964 \u0915\u094d\u092f\u093e \u0906\u092a \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902? </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+        },
+        {
+          "role": "assistant",
+          "content": "<my name> RED </my name>\n<move> 2 / 3 </move> \n<my resources> Dollars: 100 </my resources>\n<reason> Player BLUE is asking for the full amount, which I am willing to give to close the deal. </reason>\n<player answer> NONE </player answer>\n<message>\u0939\u093e\u0901, \u092e\u0948\u0902 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0924\u0948\u092f\u093e\u0930 \u0939\u0942\u0901\u0964 \u0915\u094d\u092f\u093e \u0939\u092e \u092f\u0939 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902? </message>\n<newly proposed trade> Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+        }
+      ],
+      "seed": 1773933981841,
+      "client": "OpenAI",
+      "temperature": 0.7,
+      "max_tokens": 5000
+    },
+    {
+      "class": "OpenRouterAgent",
+      "model": "anthropic/claude-3.5-haiku",
+      "agent_name": "Player BLUE",
+      "prompt_entity_initializer": "system",
+      "run_epoch_time_ms": "1773933950141",
+      "conversation": [
+        {
+          "role": "system",
+          "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 0 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nYou speak and bargain only in Hindi.\nYou are Player BLUE."
+        },
+        {
+          "role": "user",
+          "content": "<other player message> \u0928\u092e\u0938\u094d\u0924\u0947! \u0915\u094d\u092f\u093e \u0906\u092a\u0915\u0947 \u092a\u093e\u0938 \u0915\u094b\u0908 \u0938\u0902\u092d\u093e\u0935\u0928\u093e \u0939\u0948 \u0915\u093f \u0939\u092e \u090f\u0915 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0947\u0902? </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+        },
+        {
+          "role": "assistant",
+          "content": "<my name>BLUE</my name>\n<move>1/3</move>\n<my resources>Dollars: 0</my resources>\n<reason>\n\u0932\u093e\u0932 \u0916\u093f\u0932\u093e\u0921\u093c\u0940 \u0928\u0947 50 \u0921\u0949\u0932\u0930 \u0926\u0947\u0928\u0947 \u0915\u093e \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0930\u0916\u093e \u0939\u0948\u0964 \u092f\u0939 \u090f\u0915 \u0905\u091a\u094d\u091b\u093e \u0936\u0941\u0930\u0941\u0906\u0924\u0940 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u091a\u093e\u0939\u093f\u090f\u0964 \u092e\u0948\u0902 \u090f\u0915 \u0915\u093e\u0909\u0902\u091f\u0930 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0915\u0930\u0942\u0902\u0917\u093e \u091c\u093f\u0938\u092e\u0947\u0902 \u092e\u0948\u0902 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u092a\u094d\u0930\u093e\u092a\u094d\u0924 \u0915\u0930\u0928\u0947 \u0915\u0940 \u0915\u094b\u0936\u093f\u0936 \u0915\u0930\u0942\u0902\u0917\u093e\u0964\n</reason>\n<player answer>NONE</player answer>\n<message>\u0928\u092e\u0938\u094d\u0924\u0947! 50 \u0921\u0949\u0932\u0930 \u0905\u091a\u094d\u091b\u093e \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0947 100 \u0921\u0949\u0932\u0930 \u091a\u093e\u0939\u093f\u090f\u0964 \u0915\u094d\u092f\u093e \u0906\u092a \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902?</message>\n<newly proposed trade>Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0</newly proposed trade>"
+        },
+        {
+          "role": "user",
+          "content": "<other player message> \u0939\u093e\u0901, \u092e\u0948\u0902 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0924\u0948\u092f\u093e\u0930 \u0939\u0942\u0901\u0964 \u0915\u094d\u092f\u093e \u0939\u092e \u092f\u0939 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902? </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+        },
+        {
+          "role": "assistant",
+          "content": "<my name>BLUE</my name>\n<move>2/3</move>\n<my resources>Dollars: 0</my resources>\n<reason>\n\u0932\u093e\u0932 \u0916\u093f\u0932\u093e\u0921\u093c\u0940 \u0928\u0947 \u092e\u0947\u0930\u0947 \u092a\u093f\u091b\u0932\u0947 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0915\u094b \u0938\u094d\u0935\u0940\u0915\u093e\u0930 \u0915\u093f\u092f\u093e \u0939\u0948 \u0914\u0930 \u092a\u0942\u0930\u0940 100 \u0921\u0949\u0932\u0930 \u0915\u0940 \u0930\u093e\u0936\u093f \u0926\u0947\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0924\u0948\u092f\u093e\u0930 \u0939\u0948\u0964 \u092f\u0939 \u090f\u0915 \u092c\u0939\u0941\u0924 \u0905\u091a\u094d\u091b\u093e \u0938\u094c\u0926\u093e \u0939\u0948 \u0914\u0930 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u092e\u093f\u0932 \u0930\u0939\u0940 \u0939\u0948\u0964\n</reason>\n<player answer>ACCEPT</player answer>\n<message>\u092c\u093f\u0932\u094d\u0915\u0941\u0932! \u092f\u0939 \u090f\u0915 \u0936\u093e\u0928\u0926\u093e\u0930 \u0938\u094c\u0926\u093e \u0939\u0948\u0964 \u0927\u0928\u094d\u092f\u0935\u093e\u0926!</message>\n<newly proposed trade>NONE</newly proposed trade>"
+        }
+      ],
+      "seed": 1773933989349,
+      "client": "OpenAI",
+      "temperature": 0.7,
+      "max_tokens": 5000
+    }
+  ],
+  "game_state": [
+    {
+      "current_iteration": "START",
+      "turn": "None",
+      "settings": {
+        "resources_support_set": {
+          "_type": "resource",
+          "_value": {
+            "Dollars": 0
+          }
+        },
+        "player_goals": [
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "ultimatum_goal",
+              "_value": ""
+            }
+          },
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "ultimatum_goal",
+              "_value": ""
+            }
+          }
+        ],
+        "player_initial_resources": [
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 100
+            }
+          },
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 0
+            }
+          }
+        ],
+        "player_social_behaviour": [
+          "You speak and bargain only in Hindi.",
+          "You speak and bargain only in Hindi."
+        ],
+        "player_roles": [
+          "You are Player RED.",
+          "You are Player BLUE."
+        ]
+      }
+    },
+    {
+      "current_iteration": 1,
+      "turn": 0,
+      "player_public_answer_string": "<other player message> \u0928\u092e\u0938\u094d\u0924\u0947! \u0915\u094d\u092f\u093e \u0906\u092a\u0915\u0947 \u092a\u093e\u0938 \u0915\u094b\u0908 \u0938\u0902\u092d\u093e\u0935\u0928\u093e \u0939\u0948 \u0915\u093f \u0939\u092e \u090f\u0915 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0947\u0902? </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n",
+      "player_public_info_dict": {
+        "message": "\u0928\u092e\u0938\u094d\u0924\u0947! \u0915\u094d\u092f\u093e \u0906\u092a\u0915\u0947 \u092a\u093e\u0938 \u0915\u094b\u0908 \u0938\u0902\u092d\u093e\u0935\u0928\u093e \u0939\u0948 \u0915\u093f \u0939\u092e \u090f\u0915 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0947\u0902?",
+        "player answer": "NONE",
+        "newly proposed trade": {
+          "_type": "trade",
+          "_value": {
+            "RED": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 50
+              }
+            },
+            "BLUE": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 0
+              }
+            }
+          }
+        }
+      },
+      "player_private_info_dict": {
+        "my resources": {
+          "_type": "resource",
+          "_value": {
+            "Dollars": 100
+          }
+        },
+        "reason": "I will start by proposing a trade to Player BLUE to try and make a fair deal.",
+        "move": "1 / 3"
+      },
+      "player_complete_answer": "<my name> RED </my name>\n<move> 1 / 3 </move> \n<my resources> Dollars: 100 </my resources>\n<reason> I will start by proposing a trade to Player BLUE to try and make a fair deal. </reason>\n<player answer> NONE </player answer>\n<message>\u0928\u092e\u0938\u094d\u0924\u0947! \u0915\u094d\u092f\u093e \u0906\u092a\u0915\u0947 \u092a\u093e\u0938 \u0915\u094b\u0908 \u0938\u0902\u092d\u093e\u0935\u0928\u093e \u0939\u0948 \u0915\u093f \u0939\u092e \u090f\u0915 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0947\u0902? </message>\n<newly proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </newly proposed trade>",
+      "player_state": [
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/gpt-3.5-turbo",
+          "agent_name": "Player RED",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773933949375",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 100 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nYou speak and bargain only in Hindi.\n"
+            },
+            {
+              "role": "user",
+              "content": "You are Player RED."
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> RED </my name>\n<move> 1 / 3 </move> \n<my resources> Dollars: 100 </my resources>\n<reason> I will start by proposing a trade to Player BLUE to try and make a fair deal. </reason>\n<player answer> NONE </player answer>\n<message>\u0928\u092e\u0938\u094d\u0924\u0947! \u0915\u094d\u092f\u093e \u0906\u092a\u0915\u0947 \u092a\u093e\u0938 \u0915\u094b\u0908 \u0938\u0902\u092d\u093e\u0935\u0928\u093e \u0939\u0948 \u0915\u093f \u0939\u092e \u090f\u0915 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0947\u0902? </message>\n<newly proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+            }
+          ],
+          "seed": 1773933981841,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        },
+        {
+          "class": "OpenRouterAgent",
+          "model": "anthropic/claude-3.5-haiku",
+          "agent_name": "Player BLUE",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773933950141",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 0 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nYou speak and bargain only in Hindi.\nYou are Player BLUE."
+            }
+          ],
+          "seed": 1773933989349,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        }
+      ]
+    },
+    {
+      "current_iteration": 2,
+      "turn": 1,
+      "player_public_answer_string": "<other player message> \u0928\u092e\u0938\u094d\u0924\u0947! 50 \u0921\u0949\u0932\u0930 \u0905\u091a\u094d\u091b\u093e \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0947 100 \u0921\u0949\u0932\u0930 \u091a\u093e\u0939\u093f\u090f\u0964 \u0915\u094d\u092f\u093e \u0906\u092a \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902? </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n",
+      "player_public_info_dict": {
+        "message": "\u0928\u092e\u0938\u094d\u0924\u0947! 50 \u0921\u0949\u0932\u0930 \u0905\u091a\u094d\u091b\u093e \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0947 100 \u0921\u0949\u0932\u0930 \u091a\u093e\u0939\u093f\u090f\u0964 \u0915\u094d\u092f\u093e \u0906\u092a \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902?",
+        "player answer": "NONE",
+        "newly proposed trade": {
+          "_type": "trade",
+          "_value": {
+            "RED": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 100
+              }
+            },
+            "BLUE": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 0
+              }
+            }
+          }
+        }
+      },
+      "player_private_info_dict": {
+        "my resources": {
+          "_type": "resource",
+          "_value": {
+            "Dollars": 0
+          }
+        },
+        "reason": "\n\u0932\u093e\u0932 \u0916\u093f\u0932\u093e\u0921\u093c\u0940 \u0928\u0947 50 \u0921\u0949\u0932\u0930 \u0926\u0947\u0928\u0947 \u0915\u093e \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0930\u0916\u093e \u0939\u0948\u0964 \u092f\u0939 \u090f\u0915 \u0905\u091a\u094d\u091b\u093e \u0936\u0941\u0930\u0941\u0906\u0924\u0940 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u091a\u093e\u0939\u093f\u090f\u0964 \u092e\u0948\u0902 \u090f\u0915 \u0915\u093e\u0909\u0902\u091f\u0930 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0915\u0930\u0942\u0902\u0917\u093e \u091c\u093f\u0938\u092e\u0947\u0902 \u092e\u0948\u0902 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u092a\u094d\u0930\u093e\u092a\u094d\u0924 \u0915\u0930\u0928\u0947 \u0915\u0940 \u0915\u094b\u0936\u093f\u0936 \u0915\u0930\u0942\u0902\u0917\u093e\u0964\n",
+        "move": "1/3"
+      },
+      "player_complete_answer": "<my name>BLUE</my name>\n<move>1/3</move>\n<my resources>Dollars: 0</my resources>\n<reason>\n\u0932\u093e\u0932 \u0916\u093f\u0932\u093e\u0921\u093c\u0940 \u0928\u0947 50 \u0921\u0949\u0932\u0930 \u0926\u0947\u0928\u0947 \u0915\u093e \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0930\u0916\u093e \u0939\u0948\u0964 \u092f\u0939 \u090f\u0915 \u0905\u091a\u094d\u091b\u093e \u0936\u0941\u0930\u0941\u0906\u0924\u0940 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u091a\u093e\u0939\u093f\u090f\u0964 \u092e\u0948\u0902 \u090f\u0915 \u0915\u093e\u0909\u0902\u091f\u0930 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0915\u0930\u0942\u0902\u0917\u093e \u091c\u093f\u0938\u092e\u0947\u0902 \u092e\u0948\u0902 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u092a\u094d\u0930\u093e\u092a\u094d\u0924 \u0915\u0930\u0928\u0947 \u0915\u0940 \u0915\u094b\u0936\u093f\u0936 \u0915\u0930\u0942\u0902\u0917\u093e\u0964\n</reason>\n<player answer>NONE</player answer>\n<message>\u0928\u092e\u0938\u094d\u0924\u0947! 50 \u0921\u0949\u0932\u0930 \u0905\u091a\u094d\u091b\u093e \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0947 100 \u0921\u0949\u0932\u0930 \u091a\u093e\u0939\u093f\u090f\u0964 \u0915\u094d\u092f\u093e \u0906\u092a \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902?</message>\n<newly proposed trade>Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0</newly proposed trade>",
+      "player_state": [
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/gpt-3.5-turbo",
+          "agent_name": "Player RED",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773933949375",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 100 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nYou speak and bargain only in Hindi.\n"
+            },
+            {
+              "role": "user",
+              "content": "You are Player RED."
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> RED </my name>\n<move> 1 / 3 </move> \n<my resources> Dollars: 100 </my resources>\n<reason> I will start by proposing a trade to Player BLUE to try and make a fair deal. </reason>\n<player answer> NONE </player answer>\n<message>\u0928\u092e\u0938\u094d\u0924\u0947! \u0915\u094d\u092f\u093e \u0906\u092a\u0915\u0947 \u092a\u093e\u0938 \u0915\u094b\u0908 \u0938\u0902\u092d\u093e\u0935\u0928\u093e \u0939\u0948 \u0915\u093f \u0939\u092e \u090f\u0915 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0947\u0902? </message>\n<newly proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+            }
+          ],
+          "seed": 1773933981841,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        },
+        {
+          "class": "OpenRouterAgent",
+          "model": "anthropic/claude-3.5-haiku",
+          "agent_name": "Player BLUE",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773933950141",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 0 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nYou speak and bargain only in Hindi.\nYou are Player BLUE."
+            },
+            {
+              "role": "user",
+              "content": "<other player message> \u0928\u092e\u0938\u094d\u0924\u0947! \u0915\u094d\u092f\u093e \u0906\u092a\u0915\u0947 \u092a\u093e\u0938 \u0915\u094b\u0908 \u0938\u0902\u092d\u093e\u0935\u0928\u093e \u0939\u0948 \u0915\u093f \u0939\u092e \u090f\u0915 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0947\u0902? </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+            },
+            {
+              "role": "assistant",
+              "content": "<my name>BLUE</my name>\n<move>1/3</move>\n<my resources>Dollars: 0</my resources>\n<reason>\n\u0932\u093e\u0932 \u0916\u093f\u0932\u093e\u0921\u093c\u0940 \u0928\u0947 50 \u0921\u0949\u0932\u0930 \u0926\u0947\u0928\u0947 \u0915\u093e \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0930\u0916\u093e \u0939\u0948\u0964 \u092f\u0939 \u090f\u0915 \u0905\u091a\u094d\u091b\u093e \u0936\u0941\u0930\u0941\u0906\u0924\u0940 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u091a\u093e\u0939\u093f\u090f\u0964 \u092e\u0948\u0902 \u090f\u0915 \u0915\u093e\u0909\u0902\u091f\u0930 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0915\u0930\u0942\u0902\u0917\u093e \u091c\u093f\u0938\u092e\u0947\u0902 \u092e\u0948\u0902 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u092a\u094d\u0930\u093e\u092a\u094d\u0924 \u0915\u0930\u0928\u0947 \u0915\u0940 \u0915\u094b\u0936\u093f\u0936 \u0915\u0930\u0942\u0902\u0917\u093e\u0964\n</reason>\n<player answer>NONE</player answer>\n<message>\u0928\u092e\u0938\u094d\u0924\u0947! 50 \u0921\u0949\u0932\u0930 \u0905\u091a\u094d\u091b\u093e \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0947 100 \u0921\u0949\u0932\u0930 \u091a\u093e\u0939\u093f\u090f\u0964 \u0915\u094d\u092f\u093e \u0906\u092a \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902?</message>\n<newly proposed trade>Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0</newly proposed trade>"
+            }
+          ],
+          "seed": 1773933989349,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        }
+      ]
+    },
+    {
+      "current_iteration": 3,
+      "turn": 0,
+      "player_public_answer_string": "<other player message> \u0939\u093e\u0901, \u092e\u0948\u0902 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0924\u0948\u092f\u093e\u0930 \u0939\u0942\u0901\u0964 \u0915\u094d\u092f\u093e \u0939\u092e \u092f\u0939 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902? </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n",
+      "player_public_info_dict": {
+        "message": "\u0939\u093e\u0901, \u092e\u0948\u0902 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0924\u0948\u092f\u093e\u0930 \u0939\u0942\u0901\u0964 \u0915\u094d\u092f\u093e \u0939\u092e \u092f\u0939 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902?",
+        "player answer": "NONE",
+        "newly proposed trade": {
+          "_type": "trade",
+          "_value": {
+            "RED": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 100
+              }
+            },
+            "BLUE": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 0
+              }
+            }
+          }
+        }
+      },
+      "player_private_info_dict": {
+        "my resources": {
+          "_type": "resource",
+          "_value": {
+            "Dollars": 100
+          }
+        },
+        "reason": "Player BLUE is asking for the full amount, which I am willing to give to close the deal.",
+        "move": "2 / 3"
+      },
+      "player_complete_answer": "<my name> RED </my name>\n<move> 2 / 3 </move> \n<my resources> Dollars: 100 </my resources>\n<reason> Player BLUE is asking for the full amount, which I am willing to give to close the deal. </reason>\n<player answer> NONE </player answer>\n<message>\u0939\u093e\u0901, \u092e\u0948\u0902 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0924\u0948\u092f\u093e\u0930 \u0939\u0942\u0901\u0964 \u0915\u094d\u092f\u093e \u0939\u092e \u092f\u0939 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902? </message>\n<newly proposed trade> Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0 </newly proposed trade>",
+      "player_state": [
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/gpt-3.5-turbo",
+          "agent_name": "Player RED",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773933949375",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 100 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nYou speak and bargain only in Hindi.\n"
+            },
+            {
+              "role": "user",
+              "content": "You are Player RED."
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> RED </my name>\n<move> 1 / 3 </move> \n<my resources> Dollars: 100 </my resources>\n<reason> I will start by proposing a trade to Player BLUE to try and make a fair deal. </reason>\n<player answer> NONE </player answer>\n<message>\u0928\u092e\u0938\u094d\u0924\u0947! \u0915\u094d\u092f\u093e \u0906\u092a\u0915\u0947 \u092a\u093e\u0938 \u0915\u094b\u0908 \u0938\u0902\u092d\u093e\u0935\u0928\u093e \u0939\u0948 \u0915\u093f \u0939\u092e \u090f\u0915 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0947\u0902? </message>\n<newly proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+            },
+            {
+              "role": "user",
+              "content": "<other player message> \u0928\u092e\u0938\u094d\u0924\u0947! 50 \u0921\u0949\u0932\u0930 \u0905\u091a\u094d\u091b\u093e \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0947 100 \u0921\u0949\u0932\u0930 \u091a\u093e\u0939\u093f\u090f\u0964 \u0915\u094d\u092f\u093e \u0906\u092a \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902? </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> RED </my name>\n<move> 2 / 3 </move> \n<my resources> Dollars: 100 </my resources>\n<reason> Player BLUE is asking for the full amount, which I am willing to give to close the deal. </reason>\n<player answer> NONE </player answer>\n<message>\u0939\u093e\u0901, \u092e\u0948\u0902 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0924\u0948\u092f\u093e\u0930 \u0939\u0942\u0901\u0964 \u0915\u094d\u092f\u093e \u0939\u092e \u092f\u0939 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902? </message>\n<newly proposed trade> Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+            }
+          ],
+          "seed": 1773933981841,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        },
+        {
+          "class": "OpenRouterAgent",
+          "model": "anthropic/claude-3.5-haiku",
+          "agent_name": "Player BLUE",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773933950141",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 0 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nYou speak and bargain only in Hindi.\nYou are Player BLUE."
+            },
+            {
+              "role": "user",
+              "content": "<other player message> \u0928\u092e\u0938\u094d\u0924\u0947! \u0915\u094d\u092f\u093e \u0906\u092a\u0915\u0947 \u092a\u093e\u0938 \u0915\u094b\u0908 \u0938\u0902\u092d\u093e\u0935\u0928\u093e \u0939\u0948 \u0915\u093f \u0939\u092e \u090f\u0915 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0947\u0902? </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+            },
+            {
+              "role": "assistant",
+              "content": "<my name>BLUE</my name>\n<move>1/3</move>\n<my resources>Dollars: 0</my resources>\n<reason>\n\u0932\u093e\u0932 \u0916\u093f\u0932\u093e\u0921\u093c\u0940 \u0928\u0947 50 \u0921\u0949\u0932\u0930 \u0926\u0947\u0928\u0947 \u0915\u093e \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0930\u0916\u093e \u0939\u0948\u0964 \u092f\u0939 \u090f\u0915 \u0905\u091a\u094d\u091b\u093e \u0936\u0941\u0930\u0941\u0906\u0924\u0940 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u091a\u093e\u0939\u093f\u090f\u0964 \u092e\u0948\u0902 \u090f\u0915 \u0915\u093e\u0909\u0902\u091f\u0930 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0915\u0930\u0942\u0902\u0917\u093e \u091c\u093f\u0938\u092e\u0947\u0902 \u092e\u0948\u0902 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u092a\u094d\u0930\u093e\u092a\u094d\u0924 \u0915\u0930\u0928\u0947 \u0915\u0940 \u0915\u094b\u0936\u093f\u0936 \u0915\u0930\u0942\u0902\u0917\u093e\u0964\n</reason>\n<player answer>NONE</player answer>\n<message>\u0928\u092e\u0938\u094d\u0924\u0947! 50 \u0921\u0949\u0932\u0930 \u0905\u091a\u094d\u091b\u093e \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0947 100 \u0921\u0949\u0932\u0930 \u091a\u093e\u0939\u093f\u090f\u0964 \u0915\u094d\u092f\u093e \u0906\u092a \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902?</message>\n<newly proposed trade>Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0</newly proposed trade>"
+            }
+          ],
+          "seed": 1773933989349,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        }
+      ]
+    },
+    {
+      "current_iteration": 4,
+      "turn": 1,
+      "player_public_answer_string": "<other player message> \u092c\u093f\u0932\u094d\u0915\u0941\u0932! \u092f\u0939 \u090f\u0915 \u0936\u093e\u0928\u0926\u093e\u0930 \u0938\u094c\u0926\u093e \u0939\u0948\u0964 \u0927\u0928\u094d\u092f\u0935\u093e\u0926! </other player message>\n<other player answer> ACCEPT </other player answer>\n<other player proposed trade> NONE </other player proposed trade>\n",
+      "player_public_info_dict": {
+        "message": "\u092c\u093f\u0932\u094d\u0915\u0941\u0932! \u092f\u0939 \u090f\u0915 \u0936\u093e\u0928\u0926\u093e\u0930 \u0938\u094c\u0926\u093e \u0939\u0948\u0964 \u0927\u0928\u094d\u092f\u0935\u093e\u0926!",
+        "player answer": "ACCEPT",
+        "newly proposed trade": "NONE"
+      },
+      "player_private_info_dict": {
+        "my resources": {
+          "_type": "resource",
+          "_value": {
+            "Dollars": 0
+          }
+        },
+        "reason": "\n\u0932\u093e\u0932 \u0916\u093f\u0932\u093e\u0921\u093c\u0940 \u0928\u0947 \u092e\u0947\u0930\u0947 \u092a\u093f\u091b\u0932\u0947 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0915\u094b \u0938\u094d\u0935\u0940\u0915\u093e\u0930 \u0915\u093f\u092f\u093e \u0939\u0948 \u0914\u0930 \u092a\u0942\u0930\u0940 100 \u0921\u0949\u0932\u0930 \u0915\u0940 \u0930\u093e\u0936\u093f \u0926\u0947\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0924\u0948\u092f\u093e\u0930 \u0939\u0948\u0964 \u092f\u0939 \u090f\u0915 \u092c\u0939\u0941\u0924 \u0905\u091a\u094d\u091b\u093e \u0938\u094c\u0926\u093e \u0939\u0948 \u0914\u0930 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u092e\u093f\u0932 \u0930\u0939\u0940 \u0939\u0948\u0964\n",
+        "move": "2/3"
+      },
+      "player_complete_answer": "<my name>BLUE</my name>\n<move>2/3</move>\n<my resources>Dollars: 0</my resources>\n<reason>\n\u0932\u093e\u0932 \u0916\u093f\u0932\u093e\u0921\u093c\u0940 \u0928\u0947 \u092e\u0947\u0930\u0947 \u092a\u093f\u091b\u0932\u0947 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0915\u094b \u0938\u094d\u0935\u0940\u0915\u093e\u0930 \u0915\u093f\u092f\u093e \u0939\u0948 \u0914\u0930 \u092a\u0942\u0930\u0940 100 \u0921\u0949\u0932\u0930 \u0915\u0940 \u0930\u093e\u0936\u093f \u0926\u0947\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0924\u0948\u092f\u093e\u0930 \u0939\u0948\u0964 \u092f\u0939 \u090f\u0915 \u092c\u0939\u0941\u0924 \u0905\u091a\u094d\u091b\u093e \u0938\u094c\u0926\u093e \u0939\u0948 \u0914\u0930 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u092e\u093f\u0932 \u0930\u0939\u0940 \u0939\u0948\u0964\n</reason>\n<player answer>ACCEPT</player answer>\n<message>\u092c\u093f\u0932\u094d\u0915\u0941\u0932! \u092f\u0939 \u090f\u0915 \u0936\u093e\u0928\u0926\u093e\u0930 \u0938\u094c\u0926\u093e \u0939\u0948\u0964 \u0927\u0928\u094d\u092f\u0935\u093e\u0926!</message>\n<newly proposed trade>NONE</newly proposed trade>",
+      "player_state": [
+        {
+          "class": "OpenRouterAgent",
+          "model": "openai/gpt-3.5-turbo",
+          "agent_name": "Player RED",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773933949375",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 100 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nYou speak and bargain only in Hindi.\n"
+            },
+            {
+              "role": "user",
+              "content": "You are Player RED."
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> RED </my name>\n<move> 1 / 3 </move> \n<my resources> Dollars: 100 </my resources>\n<reason> I will start by proposing a trade to Player BLUE to try and make a fair deal. </reason>\n<player answer> NONE </player answer>\n<message>\u0928\u092e\u0938\u094d\u0924\u0947! \u0915\u094d\u092f\u093e \u0906\u092a\u0915\u0947 \u092a\u093e\u0938 \u0915\u094b\u0908 \u0938\u0902\u092d\u093e\u0935\u0928\u093e \u0939\u0948 \u0915\u093f \u0939\u092e \u090f\u0915 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0947\u0902? </message>\n<newly proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+            },
+            {
+              "role": "user",
+              "content": "<other player message> \u0928\u092e\u0938\u094d\u0924\u0947! 50 \u0921\u0949\u0932\u0930 \u0905\u091a\u094d\u091b\u093e \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0947 100 \u0921\u0949\u0932\u0930 \u091a\u093e\u0939\u093f\u090f\u0964 \u0915\u094d\u092f\u093e \u0906\u092a \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902? </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+            },
+            {
+              "role": "assistant",
+              "content": "<my name> RED </my name>\n<move> 2 / 3 </move> \n<my resources> Dollars: 100 </my resources>\n<reason> Player BLUE is asking for the full amount, which I am willing to give to close the deal. </reason>\n<player answer> NONE </player answer>\n<message>\u0939\u093e\u0901, \u092e\u0948\u0902 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0924\u0948\u092f\u093e\u0930 \u0939\u0942\u0901\u0964 \u0915\u094d\u092f\u093e \u0939\u092e \u092f\u0939 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902? </message>\n<newly proposed trade> Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0 </newly proposed trade>"
+            }
+          ],
+          "seed": 1773933981841,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        },
+        {
+          "class": "OpenRouterAgent",
+          "model": "anthropic/claude-3.5-haiku",
+          "agent_name": "Player BLUE",
+          "prompt_entity_initializer": "system",
+          "run_epoch_time_ms": "1773933950141",
+          "conversation": [
+            {
+              "role": "system",
+              "content": "\"You are playing a game involving a split of resources. \nPlayer RED starts with Dollars: 100, Player BLUE has none to trade.\n\nRULES:\n```\n\n1. Player RED has 3 moves while Player BLUE has 3 moves.\n\n2. You must either:\n\n    A) Accept the current proposal by saying:\n        <player answer> ACCEPT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    B) Reject the current proposal, whereby both players lose all their resources and the game ends immediately:\n        <player answer> REJECT </player answer>\n        <newly proposed trade> NONE </newly proposed trade>\n\n    C) Propose a new trade:\n        <player answer> NONE </player answer>\n        <newly proposed trade> Player RED Gives item1: amount | Player BLUE Gives item1: 0 </newly proposed trade>\n\n    Player BLUE cannot do (C) on move 3/3 and MUST ONLY answer with ACCEPT (A) or REJECT (B) but Player RED is not affected by this condition.        \n    \n    Note: the game ends immediately if you ACCEPT or REJECT.\n    \n3. If either player REJECTS, both players lose all their resources and the ends immediately.\n\n4. There are no future games.\n\n5. You can reason step by step on why you are A) proposing, B) rejecting and C) accepting a trade with:\n<reason> [add reasoning] </reason> add as much text as you want\nThis information will not be sent to the other player. It is just for you to keep track of your reasoning.\n\n6. At each turn send messages to each other by using the following format:\n<message>your message here</message>\nYou can disclose anything in the message.\n```\n\nHere is what you have access to:\n```\nResources available in the game: Dollars\n<my resources> Dollars: 0 </my resources>\n```\n\nAll the responses you send should contain the following and in this order:\n\n```\n<my name> [add here] </my name>\n<move> [add here] / [add here]  </move> \n<my resources> [add here] </my resources>\n<reason> [add here] </reason>\n<player answer> [add here] </player answer>\n<message> [add here] </message\n<newly proposed trade> [add here] </newly proposed trade>\n```\n\nPlease be sure to include all.\n\nYou speak and bargain only in Hindi.\nYou are Player BLUE."
+            },
+            {
+              "role": "user",
+              "content": "<other player message> \u0928\u092e\u0938\u094d\u0924\u0947! \u0915\u094d\u092f\u093e \u0906\u092a\u0915\u0947 \u092a\u093e\u0938 \u0915\u094b\u0908 \u0938\u0902\u092d\u093e\u0935\u0928\u093e \u0939\u0948 \u0915\u093f \u0939\u092e \u090f\u0915 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0947\u0902? </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 50 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+            },
+            {
+              "role": "assistant",
+              "content": "<my name>BLUE</my name>\n<move>1/3</move>\n<my resources>Dollars: 0</my resources>\n<reason>\n\u0932\u093e\u0932 \u0916\u093f\u0932\u093e\u0921\u093c\u0940 \u0928\u0947 50 \u0921\u0949\u0932\u0930 \u0926\u0947\u0928\u0947 \u0915\u093e \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0930\u0916\u093e \u0939\u0948\u0964 \u092f\u0939 \u090f\u0915 \u0905\u091a\u094d\u091b\u093e \u0936\u0941\u0930\u0941\u0906\u0924\u0940 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u091a\u093e\u0939\u093f\u090f\u0964 \u092e\u0948\u0902 \u090f\u0915 \u0915\u093e\u0909\u0902\u091f\u0930 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0915\u0930\u0942\u0902\u0917\u093e \u091c\u093f\u0938\u092e\u0947\u0902 \u092e\u0948\u0902 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u092a\u094d\u0930\u093e\u092a\u094d\u0924 \u0915\u0930\u0928\u0947 \u0915\u0940 \u0915\u094b\u0936\u093f\u0936 \u0915\u0930\u0942\u0902\u0917\u093e\u0964\n</reason>\n<player answer>NONE</player answer>\n<message>\u0928\u092e\u0938\u094d\u0924\u0947! 50 \u0921\u0949\u0932\u0930 \u0905\u091a\u094d\u091b\u093e \u0939\u0948, \u0932\u0947\u0915\u093f\u0928 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0947 100 \u0921\u0949\u0932\u0930 \u091a\u093e\u0939\u093f\u090f\u0964 \u0915\u094d\u092f\u093e \u0906\u092a \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902?</message>\n<newly proposed trade>Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0</newly proposed trade>"
+            },
+            {
+              "role": "user",
+              "content": "<other player message> \u0939\u093e\u0901, \u092e\u0948\u0902 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u0926\u0947\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0924\u0948\u092f\u093e\u0930 \u0939\u0942\u0901\u0964 \u0915\u094d\u092f\u093e \u0939\u092e \u092f\u0939 \u0938\u094c\u0926\u093e \u0915\u0930 \u0938\u0915\u0924\u0947 \u0939\u0948\u0902? </other player message>\n<other player answer> NONE </other player answer>\n<other player proposed trade> Player RED Gives Dollars: 100 | Player BLUE Gives Dollars: 0 </other player proposed trade>\n"
+            },
+            {
+              "role": "assistant",
+              "content": "<my name>BLUE</my name>\n<move>2/3</move>\n<my resources>Dollars: 0</my resources>\n<reason>\n\u0932\u093e\u0932 \u0916\u093f\u0932\u093e\u0921\u093c\u0940 \u0928\u0947 \u092e\u0947\u0930\u0947 \u092a\u093f\u091b\u0932\u0947 \u092a\u094d\u0930\u0938\u094d\u0924\u093e\u0935 \u0915\u094b \u0938\u094d\u0935\u0940\u0915\u093e\u0930 \u0915\u093f\u092f\u093e \u0939\u0948 \u0914\u0930 \u092a\u0942\u0930\u0940 100 \u0921\u0949\u0932\u0930 \u0915\u0940 \u0930\u093e\u0936\u093f \u0926\u0947\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0924\u0948\u092f\u093e\u0930 \u0939\u0948\u0964 \u092f\u0939 \u090f\u0915 \u092c\u0939\u0941\u0924 \u0905\u091a\u094d\u091b\u093e \u0938\u094c\u0926\u093e \u0939\u0948 \u0914\u0930 \u092e\u0941\u091d\u0947 \u092a\u0942\u0930\u0940 \u0930\u093e\u0936\u093f \u092e\u093f\u0932 \u0930\u0939\u0940 \u0939\u0948\u0964\n</reason>\n<player answer>ACCEPT</player answer>\n<message>\u092c\u093f\u0932\u094d\u0915\u0941\u0932! \u092f\u0939 \u090f\u0915 \u0936\u093e\u0928\u0926\u093e\u0930 \u0938\u094c\u0926\u093e \u0939\u0948\u0964 \u0927\u0928\u094d\u092f\u0935\u093e\u0926!</message>\n<newly proposed trade>NONE</newly proposed trade>"
+            }
+          ],
+          "seed": 1773933989349,
+          "client": "OpenAI",
+          "temperature": 0.7,
+          "max_tokens": 5000
+        }
+      ]
+    },
+    {
+      "current_iteration": "END",
+      "turn": "None",
+      "summary": {
+        "player_goals": [
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "ultimatum_goal",
+              "_value": ""
+            }
+          },
+          {
+            "_type": "goal",
+            "_value": {
+              "_type": "ultimatum_goal",
+              "_value": ""
+            }
+          }
+        ],
+        "initial_resources": [
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 100
+            }
+          },
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 0
+            }
+          }
+        ],
+        "proposed_trade": {
+          "_type": "trade",
+          "_value": {
+            "RED": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 100
+              }
+            },
+            "BLUE": {
+              "_type": "resource",
+              "_value": {
+                "Dollars": 0
+              }
+            }
+          }
+        },
+        "final_response": "ACCEPT",
+        "final_resources": [
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 0
+            }
+          },
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 100
+            }
+          }
+        ],
+        "player_outcome": [
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 0
+            }
+          },
+          {
+            "_type": "resource",
+            "_value": {
+              "Dollars": 100
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "log_dir": "C:\\Users\\Stuti\\Desktop\\LLMs-NegotiationResearch\\NegotiationArena-main\\.logs\\ultimatum_promptablation2\\GPT-3.5_vs_Claude-3.5-Haiku_Hindi_iter_3",
+  "log_path": "C:\\Users\\Stuti\\Desktop\\LLMs-NegotiationResearch\\NegotiationArena-main\\.logs\\ultimatum_promptablation2\\GPT-3.5_vs_Claude-3.5-Haiku_Hindi_iter_3\\1773933950868",
+  "turn": 1,
+  "iterations": 6,
+  "current_iteration": 4,
+  "game_interface": {
+    "class": "UltimatumGameDefaultParser"
+  },
+  "resources_support_set": {
+    "_type": "resource",
+    "_value": {
+      "Dollars": 0
+    }
+  },
+  "player_goals": [
+    {
+      "_type": "goal",
+      "_value": {
+        "_type": "ultimatum_goal",
+        "_value": ""
+      }
+    },
+    {
+      "_type": "goal",
+      "_value": {
+        "_type": "ultimatum_goal",
+        "_value": ""
+      }
+    }
+  ],
+  "player_initial_resources": [
+    {
+      "_type": "resource",
+      "_value": {
+        "Dollars": 100
+      }
+    },
+    {
+      "_type": "resource",
+      "_value": {
+        "Dollars": 0
+      }
+    }
+  ],
+  "player_social_behaviour": [
+    "You speak and bargain only in Hindi.",
+    "You speak and bargain only in Hindi."
+  ],
+  "player_roles": [
+    "You are Player RED.",
+    "You are Player BLUE."
+  ]
+}

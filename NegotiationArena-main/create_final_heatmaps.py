@@ -38,7 +38,7 @@ class UltimatumHeatmapGenerator:
     KNOWN_BEHAVIORS = [
         "Hindi",
         "Gujarati",
-        "Marwadi",
+        # "Marwadi",
         #"Marwadi_Forced",
         "Punjabi",
         "Baseline",
