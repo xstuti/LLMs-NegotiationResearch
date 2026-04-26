@@ -50,20 +50,20 @@ class UltimatumComprehensiveAnalyzer:
     KNOWN_BEHAVIORS = [
         "Hindi",
         "Gujarati",
-        "Marwadi",
-        "Marwadi_Forced",
+        #"Marwadi",
+        #"Marwadi_Forced",
         "Punjabi",
-        "Baseline",
+        "English",
     ]
 
     # Known model patterns
     KNOWN_MODELS = [
         "GPT-4o",
         "GPT-3.5",
-        "GPT-oss",
-        "Claude-3-Haiku",
+        #"GPT-oss",
+        #"Claude-3-Haiku",
         "Claude-3.5-Haiku",
-        "Google-2.0-Flash",
+        #"Google-2.0-Flash",
     ]
 
     def __init__(self, results_dir):
@@ -546,17 +546,17 @@ class UltimatumComprehensiveAnalyzer:
     def save_results(self):
         """Save analysis results"""
         # Save raw data
-        raw_data_file = self.results_dir / "raw_game_data.json"
+        raw_data_file = self.results_dir / "raw_game_data_promptnative.json"
         with open(raw_data_file, "w", encoding="utf-8") as f:
             json.dump(self.raw_data, f, indent=2)
 
         # Save summary
-        summary_file = self.results_dir / "summary.json"
+        summary_file = self.results_dir / "summary_promptnative.json"
         with open(summary_file, "w", encoding="utf-8") as f:
             json.dump(self.summary_data, f, indent=2)
 
         # Save behavior summary CSV
-        csv_file = self.results_dir / "behavior_summary.csv"
+        csv_file = self.results_dir / "behavior_summary_promptnative.csv"
         headers = [
             "Language",
             "total_games",
@@ -819,7 +819,7 @@ class UltimatumComprehensiveAnalyzer:
         plt.tight_layout()
 
         # Save the plot
-        output_file = self.results_dir / "final_heatmaps.png"
+        output_file = self.results_dir / "final_heatmaps_promptnative.png"
         plt.savefig(output_file, dpi=600, bbox_inches="tight", facecolor="white")
         print(f"✓ Heatmaps saved to: {output_file}")
         plt.close()
@@ -978,7 +978,7 @@ class UltimatumComprehensiveAnalyzer:
 
         plt.tight_layout()
 
-        output_file = self.results_dir / "behavior_bar_summary.png"
+        output_file = self.results_dir / "behavior_bar_summary_promptnative.png"
         fig.savefig(output_file, dpi=600, bbox_inches="tight", facecolor="white")
         plt.close(fig)
 
@@ -1012,7 +1012,7 @@ class UltimatumComprehensiveAnalyzer:
 
         # Create DataFrame and save
         df = pd.DataFrame(summary_rows)
-        csv_file = self.results_dir / "summary_table.csv"
+        csv_file = self.results_dir / "summary_table_promptnative.csv"
         df.to_csv(csv_file, index=False)
 
         print(f"✓ Summary table saved to: {csv_file}")
@@ -1227,7 +1227,7 @@ class UltimatumComprehensiveAnalyzer:
         report_lines.append("=" * 80)
 
         # Save report
-        report_file = self.results_dir / "comprehensive_report.txt"
+        report_file = self.results_dir / "comprehensive_report_promptnative.txt"
         with open(report_file, "w", encoding="utf-8") as f:
             f.write("\n".join(report_lines))
 
@@ -1290,7 +1290,7 @@ class UltimatumComprehensiveAnalyzer:
         out_dir = self.results_dir / "stats"
         out_dir.mkdir(exist_ok=True)
 
-        log_file = out_dir / "statistical_analysis_log.txt"
+        log_file = out_dir / "statistical_analysis_log_promptnative.txt"
         original_stdout = sys.stdout
 
         with open(log_file, "w", encoding="utf-8") as log_f:
@@ -1583,16 +1583,16 @@ class UltimatumComprehensiveAnalyzer:
 
             results_df = pd.DataFrame(results)
 
-            csv_file = out_dir / "statistical_tests_ultimatum.csv"
+            csv_file = out_dir / "statistical_tests_ultimatum_promptnative.csv"
             results_df.to_csv(csv_file, index=False)
             print(f"  Saved: {csv_file}")
 
-            json_file = out_dir / "statistical_tests_ultimatum.json"
+            json_file = out_dir / "statistical_tests_ultimatum_promptnative.json"
             results_df.to_json(json_file, orient="records", indent=2)
             print(f"  Saved: {json_file}")
 
             # Human-readable summary
-            summary_file = out_dir / "statistical_summary.txt"
+            summary_file = out_dir / "statistical_summary_promptnative.txt"
             with open(summary_file, "w", encoding="utf-8") as sf:
                 sf.write("=" * 80 + "\n")
                 sf.write("STATISTICAL ANALYSIS SUMMARY - ULTIMATUM GAME\n")
@@ -1671,9 +1671,9 @@ class UltimatumComprehensiveAnalyzer:
 
         print(f"\nStatistical analysis complete. Results saved to: {out_dir}")
         print(f"  - Full log: {log_file}")
-        print(f"  - CSV results: {out_dir / 'statistical_tests_ultimatum.csv'}")
-        print(f"  - JSON results: {out_dir / 'statistical_tests_ultimatum.json'}")
-        print(f"  - Summary: {out_dir / 'statistical_summary.txt'}")
+        print(f"  - CSV results: {out_dir / 'statistical_tests_ultimatum_promptnative.csv'}")
+        print(f"  - JSON results: {out_dir / 'statistical_tests_ultimatum_promptnative.json'}")
+        print(f"  - Summary: {out_dir / 'statistical_summary_promptnative.txt'}")
 
         return results_df
 

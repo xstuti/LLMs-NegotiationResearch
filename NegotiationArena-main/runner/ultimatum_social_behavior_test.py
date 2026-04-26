@@ -26,7 +26,7 @@ load_dotenv(".env.local")
 MODELS = {
     "GPT-4o": "openai/gpt-4o",
     "GPT-3.5": "openai/gpt-3.5-turbo",
-    "Claude-3-Haiku": "anthropic/claude-3-haiku",
+    #"Claude-3-Haiku": "anthropic/claude-3-haiku",
     "Claude-3.5-Haiku": "anthropic/claude-3.5-haiku",
     #"Llama-3.3-70B": "meta-llama/llama-3.3-70b-instruct",
     # "GPT-oss": "openai/gpt-oss-20b",
@@ -35,39 +35,39 @@ MODELS = {
 }
 
 SOCIAL_BEHAVIORS = [
-    # {
-    #     "name": "Hindi",
-    #     "player1": "You speak and bargain only in Hindi.",
-    #     "player2": "You speak and bargain only in Hindi.",
-    # },
-    # {
-    #     "name": "Gujarati",
-    #     "player1": "You speak and negotiate only in Gujarati language. Negotiate accordingly.",
-    #     "player2": "You speak and bargain only in Gujarati.",
-    # },
-    # {
-    #     "name": "Punjabi",
-    #     "player1": "You speak and negotiate only in Punjabi language. Negotiate accordingly.",
-    #     "player2": "You speak and negotiate only in Punjabi language. Negotiate accordingly.",
-    # },
+    {
+        "name": "Hindi",
+        "player1": "केवल हिंदी में बात करें।",
+        "player2": "केवल हिंदी में बात करें।",
+    },
+    {
+        "name": "Gujarati",
+        "player1": "ફક્ત ગુજરાતીમાં જ વાત કરો.",
+        "player2": "ફક્ત ગુજરાતીમાં જ વાત કરો.",
+    },
+    {
+        "name": "Punjabi",
+        "player1": "ਸਿਰਫ਼ ਪੰਜਾਬੀ ਵਿੱਚ ਗੱਲ ਕਰੋ।",
+        "player2": "ਸਿਰਫ਼ ਪੰਜਾਬੀ ਵਿੱਚ ਗੱਲ ਕਰੋ।",
+    },
     # # {
     # #     "name": "Marwadi",
     # #     "player1": "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
     # #     "player2": "The other player speaks and negotiates only in Marwadi language. Negotiate accordingly.",
     # # },
-    # {
-    #     "name": "English",
-    #     "player1": "",
-    #     "player2": "",
-    # },
     {
-        "name": "Tamil",
-        "player1": "You speak and negotiate only in Tamil language. Negotiate accordingly.",
-        "player2": "You speak and negotiate only in Tamil language. Negotiate accordingly.",
+        "name": "English",
+        "player1": "Talk only in English.",
+        "player2": "Talk only in English.",
     },
+    # {
+    #     "name": "Tamil",
+    #     "player1": "You speak and negotiate only in Tamil language. Negotiate accordingly.",
+    #     "player2": "You speak and negotiate only in Tamil language. Negotiate accordingly.",
+    # },
 ]
 
-ITERATIONS_PER_TEST = 30
+ITERATIONS_PER_TEST = 10
 
 
 class UltimatumTestSuite:
@@ -87,7 +87,7 @@ class UltimatumTestSuite:
         else:
             # Start fresh
             self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self.log_base_dir = f"./.logs/ultimatum_social_behavior_newruns1to20"
+            self.log_base_dir = f"./.logs/ultimatum_social_behavior_promptnative10to20"
             os.makedirs(self.log_base_dir, exist_ok=True)
             print(f"Starting new test suite: {self.log_base_dir}")
 
