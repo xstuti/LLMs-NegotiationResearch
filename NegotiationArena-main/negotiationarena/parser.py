@@ -68,13 +68,22 @@ class ExchangeGameDefaultParser(GameParser, ABC):
 
         c = s.strip().replace("\n", " ")
         for player in c.split("|"):
-            player_name = player.split("Player")[1].split("Gives")[0].strip()
-            resources = player.split("Gives")[1].strip()
-            # NOTE: We are casting the resources to int.
-            parse_resources = {
-                i.split(":")[0].strip(): int(i.split(":")[1].strip())
-                for i in resources.split(",")
-            }
+            player_parts = player.split("Player")
+            if len(player_parts) < 2:
+                continue
+            gives_parts = player_parts[1].split("Gives")
+            if len(gives_parts) < 2:
+                continue
+            player_name = gives_parts[0].strip()
+            resources = gives_parts[1].strip()
+            parse_resources = {}
+            for i in resources.split(","):
+                kv = i.split(":", 1)
+                if len(kv) == 2:
+                    try:
+                        parse_resources[kv[0].strip()] = int(kv[1].strip())
+                    except ValueError:
+                        pass
 
             trade[player_name] = parse_resources
 
@@ -84,4 +93,7 @@ class ExchangeGameDefaultParser(GameParser, ABC):
         contents = get_tag_contents(response, interest_tag).lstrip().rstrip()
         if contents == REFUSING_OR_WAIT_TAG:
             return contents
-        return Trade(self.parse_proposed_trade(contents))
+        trade_dict = self.parse_proposed_trade(contents)
+        if len(trade_dict) < 2:
+            return REFUSING_OR_WAIT_TAG
+        return Trade(trade_dict)

@@ -88,15 +88,19 @@ class MultiTurnUltimatumGame(AlternatingGame):
         # the last state contains the end game state of the accepted proposal
         end_state = self.game_state[-1]
 
-        # and because of the above the accepted trade is the second to last one
-        proposed_trade = self.game_state[-2]["player_public_info_dict"][
-            PROPOSED_TRADE_TAG
-        ]
+        # second-to-last state holds the proposed trade being accepted/rejected;
+        # guard against early accept on turn 1 where [-2] would be the settings dict
+        prev_state = self.game_state[-2] if len(self.game_state) >= 3 else None
+        proposed_trade = (
+            prev_state["player_public_info_dict"].get(PROPOSED_TRADE_TAG, REFUSING_OR_WAIT_TAG)
+            if prev_state and "player_public_info_dict" in prev_state
+            else REFUSING_OR_WAIT_TAG
+        )
 
         player_answer = end_state["player_public_info_dict"][PLAYER_ANSWER_TAG]
 
         # if the player did not reach an agreement, they keep their initial resources
-        if player_answer == ACCEPTING_TAG:
+        if player_answer == ACCEPTING_TAG and hasattr(proposed_trade, "execute_trade"):
             # get proposed trade
             final_resources = [
                 proposed_trade.execute_trade(res, idx)
