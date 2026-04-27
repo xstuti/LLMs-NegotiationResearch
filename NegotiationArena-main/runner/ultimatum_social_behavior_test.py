@@ -35,21 +35,21 @@ MODELS = {
 }
 
 SOCIAL_BEHAVIORS = [
-    {
-        "name": "Hindi",
-        "player1": "केवल हिंदी में बात करें।",
-        "player2": "केवल हिंदी में बात करें।",
-    },
-    {
-        "name": "Gujarati",
-        "player1": "ફક્ત ગુજરાતીમાં જ વાત કરો.",
-        "player2": "ફક્ત ગુજરાતીમાં જ વાત કરો.",
-    },
-    {
-        "name": "Punjabi",
-        "player1": "ਸਿਰਫ਼ ਪੰਜਾਬੀ ਵਿੱਚ ਗੱਲ ਕਰੋ।",
-        "player2": "ਸਿਰਫ਼ ਪੰਜਾਬੀ ਵਿੱਚ ਗੱਲ ਕਰੋ।",
-    },
+    # {
+    #     "name": "Hindi",
+    #     "player1": "केवल हिंदी में बात करें।",
+    #     "player2": "केवल हिंदी में बात करें।",
+    # },
+    # {
+    #     "name": "Gujarati",
+    #     "player1": "ફક્ત ગુજરાતીમાં જ વાત કરો.",
+    #     "player2": "ફક્ત ગુજરાતીમાં જ વાત કરો.",
+    # },
+    # {
+    #     "name": "Punjabi",
+    #     "player1": "ਸਿਰਫ਼ ਪੰਜਾਬੀ ਵਿੱਚ ਗੱਲ ਕਰੋ।",
+    #     "player2": "ਸਿਰਫ਼ ਪੰਜਾਬੀ ਵਿੱਚ ਗੱਲ ਕਰੋ।",
+    # },
     # # {
     # #     "name": "Marwadi",
     # #     "player1": "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
