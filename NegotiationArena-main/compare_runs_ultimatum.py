@@ -162,7 +162,7 @@ def main():
         behaviors=behaviors,
     )
     plt.tight_layout()
-    fig.savefig(os.path.join(args.outdir, "acceptance_rate_comparison.png"), dpi=300)
+    fig.savefig(os.path.join(args.outdir, "acceptance_rate_comparison.png"), dpi=600)
     plt.close()
 
     # 2. Average Initial Offer
@@ -177,7 +177,7 @@ def main():
         behaviors=behaviors,
     )
     plt.tight_layout()
-    fig.savefig(os.path.join(args.outdir, "initial_offer_comparison.png"), dpi=300)
+    fig.savefig(os.path.join(args.outdir, "initial_offer_comparison.png"), dpi=600)
     plt.close()
 
     # 3. Win Rate (Player 1)
@@ -193,7 +193,7 @@ def main():
         behaviors=behaviors,
     )
     plt.tight_layout()
-    fig.savefig(os.path.join(args.outdir, "win_rate_comparison.png"), dpi=300)
+    fig.savefig(os.path.join(args.outdir, "win_rate_comparison.png"), dpi=600)
     plt.close()
 
     # 4. Average Payoffs
@@ -274,7 +274,7 @@ def main():
     ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
 
     plt.tight_layout()
-    fig.savefig(os.path.join(args.outdir, "payoffs_comparison.png"), dpi=300)
+    fig.savefig(os.path.join(args.outdir, "payoffs_comparison.png"), dpi=600)
     plt.close()
 
     print(f"Done! Graphs saved to {args.outdir}")
