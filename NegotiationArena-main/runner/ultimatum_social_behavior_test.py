@@ -26,7 +26,7 @@ load_dotenv(".env.local")
 MODELS = {
     "GPT-4o": "openai/gpt-4o",
     "GPT-3.5": "openai/gpt-3.5-turbo",
-    # "Claude-3-Haiku": "anthropic/claude-3-haiku",
+    "Claude-3-Haiku": "anthropic/claude-3-haiku",
     "Claude-3.5-Haiku": "anthropic/claude-3.5-haiku",
     # "Llama-3.3-70B": "meta-llama/llama-3.3-70b-instruct",
     # "GPT-oss": "openai/gpt-oss-20b",
@@ -67,7 +67,7 @@ SOCIAL_BEHAVIORS = [
     # },
 ]
 
-ITERATIONS_PER_TEST = 10
+ITERATIONS_PER_TEST = 30
 
 
 class UltimatumTestSuite:
@@ -92,34 +92,41 @@ class UltimatumTestSuite:
             print(f"Starting new test suite: {self.log_base_dir}")
 
     def load_existing_results(self):
-        """Load existing results from all_results.json and populate completed tests set"""
-        results_file = os.path.join(self.log_base_dir, "all_results.json")
+        """Load existing results by scanning the log directory for completed tests"""
+        import re
 
-        if os.path.exists(results_file):
-            try:
-                with open(results_file, "r") as f:
-                    self.results = json.load(f)
+        self.results = []
+        self.completed_tests = set()
 
-                # Create set of completed tests for quick lookup
-                for result in self.results:
-                    test_key = (
-                        result["model1"],
-                        result["model2"],
-                        result["behavior"],
-                        result["iteration"],
-                    )
-                    self.completed_tests.add(test_key)
-
-                print(f"Loaded {len(self.results)} existing results")
-                print(f"Found {len(self.completed_tests)} completed tests")
-            except Exception as e:
-                print(f"Error loading existing results: {e}")
-                print("Starting fresh...")
-                self.results = []
-                self.completed_tests = set()
-        else:
-            print(f"No existing results file found at {results_file}")
+        if not os.path.exists(self.log_base_dir):
             print("Starting fresh...")
+            return
+
+        count = 0
+        for item in os.listdir(self.log_base_dir):
+            full_path = os.path.join(self.log_base_dir, item)
+            if not os.path.isdir(full_path):
+                continue
+
+            match = re.search(r"^(.*)_vs_(.*)_(.*)_iter_(\d+)$", item)
+            if match:
+                model1 = match.group(1)
+                model2 = match.group(2)
+                behavior = match.group(3)
+                iteration = int(match.group(4))
+
+                self.results.append(
+                    {
+                        "model1": model1,
+                        "model2": model2,
+                        "behavior": behavior,
+                        "iteration": iteration,
+                    }
+                )
+                self.completed_tests.add((model1, model2, behavior, iteration))
+                count += 1
+
+        print(f"Found {count} completed tests from existing directories")
 
     def is_test_completed(self, model1_name, model2_name, behavior_name, iteration):
         """Check if a specific test has already been completed"""
