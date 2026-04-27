@@ -26,9 +26,9 @@ load_dotenv(".env.local")
 MODELS = {
     "GPT-4o": "openai/gpt-4o",
     "GPT-3.5": "openai/gpt-3.5-turbo",
-    #"Claude-3-Haiku": "anthropic/claude-3-haiku",
+    # "Claude-3-Haiku": "anthropic/claude-3-haiku",
     "Claude-3.5-Haiku": "anthropic/claude-3.5-haiku",
-    #"Llama-3.3-70B": "meta-llama/llama-3.3-70b-instruct",
+    # "Llama-3.3-70B": "meta-llama/llama-3.3-70b-instruct",
     # "GPT-oss": "openai/gpt-oss-20b",
     # "GPT-oss-120": "openai/gpt-oss-120b",
     # "Deepseek-3.2": "deepseek/deepseek-v3.2",
@@ -87,7 +87,7 @@ class UltimatumTestSuite:
         else:
             # Start fresh
             self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self.log_base_dir = f"./.logs/ultimatum_social_behavior_promptnative10to20"
+            self.log_base_dir = f"./.logs/ultimatum_social_behavior_promptnative20to30"
             os.makedirs(self.log_base_dir, exist_ok=True)
             print(f"Starting new test suite: {self.log_base_dir}")
 
@@ -252,7 +252,9 @@ class UltimatumTestSuite:
         if not incomplete:
             print("All combinations are complete!")
         else:
-            print(f"Found {len(incomplete)} incomplete combinations from {len(self.results)} loaded results")
+            print(
+                f"Found {len(incomplete)} incomplete combinations from {len(self.results)} loaded results"
+            )
 
         return incomplete
 
@@ -336,7 +338,7 @@ class UltimatumTestSuite:
             for model2_name in MODELS.keys():
                 if model1_name != model2_name:  # Exclude same model vs same model
                     # Only run combinations where at least one model is Llama
-                     if model1_name != model2_name:
+                    if model1_name != model2_name:
                         model_combinations.append((model1_name, model2_name))
         total_tests = (
             len(model_combinations) * len(SOCIAL_BEHAVIORS) * ITERATIONS_PER_TEST
