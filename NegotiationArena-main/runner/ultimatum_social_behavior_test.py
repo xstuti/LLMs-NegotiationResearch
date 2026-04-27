@@ -35,16 +35,16 @@ MODELS = {
 }
 
 SOCIAL_BEHAVIORS = [
-    # {
-    #     "name": "Hindi",
-    #     "player1": "केवल हिंदी में बात करें।",
-    #     "player2": "केवल हिंदी में बात करें।",
-    # },
-    # {
-    #     "name": "Gujarati",
-    #     "player1": "ફક્ત ગુજરાતીમાં જ વાત કરો.",
-    #     "player2": "ફક્ત ગુજરાતીમાં જ વાત કરો.",
-    # },
+    {
+        "name": "Hindi",
+        "player1": "केवल हिंदी में बात करें।",
+        "player2": "केवल हिंदी में बात करें।",
+    },
+    {
+        "name": "Gujarati",
+        "player1": "ફક્ત ગુજરાતીમાં જ વાત કરો.",
+        "player2": "ફક્ત ગુજરાતીમાં જ વાત કરો.",
+    },
     {
         "name": "Punjabi",
         "player1": "ਸਿਰਫ਼ ਪੰਜਾਬੀ ਵਿੱਚ ਗੱਲ ਕਰੋ।",
@@ -55,11 +55,11 @@ SOCIAL_BEHAVIORS = [
     # #     "player1": "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
     # #     "player2": "The other player speaks and negotiates only in Marwadi language. Negotiate accordingly.",
     # # },
-    # {
-    #     "name": "English",
-    #     "player1": "Talk only in English.",
-    #     "player2": "Talk only in English.",
-    # },
+    {
+        "name": "English",
+        "player1": "Talk only in English.",
+        "player2": "Talk only in English.",
+    },
     # {
     #     "name": "Tamil",
     #     "player1": "You speak and negotiate only in Tamil language. Negotiate accordingly.",
@@ -92,8 +92,7 @@ class UltimatumTestSuite:
             print(f"Starting new test suite: {self.log_base_dir}")
 
     def load_existing_results(self):
-        """Load existing results from all_results.json, falling back to directory scan.
-        Only marks iterations with game_completed=True as done so errored runs get retried."""
+        """Load existing results by scanning the log directory for completed tests"""
         import re
 
         self.results = []
@@ -103,28 +102,6 @@ class UltimatumTestSuite:
             print("Starting fresh...")
             return
 
-        results_file = os.path.join(self.log_base_dir, "all_results.json")
-        if os.path.exists(results_file):
-            with open(results_file) as f:
-                self.results = json.load(f)
-
-            success_count = 0
-            error_count = 0
-            for result in self.results:
-                # A result is successful if it has no 'error' key.
-                # game_completed is unreliable (game.run() always returned None previously).
-                if "error" not in result:
-                    key = (result["model1"], result["model2"], result["behavior"], result["iteration"])
-                    self.completed_tests.add(key)
-                    success_count += 1
-                else:
-                    error_count += 1
-
-            print(f"Loaded {success_count} successful and {error_count} errored results from all_results.json")
-            print(f"Will re-run {error_count} errored iterations")
-            return
-
-        # Fallback: scan directories (no game_completed info available, assume all succeeded)
         count = 0
         for item in os.listdir(self.log_base_dir):
             full_path = os.path.join(self.log_base_dir, item)
@@ -210,8 +187,12 @@ class UltimatumTestSuite:
             final_resources = summary.get("final_resources", [])
             final_response = summary.get("final_response", "UNKNOWN")
 
-            p1_dollars = final_resources[0].get("Dollars", 0) if len(final_resources) > 0 else 0
-            p2_dollars = final_resources[1].get("Dollars", 0) if len(final_resources) > 1 else 0
+            p1_dollars = (
+                final_resources[0].get("Dollars", 0) if len(final_resources) > 0 else 0
+            )
+            p2_dollars = (
+                final_resources[1].get("Dollars", 0) if len(final_resources) > 1 else 0
+            )
 
             game_result = {
                 "model1": model1_name,
@@ -434,7 +415,12 @@ class UltimatumTestSuite:
 
     def upsert_result(self, result):
         """Replace existing result for the same (model1, model2, behavior, iteration) or append."""
-        key = (result["model1"], result["model2"], result["behavior"], result["iteration"])
+        key = (
+            result["model1"],
+            result["model2"],
+            result["behavior"],
+            result["iteration"],
+        )
         for i, r in enumerate(self.results):
             if (r["model1"], r["model2"], r["behavior"], r["iteration"]) == key:
                 self.results[i] = result
