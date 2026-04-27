@@ -55,11 +55,11 @@ SOCIAL_BEHAVIORS = [
     # #     "player1": "You speak and negotiate only in Marwadi language. Negotiate accordingly.",
     # #     "player2": "The other player speaks and negotiates only in Marwadi language. Negotiate accordingly.",
     # # },
-    {
-        "name": "English",
-        "player1": "Talk only in English.",
-        "player2": "Talk only in English.",
-    },
+    # {
+    #     "name": "English",
+    #     "player1": "Talk only in English.",
+    #     "player2": "Talk only in English.",
+    # },
     # {
     #     "name": "Tamil",
     #     "player1": "You speak and negotiate only in Tamil language. Negotiate accordingly.",
