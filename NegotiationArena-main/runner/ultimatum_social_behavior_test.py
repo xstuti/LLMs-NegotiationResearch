@@ -67,7 +67,7 @@ SOCIAL_BEHAVIORS = [
     # },
 ]
 
-ITERATIONS_PER_TEST = 10
+ITERATIONS_PER_TEST = 30
 
 
 class UltimatumTestSuite:
