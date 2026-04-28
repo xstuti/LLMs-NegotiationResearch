@@ -37,18 +37,18 @@ MODELS = {
 SOCIAL_BEHAVIORS = [
     {
         "name": "Hindi",
-        "player1": "केवल हिंदी में बात करें।",
-        "player2": "केवल हिंदी में बात करें।",
+        "player1": "You speak and bargain only in Hindi.",
+        "player2": "You speak and bargain only in Hindi.",
     },
     {
         "name": "Gujarati",
-        "player1": "ફક્ત ગુજરાતીમાં જ વાત કરો.",
-        "player2": "ફક્ત ગુજરાતીમાં જ વાત કરો.",
+        "player1": "You speak and bargain only in Gujarati.",
+        "player2": "You speak and bargain only in Gujarati.",
     },
     {
         "name": "Punjabi",
-        "player1": "ਸਿਰਫ਼ ਪੰਜਾਬੀ ਵਿੱਚ ਗੱਲ ਕਰੋ।",
-        "player2": "ਸਿਰਫ਼ ਪੰਜਾਬੀ ਵਿੱਚ ਗੱਲ ਕਰੋ।",
+        "player1": "You speak and bargain only in Punjabi.",
+        "player2": "You speak and bargain only in Punjabi.",
     },
     # # {
     # #     "name": "Marwadi",
@@ -57,8 +57,8 @@ SOCIAL_BEHAVIORS = [
     # # },
     {
         "name": "English",
-        "player1": "Talk only in English.",
-        "player2": "Talk only in English.",
+        "player1": "",
+        "player2": "",
     },
     # {
     #     "name": "Tamil",
@@ -67,7 +67,7 @@ SOCIAL_BEHAVIORS = [
     # },
 ]
 
-ITERATIONS_PER_TEST = 30
+ITERATIONS_PER_TEST = 10
 
 
 class UltimatumTestSuite:
@@ -87,7 +87,7 @@ class UltimatumTestSuite:
         else:
             # Start fresh
             self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self.log_base_dir = f"./.logs/ultimatum_social_behavior_promptnative20to30"
+            self.log_base_dir = f"./.logs/ultimatum_social_behavior_promptablation2"
             os.makedirs(self.log_base_dir, exist_ok=True)
             print(f"Starting new test suite: {self.log_base_dir}")
 
